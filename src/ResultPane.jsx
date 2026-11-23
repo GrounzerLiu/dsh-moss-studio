@@ -1,4 +1,5 @@
 import React from 'react'
+import { t } from './i18n.js'
 import { Icon } from './icons.jsx'
 import { imageUrl } from './api.js'
 import { downloadName } from './format.js'
@@ -52,18 +53,18 @@ export function ResultPane({
   const actions = (
     <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
       {activeRecord?.status === 'failed' ? (
-        <button type="button" style={iconOnly} title="用这条记录的参数重试" aria-label="重试" onClick={() => onRetry?.(activeRecord)}>
+        <button type="button" style={iconOnly} title={t('用这条记录的参数重试')} aria-label={t('重试')} onClick={() => onRetry?.(activeRecord)}>
           <Icon name="refresh" size={14} />
         </button>
       ) : null}
-      <button type="button" style={iconOnly} title="把这条记录的参数载入草稿" aria-label="载入参数" disabled={activeRecord === null} onClick={onLoad}>
+      <button type="button" style={iconOnly} title={t('把这条记录的参数载入草稿')} aria-label={t('载入参数')} disabled={activeRecord === null} onClick={onLoad}>
         <Icon name="settings_backup_restore" size={14} />
       </button>
       <button
         type="button"
         style={iconDanger}
-        title="删除选中的记录"
-        aria-label="删除选中记录"
+        title={t('删除选中的记录')}
+        aria-label={t('删除选中记录')}
         disabled={activeRecordId === null}
         onClick={onRemove}
       >
@@ -73,8 +74,8 @@ export function ResultPane({
         <a
           href={imageUrl(shownRecordId)}
           download={downloadName(shownRecordId, activeRecord?.prompt ?? '')}
-          title="下载图片"
-          aria-label="下载"
+          title={t('下载图片')}
+          aria-label={t('下载')}
           style={{ ...iconOnly, textDecoration: 'none' }}
         >
           <Icon name="download" size={14} />
@@ -102,21 +103,21 @@ export function ResultPane({
       {shownRecordId !== null && shownHasImage && !imageBroken ? (
         <img
           src={imageUrl(shownRecordId)}
-          alt="生成结果"
+          alt={t('生成结果')}
           onError={onImageError}
           style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
         />
       ) : shownRunning ? (
         <span style={{ fontSize: 12, ...dim }}>正在生成…（{shownRecordId.slice(-4)}）</span>
       ) : (
-        <span style={{ fontSize: 11, ...dim }}>{imageBroken ? '图片加载失败，点「下载」重试或重新生成' : '结果会显示在这里'}</span>
+        <span style={{ fontSize: 11, ...dim }}>{imageBroken ? t('图片加载失败，点「下载」重试或重新生成') : t('结果会显示在这里')}</span>
       )}
     </div>
   )
 
   const metaLine = (
     <span style={{ fontSize: 11, ...dim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {activeRecord?.id ?? '未选中记录'}
+      {activeRecord?.id ?? t('未选中记录')}
       {meta !== null ? ` · ${meta.width}×${meta.height} · ${meta.seconds}s · seed ${activeRecord?.params?.seed}` : ''}
     </span>
   )
@@ -139,7 +140,7 @@ export function ResultPane({
     <div style={{ display: 'flex', height: '100%', minHeight: 0, gap: 8, padding: 8 }}>
       {image}
       <div style={{ width: 168, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11 }}>
-        <span style={{ ...dim }}>{activeRecord?.id ?? '未选中记录'}</span>
+        <span style={{ ...dim }}>{activeRecord?.id ?? t('未选中记录')}</span>
         {meta !== null ? (
           <span style={{ ...dim }}>
             {meta.width}×{meta.height} · {meta.seconds}s · seed {activeRecord?.params?.seed}

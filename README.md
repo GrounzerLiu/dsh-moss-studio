@@ -38,6 +38,13 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 - Settings also hold the history retention cap (0 = unlimited; pinned and running records are never pruned) and the defaults for new drafts (size, steps, CFG, negative prompt).
 - Layout choices — result height, collapsed state, history column width — are remembered per browser.
 
+## Languages
+
+The panel ships Chinese and English copy. Chinese text is the lookup key in
+`src/i18n.js`, so an untranslated string still renders; `test/i18n.test.js`
+fails when a used key has no English entry. Host-side validation messages are
+still Chinese.
+
 ## Build the client bundle
 
 ```bash

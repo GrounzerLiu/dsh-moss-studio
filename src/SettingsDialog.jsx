@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { t } from './i18n.js'
 import { fetchSettings, saveSettings } from './api.js'
 import { Icon } from './icons.jsx'
 import { ScopeStyles } from './ScopeStyles.jsx'
@@ -109,10 +110,10 @@ export function SettingsDialog({ onClose, onSaved }) {
       if (result.status === 200) {
         const next = result.body?.settings ?? {}
         setComfyUrl(next.comfyUrl ?? comfyUrl)
-        setNotice('已保存，下一次生成与新草稿就用新设置')
+        setNotice(t('已保存，下一次生成与新草稿就用新设置'))
         onSaved?.(next.comfyUrl ?? comfyUrl)
       } else {
-        setError(result.body?.message ?? `保存失败（${result.status}）`)
+        setError(result.body?.message ?? t('保存失败（{status}）', { status: result.status }))
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
@@ -156,17 +157,17 @@ export function SettingsDialog({ onClose, onSaved }) {
         }}
       >
         <div style={{ ...row, justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
-          <span id={titleId} style={{ fontSize: 13 }}>Moss studio 设置</span>
-          <button type="button" style={{ ...button, padding: 4, border: 'none', background: 'transparent' }} aria-label="关闭设置" title="关闭" onClick={onClose}>
+          <span id={titleId} style={{ fontSize: 13 }}>{t('Moss studio 设置')}</span>
+          <button type="button" style={{ ...button, padding: 4, border: 'none', background: 'transparent' }} aria-label={t('关闭设置')} title={t('关闭')} onClick={onClose}>
             <Icon name="close" size={16} />
           </button>
         </div>
 
         <div style={{ padding: '10px 12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {loading ? <div style={{ ...dim }}>读取中…</div> : null}
+          {loading ? <div style={{ ...dim }}>{t('读取中…')}</div> : null}
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ ...dim, fontSize: 11 }}>ComfyUI 地址</span>
+            <span style={{ ...dim, fontSize: 11 }}>{t('ComfyUI 地址')}</span>
             <input
               ref={urlRef}
               value={comfyUrl}
@@ -174,18 +175,18 @@ export function SettingsDialog({ onClose, onSaved }) {
               onKeyDown={(event) => { if (event.key === 'Enter') void save() }}
               disabled={!editable || saving}
               placeholder="http://127.0.0.1:8188"
-              aria-label="ComfyUI 地址"
+              aria-label={t('ComfyUI 地址')}
               style={{ ...input, flex: '0 0 auto', alignSelf: 'stretch', height: 30 }}
             />
             <span style={{ ...dim, fontSize: 11 }}>
               {editable
-                ? '保存后立即生效，下一次生成就用新地址；值会写进 profile 的 cordis.patch.yml。'
-                : '当前 profile 没有配置编辑器，这一项只能改 cordis.patch.yml 后重启。'}
+                ? t('保存后立即生效，下一次生成就用新地址；值会写进 profile 的 cordis.patch.yml。')
+                : t('当前 profile 没有配置编辑器，这一项只能改 cordis.patch.yml 后重启。')}
             </span>
           </label>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ ...dim, fontSize: 11 }}>历史保留条数（0 = 不限制）</span>
+            <span style={{ ...dim, fontSize: 11 }}>{t('历史保留条数（0 = 不限制）')}</span>
             <input
               type="number"
               min={0}
@@ -193,27 +194,27 @@ export function SettingsDialog({ onClose, onSaved }) {
               value={retention}
               onChange={(event) => { setRetention(event.target.value); setNotice('') }}
               disabled={!editable || saving}
-              aria-label="历史保留条数"
+              aria-label={t('历史保留条数')}
               style={{ ...input, flex: '0 0 auto', alignSelf: 'flex-start', width: 120, height: 28 }}
             />
-            <span style={{ ...dim, fontSize: 11 }}>超出时删最旧的；置顶与正在生成的记录不会被删。</span>
+            <span style={{ ...dim, fontSize: 11 }}>{t('超出时删最旧的；置顶与正在生成的记录不会被删。')}</span>
           </label>
 
           <div style={{ borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 11, ...dim }}>新草稿默认值（不影响已有草稿）</span>
+            <span style={{ fontSize: 11, ...dim }}>{t('新草稿默认值（不影响已有草稿）')}</span>
             <div style={{ ...row, gap: 6 }}>
-              <span style={{ ...dim, fontSize: 11, minWidth: 56 }}>尺寸</span>
+              <span style={{ ...dim, fontSize: 11, minWidth: 56 }}>{t('尺寸')}</span>
               <input
                 value={defaults.size}
                 onChange={(event) => setDefaults((current) => ({ ...current, size: event.target.value }))}
                 disabled={!editable || saving}
-                aria-label="默认尺寸"
+                aria-label={t('默认尺寸')}
                 style={{ ...input, flex: '0 0 120px', width: 120 }}
               />
-              <span style={{ ...dim, fontSize: 11 }}>如 1024x1024</span>
+              <span style={{ ...dim, fontSize: 11 }}>{t('如 1024x1024')}</span>
             </div>
             <div style={{ ...row, gap: 6 }}>
-              <span style={{ ...dim, fontSize: 11, minWidth: 56 }}>步数</span>
+              <span style={{ ...dim, fontSize: 11, minWidth: 56 }}>{t('步数')}</span>
               <input
                 type="number"
                 min={1}
@@ -221,7 +222,7 @@ export function SettingsDialog({ onClose, onSaved }) {
                 value={defaults.steps}
                 onChange={(event) => setDefaults((current) => ({ ...current, steps: event.target.value }))}
                 disabled={!editable || saving}
-                aria-label="默认步数"
+                aria-label={t('默认步数')}
                 style={{ ...input, flex: '0 0 90px', width: 90 }}
               />
               <span style={{ ...dim, fontSize: 11, minWidth: 32 }}>CFG</span>
@@ -233,18 +234,18 @@ export function SettingsDialog({ onClose, onSaved }) {
                 value={defaults.cfg}
                 onChange={(event) => setDefaults((current) => ({ ...current, cfg: event.target.value }))}
                 disabled={!editable || saving}
-                aria-label="默认 CFG"
+                aria-label={t('默认 CFG')}
                 style={{ ...input, flex: '0 0 90px', width: 90 }}
               />
             </div>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ ...dim, fontSize: 11 }}>负向提示词</span>
+              <span style={{ ...dim, fontSize: 11 }}>{t('负向提示词')}</span>
               <textarea
                 value={defaults.negative}
                 onChange={(event) => setDefaults((current) => ({ ...current, negative: event.target.value }))}
                 disabled={!editable || saving}
                 rows={2}
-                aria-label="默认负向提示词"
+                aria-label={t('默认负向提示词')}
                 style={{ ...input, flex: '0 0 auto', resize: 'vertical', fontFamily: 'inherit' }}
               />
             </label>
@@ -252,10 +253,10 @@ export function SettingsDialog({ onClose, onSaved }) {
 
           {wiring !== null ? (
             <div style={{ borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 11, ...dim }}>以下由配置决定，需改 cordis.patch.yml 并重启</span>
-              <ReadOnly label="数据目录" value={wiring.dataDir} />
-              <ReadOnly label="工作流" value={wiring.workflowPath} />
-              <ReadOnly label="超时 / 轮询" value={`${Math.round((wiring.timeoutMs ?? 0) / 1000)} 秒 / ${wiring.pollMs ?? 0} 毫秒`} />
+              <span style={{ fontSize: 11, ...dim }}>{t('以下由配置决定，需改 cordis.patch.yml 并重启')}</span>
+              <ReadOnly label={t('数据目录')} value={wiring.dataDir} />
+              <ReadOnly label={t('工作流')} value={wiring.workflowPath} />
+              <ReadOnly label={t('超时 / 轮询')} value={t('{seconds} 秒 / {ms} 毫秒', { seconds: Math.round((wiring.timeoutMs ?? 0) / 1000), ms: wiring.pollMs ?? 0 })} />
             </div>
           ) : null}
 
@@ -264,9 +265,9 @@ export function SettingsDialog({ onClose, onSaved }) {
         </div>
 
         <div style={{ ...row, justifyContent: 'flex-end', gap: 6, padding: '8px 12px', borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
-          <button type="button" style={button} onClick={onClose}>关闭</button>
+          <button type="button" style={button} onClick={onClose}>{t('关闭')}</button>
           <button type="button" style={primary} disabled={!editable || saving} onClick={() => void save()}>
-            {saving ? '保存中…' : '保存'}
+            {saving ? t('保存中…') : t('保存')}
           </button>
         </div>
       </div>

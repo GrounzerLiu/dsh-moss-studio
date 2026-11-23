@@ -135,7 +135,7 @@ records/<id>/image.png
 - 缩略图直接用原图（已懒加载），记录多了费带宽；未做服务端 256px 缓存。
 - 生成过程只有「正在生成…」与按钮上的已用时，没有百分比，也不显示 ComfyUI 队列位置。
 - 框画布用 pointer 事件拖动，未做双指缩放；方向键可微调位置（1% / Shift 10%），但不能改尺寸。
-- 面板文字是中文硬编码，没有走 Client locale 字典。
+- 面板文字已接入 `src/i18n.js`：中文原文即键，英文缺失时回退中文；宿主返回的校验错误（路由与工具）仍是中文。
 - 历史没有批量删除与分组，只有搜索与「仅本会话」筛选。
 - SSE 需要页面与宿主同源直连；若前面的代理缓冲事件流，客户端会退回 1.5 秒轮询。
 
@@ -187,3 +187,11 @@ records/<id>/image.png
 - `/settings` 的 PATCH 接受 `comfyUrl`、`retention`、`defaults` 的任意组合（至少一项），未知键与越界值返回 400；一次 `configEditor.edit` 写完。
 - 无障碍：`useDialogFocus` 统一处理三个对话框的初始焦点、Tab 循环与关闭后焦点归还；设置与编辑布局补上 `role="dialog"`、`aria-modal`、`aria-labelledby`。
 - 版本升到 0.2.0，新增 CHANGELOG.md。
+
+## 第五批：国际化
+
+- `src/i18n.js`：`t(中文原文, {占位符})`，中文作为字典键，英文表缺项时原样返回中文，避免出现 `moss.xxx` 这种键名。
+- 语言来源优先级：Client locale 服务（若存在）→ `<html lang>` → `navigator.language`；非 `en` 一律中文。
+- 面板所有按钮、标题、占位符、提示、错误提示、时间格式都已走 `t()`；`PHASE_LABEL` 在渲染时翻译，避免模块加载时被固定成中文。
+- `test/i18n.test.js` 会扫描 `src/` 里所有 `t('…')` 调用，断言每个中文键在英文表里都有条目——漏翻会直接让测试失败。
+- 尚未翻译：宿主侧 `lib/*.js` 返回的校验文案（`请填写 ComfyUI 地址` 等）、工具描述、`cordis.patch.yml` 注释。

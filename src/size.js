@@ -6,6 +6,8 @@
  * letting a debounced save fail with a 400.
  */
 
+import { t } from './i18n.js'
+
 export const MIN_PIXELS = 512 * 512
 export const MAX_PIXELS = 2048 * 2048
 
@@ -31,13 +33,13 @@ export function splitSize(text) {
  * @returns {string | null}
  */
 export function sizeProblem(width, height, widthText, heightText) {
-  if (String(widthText).trim() === '' || String(heightText).trim() === '') return '宽高不能为空'
+  if (String(widthText).trim() === '' || String(heightText).trim() === '') return t('宽高不能为空')
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
-    return '宽高必须是正整数'
+    return t('宽高必须是正整数')
   }
-  if (width % 16 !== 0 || height % 16 !== 0) return '宽高必须是 16 的倍数'
+  if (width % 16 !== 0 || height % 16 !== 0) return t('宽高必须是 16 的倍数')
   const pixels = width * height
-  if (pixels < MIN_PIXELS) return '低于 0.25 MP（512×512）'
-  if (pixels > MAX_PIXELS) return '超过 4 MP（约 2048×2048）'
+  if (pixels < MIN_PIXELS) return t('低于 0.25 MP（512×512）')
+  if (pixels > MAX_PIXELS) return t('超过 4 MP（约 2048×2048）')
   return null
 }

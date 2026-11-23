@@ -10,6 +10,7 @@
  * plugin's store.
  */
 import React from 'react'
+import { detectLocale, t } from './i18n.js'
 import { StudioPanel } from './App.jsx'
 import { BoxCanvas } from './BoxCanvas.jsx'
 import { BoxEditor } from './BoxEditor.jsx'
@@ -40,9 +41,9 @@ class PanelBoundary extends React.Component {
       return React.createElement(
         'div',
         { style: { padding: 16, fontSize: 12, opacity: 0.8, lineHeight: 1.6 } },
-        React.createElement('div', null, 'Moss studio 面板出错'),
+        React.createElement('div', null, t('Moss studio 面板出错')),
         React.createElement('div', { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
-        React.createElement('div', { style: { opacity: 0.55, marginTop: 6 } }, '刷新页面可重试；参数仍保存在 ~/.dsh/moss-studio。'),
+        React.createElement('div', { style: { opacity: 0.55, marginTop: 6 } }, t('刷新页面可重试；参数仍保存在 ~/.dsh/moss-studio。')),
       )
     }
     return this.props.children
@@ -110,6 +111,16 @@ export function createPlugin() {
     components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
     inject: ['slots', 'sidebarRightTabs', 'sidebarRight'],
     apply(ctx) {
+      // Follow the app language when it is available, then the document, then the
+      // browser; anything that is not English falls back to Chinese.
+      try {
+        const locale = typeof ctx.get === 'function' ? ctx.get('locale') : ctx.locale
+        const tag = locale?.current?.() ?? locale?.current ?? locale?.language
+          ?? (typeof document === 'undefined' ? undefined : document.documentElement?.lang)
+          ?? (typeof navigator === 'undefined' ? undefined : navigator.language)
+        detectLocale(tag)
+      } catch { /* a missing locale service must not block the panel */ }
+
       /**
        * Register one extension point in isolation.
        *
@@ -150,7 +161,7 @@ export function createPlugin() {
           id: 'moss-studio',
           order: 100,
           title: () => 'Moss studio',
-          description: () => '本机 MOSS-Image 生图：历史、框位、参数',
+          description: () => t('本机 MOSS-Image 生图：历史、框位、参数'),
           // The start page cards render this; a guide entry without one is the only
           // card in the grid with a blank leading slot.
           icon: PanelIcon,

@@ -40,6 +40,199 @@ __export(client_exports, {
 module.exports = __toCommonJS(client_exports);
 var import_react14 = __toESM(require("react"), 1);
 
+// src/i18n.js
+var EN = {
+  "(\u65E0\u63D0\u793A\u8BCD)": "(no prompt)",
+  "ComfyUI \u5730\u5740": "ComfyUI address",
+  "ComfyUI \u79BB\u7EBF": "ComfyUI offline",
+  "Moss studio \u9762\u677F\u51FA\u9519": "Moss studio panel failed",
+  "Moss studio \u8BBE\u7F6E": "Moss studio settings",
+  "\u4E0A\u4E00\u5F20": "Previous",
+  "\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09": "Previous (newer)",
+  "\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C": "A generation is already running",
+  "\u4E0B\u4E00\u5F20": "Next",
+  "\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09": "Next (older)",
+  "\u4E0B\u8F7D": "Download",
+  "\u4E0B\u8F7D\u56FE\u7247": "Download image",
+  "\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694": "What to avoid, comma separated",
+  "\u4EBA\u7269": "Person",
+  "\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09": "Below 0.25 MP (512\xD7512)",
+  "\u4FDD\u5B58": "Save",
+  "\u4FDD\u5B58\u4E2D\u2026": "Saving\u2026",
+  "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002": "Applies immediately to the next generation; the value is written to the profile's cordis.patch.yml.",
+  "\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09": "Expand the prompt with the local 9B model (unavailable with boxes)",
+  "\u5173\u95ED": "Close",
+  "\u5173\u95ED\u8BBE\u7F6E": "Close settings",
+  "\u5220\u9664": "Delete",
+  "\u5220\u9664\u6846": "Delete box",
+  "\u5220\u9664\u8BB0\u5F55": "Delete record",
+  "\u5220\u9664\u8FD9\u4E2A\u6846": "Delete this box",
+  "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55": "Delete this record",
+  "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F": "Delete this record?",
+  "\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55": "Delete selected record",
+  "\u5220\u9664\u9009\u4E2D\u8BB0\u5F55": "Delete selected record",
+  "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002": "Reload to retry; parameters are still saved under ~/.dsh/moss-studio.",
+  "\u52A0\u4E00\u4E2A\u6846": "Add a box",
+  "\u52A0\u6846": "Add box",
+  "\u52A0\u8F7D\u4E2D\u2026": "Loading\u2026",
+  "\u52A0\u8F7D\u66F4\u591A": "Load more",
+  "\u5386\u53F2": "History",
+  "\u5386\u53F2\u4FDD\u7559\u6761\u6570": "History retention",
+  "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09": "History retention (0 = unlimited)",
+  "\u53D6\u6D88": "Cancel",
+  "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539": "Cancel and undo this edit",
+  "\u53D6\u6D88\u5F52\u6863": "Unarchive",
+  "\u53D6\u6D88\u7F6E\u9876": "Unpin",
+  "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210": "Another session is generating",
+  "\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55": "Only records from this session",
+  "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210": "Image failed to load; use Download to retry or generate again",
+  "\u5B8C\u6210": "Done",
+  "\u5BBD": "W",
+  "\u5BBD\u5EA6": "Width",
+  "\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A": "Width and height are required",
+  "\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570": "Width and height must be multiples of 16",
+  "\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570": "Width and height must be positive integers",
+  "\u5BF9\u8BDD\u8349\u7A3F": "Conversation draft",
+  "\u5C55\u5F00\u7ED3\u679C\u533A": "Expand result area",
+  "\u5C55\u5F00\u9884\u89C8": "Expand preview",
+  "\u5DE5\u4F5C\u6D41": "Workflow",
+  "\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E": "Saved; the next generation and new drafts use it",
+  "\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026": "Retrying with this record, waiting for the image\u2026",
+  "\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026": "Submitted, waiting for ComfyUI\u2026",
+  "\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539": "Layout changes reverted",
+  "\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F": "New empty draft",
+  "\u5E38\u7528\u5C3A\u5BF8": "Preset size",
+  "\u5F52\u6863": "Archive",
+  "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002": "This profile has no config editor; change cordis.patch.yml and restart instead.",
+  "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F": "Load this record's parameters into the draft",
+  "\u6298\u53E0\u9884\u89C8": "Collapse preview",
+  "\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D": "Drag to resize the history column; double-click to reset",
+  "\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00": "Drag to resize; double-click to collapse or expand",
+  "\u6392\u961F": "queued",
+  "\u63A2\u6D4B": "probing",
+  "\u63D0\u4EA4": "submitting",
+  "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7": "Search prompt or record id",
+  "\u6536\u8D77\u7ED3\u679C": "Collapse result",
+  "\u6536\u8D77\u7ED3\u679C\u533A": "Collapse result area",
+  "\u653E\u5927": "Zoom in",
+  "\u653E\u5927\u67E5\u770B": "Zoomed view",
+  "\u6570\u636E\u76EE\u5F55": "Data directory",
+  "\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC": "Whole-image description; per-box detail goes in each box's desc",
+  "\u65B0\u5EFA\u7A7A\u8349\u7A3F": "New empty draft",
+  "\u65B0\u5EFA\u8349\u7A3F": "New draft",
+  "\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55": "Show records from every session",
+  "\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55": "Show archived records",
+  "\u672A\u547D\u540D\u8BB0\u5F55": "Untitled record",
+  "\u672A\u7ED1\u5B9A\u4F1A\u8BDD": "No session bound",
+  "\u672A\u9009\u4E2D\u8BB0\u5F55": "No record selected",
+  "\u672C\u4F1A\u8BDD": "This session",
+  "\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570": "Local MOSS-Image generation: history, layout boxes, parameters",
+  "\u67E5\u770B\u751F\u6210\u7ED3\u679C": "View the result",
+  "\u6839\u8349\u7A3F": "Root draft",
+  "\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF": "What is in the box: subject, pose, material, lighting",
+  "\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668": "Open the layout editor",
+  "\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664": "Generating; delete it once it finishes",
+  "\u751F\u6210\u5931\u8D25": "Generation failed",
+  "\u751F\u6210\u7ED3\u679C": "Generated result",
+  "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5": "Retry with this record's parameters",
+  "\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D": "Timed out waiting; the job may still be queued in ComfyUI",
+  "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC": "The result appears here",
+  "\u7F16\u8F91\u5E03\u5C40": "Edit layout",
+  "\u7F29\u5C0F": "Zoom out",
+  "\u7F6E\u9876": "Pin",
+  "\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09": "Pinning and archiving need the newer host: restart the app (this process is still the old version)",
+  "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761": "More than 50 pinned; only the newest 50 are shown",
+  "\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210": "The draft changed; review it before generating",
+  "\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570": "The AI updated the draft; parameters synced",
+  "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002": "The record and its image are deleted together. This cannot be undone.",
+  "\u8BBE\u7F6E": "Settings",
+  "\u8D85\u65F6 / \u8F6E\u8BE2": "Timeout / polling",
+  "\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09": "Above 4 MP (about 2048\xD72048)",
+  "\u8F7D\u5165\u53C2\u6570": "Load parameters",
+  "\u8FD8\u6CA1\u6709\u8BB0\u5F55": "No records yet",
+  "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09": "No records in this session (turn off This session to see all)",
+  "\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220": "This record is still generating; delete it after it finishes",
+  "\u8FDE\u63A5\u4E2D": "connecting",
+  "\u9002\u5E94\u7A97\u53E3": "Fit to window",
+  "\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57": "Text rendered verbatim",
+  "\u91CD\u65B0\u68C0\u6D4B": "Check again",
+  "\u91CD\u65B0\u68C0\u6D4B ComfyUI": "Check ComfyUI again",
+  "\u91CD\u8BD5": "Retry",
+  "\u968F\u673A seed \u751F\u6210": "Generate with a random seed",
+  "\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55": "Hide archived records",
+  "\u9AD8": "H",
+  "\u9AD8\u5EA6": "Height",
+  "\u9ED8\u8BA4 CFG": "Default CFG",
+  "\u9ED8\u8BA4\u5C3A\u5BF8": "Default size",
+  "\u9ED8\u8BA4\u6B65\u6570": "Default steps",
+  "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD": "Default negative prompt",
+  "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09": "Defaults for new drafts (existing drafts are untouched)",
+  "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F": "Decided by configuration; change cordis.patch.yml and restart",
+  "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002": "The oldest are removed first; pinned and running records are kept.",
+  "\u8BFB\u53D6\u4E2D\u2026": "Loading\u2026",
+  "\u8BFB\u53D6\u5931\u8D25\uFF1A{error}": "Failed to load: {error}",
+  "\u8349\u7A3F\u4F1A\u8BDD\uFF1A{sessionId}": "Draft session: {sessionId}",
+  "\u6CA1\u6709\u5339\u914D\u300C{query}\u300D\u7684\u8BB0\u5F55": 'No records match "{query}"',
+  "\u751F\u6210\u4E2D {seconds}s": "Generating {seconds}s",
+  "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09": "Generating\u2026 ({id})",
+  "\u961F\u5217\u4E2D \xB7 {id}": "Queued \xB7 {id}",
+  "\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2": "Done: {width}\xD7{height} in {seconds}s",
+  "\u663E\u5B58 {used}/{total} G": "VRAM {used}/{total} G",
+  "\u5185\u5B58 {used}/{total} G": "RAM {used}/{total} G",
+  "\u663E\u5B58 {total} GB \u603B\u91CF\uFF0C\u5185\u5B58 {ram} GB \u603B\u91CF": "VRAM total {total} GB, RAM total {ram} GB",
+  "revision {revision}": "revision {revision}",
+  "\u5386\u53F2 {count}": "History {count}",
+  "\u8FDE\u4E0D\u4E0A ComfyUI": "Cannot reach ComfyUI",
+  "ComfyUI {version}": "ComfyUI {version}",
+  "\u7F16\u8F91\u5E03\u5C40 \xB7 {count} \u4E2A\u6846 \xB7 {size}": "Edit layout \xB7 {count} boxes \xB7 {size}",
+  "\u786E\u8BA4\u5220\u9664\u8BB0\u5F55": "Confirm deleting the record",
+  "\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09": "Save failed ({status})",
+  "\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "The generate request failed ({status})",
+  "\u91CD\u8BD5\u5931\u8D25\uFF08{status}\uFF09": "Retry failed ({status})",
+  "\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09": "Delete failed ({status})",
+  "\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09": "Could not update the flag ({status})",
+  "\u5DF2\u8F7D\u5165 {id} \u7684\u53C2\u6570": "Loaded the parameters of {id}",
+  "state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "state request failed ({status})",
+  "records \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "records request failed ({status})",
+  "\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "record request failed ({status})",
+  "health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "health request failed ({status})",
+  "\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09": "settings request failed ({status})",
+  "{seconds} \u79D2 / {ms} \u6BEB\u79D2": "{seconds}s / {ms}ms",
+  "\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B": "Click to check again",
+  "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026": "Reading moss studio state\u2026",
+  "\u63D0\u793A\u8BCD": "Prompt",
+  "\u5C3A\u5BF8": "Size",
+  "\u9884\u8BBE": "Preset",
+  "\u6B65\u6570": "Steps",
+  "\u8D1F\u5411\u63D0\u793A\u8BCD": "Negative prompt",
+  "\u7528\u5F53\u524D seed \u751F\u6210": "Generate with the current seed",
+  "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58": "Invalid size, not saved",
+  "\u7ED3\u679C": "Result",
+  "\u6587\u5B57": "Text",
+  "\u5982 1024x1024": "e.g. 1024x1024"
+};
+var current = "zh";
+function getLocale() {
+  return current;
+}
+function setLocale(value) {
+  current = String(value ?? "").toLowerCase().startsWith("en") ? "en" : "zh";
+  return current;
+}
+function detectLocale(tag) {
+  return setLocale(tag);
+}
+function t2(text, params) {
+  const source = String(text);
+  let out = current === "en" ? EN[source] ?? source : source;
+  if (params !== void 0) {
+    for (const [key, value] of Object.entries(params)) {
+      out = out.split(`{${key}}`).join(String(value));
+    }
+  }
+  return out;
+}
+
 // src/App.jsx
 var import_react13 = __toESM(require("react"), 1);
 
@@ -60,7 +253,7 @@ async function fetchState(sessionId, limit = 40, archived = false) {
   const query = new URLSearchParams({ sessionId, limit: String(limit) });
   if (archived) query.set("archived", "1");
   const { status, body } = await request(`/state?${query.toString()}`);
-  if (status !== 200 || body === null) throw new Error(body?.message ?? `state \u8BF7\u6C42\u5931\u8D25\uFF08${status}\uFF09`);
+  if (status !== 200 || body === null) throw new Error(body?.message ?? t("state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
   return body;
 }
 async function fetchRecords(limit = 40, before, archived = false, search) {
@@ -69,7 +262,7 @@ async function fetchRecords(limit = 40, before, archived = false, search) {
   if (before !== void 0 && before !== null) query.set("before", before);
   if (archived) query.set("archived", "1");
   const { status, body } = await request(`/records?${query.toString()}`);
-  if (status !== 200 || body === null) throw new Error(body?.message ?? `records \u8BF7\u6C42\u5931\u8D25\uFF08${status}\uFF09`);
+  if (status !== 200 || body === null) throw new Error(body?.message ?? t("records \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
   return { records: body.records ?? [], nextBefore: body.nextBefore ?? null };
 }
 async function putDraft(sessionId, patch, revision) {
@@ -92,7 +285,7 @@ function imageUrl(id) {
 }
 async function fetchRecord(id) {
   const { status, body } = await request(`/records/${encodeURIComponent(id)}`);
-  if (status !== 200 || body === null) throw new Error(body?.message ?? `\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08${status}\uFF09`);
+  if (status !== 200 || body === null) throw new Error(body?.message ?? t("\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
   return body.record;
 }
 async function patchRecord(id, flags) {
@@ -103,12 +296,12 @@ async function patchRecord(id, flags) {
 }
 async function fetchHealth() {
   const { status, body } = await request("/health");
-  if (status !== 200 || body === null) return { ok: false, error: `health \u8BF7\u6C42\u5931\u8D25\uFF08${status}\uFF09` };
+  if (status !== 200 || body === null) return { ok: false, error: t("health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }) };
   return body;
 }
 async function fetchSettings() {
   const { status, body } = await request("/settings");
-  if (status !== 200 || body === null) throw new Error(body?.message ?? `\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08${status}\uFF09`);
+  if (status !== 200 || body === null) throw new Error(body?.message ?? t("\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09", { status }));
   return body;
 }
 async function saveSettings(patch) {
@@ -671,7 +864,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "\u7F16\u8F91\u5E03\u5C40 \xB7 ", boxes.length, " \u4E2A\u6846 \xB7 ", size), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: "\u52A0\u4E00\u4E2A\u6846", "aria-label": "\u52A0\u6846", onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: "\u5B8C\u6210", "aria-label": "\u5B8C\u6210", onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": "\u53D6\u6D88", title: "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539" }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "\u7F16\u8F91\u5E03\u5C40 \xB7 ", boxes.length, " \u4E2A\u6846 \xB7 ", size), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t2("\u52A0\u4E00\u4E2A\u6846"), "aria-label": t2("\u52A0\u6846"), onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t2("\u5B8C\u6210"), "aria-label": t2("\u5B8C\u6210"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t2("\u53D6\u6D88"), title: t2("\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
       /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react6.default.createElement(
         BoxCanvas,
         {
@@ -712,15 +905,15 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           {
             checked: characters.has(index + 1),
             onChange: () => onToggleCharacter(index),
-            label: "\u4EBA\u7269"
+            label: t2("\u4EBA\u7269")
           }
         ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement(
           "button",
           {
             type: "button",
             style: iconDanger,
-            title: "\u5220\u9664\u8FD9\u4E2A\u6846",
-            "aria-label": "\u5220\u9664\u6846",
+            title: t2("\u5220\u9664\u8FD9\u4E2A\u6846"),
+            "aria-label": t2("\u5220\u9664\u6846"),
             onClick: (event) => {
               event.stopPropagation();
               onRemove(index);
@@ -728,12 +921,12 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           },
           /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete" })
         )),
-        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, "\u6587\u5B57"), /* @__PURE__ */ import_react6.default.createElement(
+        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, t2("\u6587\u5B57")), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
             value: box.text ?? "",
             onChange: (event) => updateBox(index, { text: event.target.value }),
-            placeholder: "\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57",
+            placeholder: t2("\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57"),
             style: input
           }
         )) : null,
@@ -742,7 +935,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           {
             value: box.desc ?? "",
             onChange: (event) => updateBox(index, { desc: event.target.value }),
-            placeholder: "\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF",
+            placeholder: t2("\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF"),
             rows: 3,
             style: { ...input, width: "100%", resize: "vertical", lineHeight: 1.45 }
           }
@@ -750,8 +943,8 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
         /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } }, [
           ["X", "x", box.x],
           ["Y", "y", box.y],
-          ["\u5BBD", "width", box.width],
-          ["\u9AD8", "height", box.height]
+          [t2("\u5BBD"), "width", box.width],
+          [t2("\u9AD8"), "height", box.height]
         ].map(([label3, key, value]) => /* @__PURE__ */ import_react6.default.createElement("label", { key, style: { display: "flex", alignItems: "center", gap: 2, minWidth: 0, fontSize: 10, ...dim } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, label3), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
@@ -1674,12 +1867,12 @@ var Virtualizer = class {
               if (wasOverscrolled || this._reportedOverscroll) {
                 queued.samples = [];
               } else {
-                const t = this.now();
+                const t3 = this.now();
                 queued.samples = [
                   ...(queued.samples ?? []).filter(
-                    (sample) => t - sample.t <= 200
+                    (sample) => t3 - sample.t <= 200
                   ),
-                  { t, offset: elementOffset }
+                  { t: t3, offset: elementOffset }
                 ];
                 if (prevDirection !== null && this.scrollDirection !== prevDirection || flingSpedUp(queued.samples)) {
                   this.scrollState = null;
@@ -3012,13 +3205,13 @@ function ResultPane({
   error
 }) {
   const meta = activeRecord?.result ?? null;
-  const actions = /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5", "aria-label": "\u91CD\u8BD5", onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F", "aria-label": "\u8F7D\u5165\u53C2\u6570", disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react8.default.createElement(
+  const actions = /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: t2("\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5"), "aria-label": t2("\u91CD\u8BD5"), onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: t2("\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F"), "aria-label": t2("\u8F7D\u5165\u53C2\u6570"), disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react8.default.createElement(
     "button",
     {
       type: "button",
       style: iconDanger2,
-      title: "\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55",
-      "aria-label": "\u5220\u9664\u9009\u4E2D\u8BB0\u5F55",
+      title: t2("\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55"),
+      "aria-label": t2("\u5220\u9664\u9009\u4E2D\u8BB0\u5F55"),
       disabled: activeRecordId === null,
       onClick: onRemove
     },
@@ -3028,8 +3221,8 @@ function ResultPane({
     {
       href: imageUrl(shownRecordId),
       download: downloadName(shownRecordId, activeRecord?.prompt ?? ""),
-      title: "\u4E0B\u8F7D\u56FE\u7247",
-      "aria-label": "\u4E0B\u8F7D",
+      title: t2("\u4E0B\u8F7D\u56FE\u7247"),
+      "aria-label": t2("\u4E0B\u8F7D"),
       style: { ...iconOnly2, textDecoration: "none" }
     },
     /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "download", size: 14 })
@@ -3057,17 +3250,17 @@ function ResultPane({
       "img",
       {
         src: imageUrl(shownRecordId),
-        alt: "\u751F\u6210\u7ED3\u679C",
+        alt: t2("\u751F\u6210\u7ED3\u679C"),
         onError: onImageError,
         style: { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain", display: "block" }
       }
-    ) : shownRunning ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, "\u6B63\u5728\u751F\u6210\u2026\uFF08", shownRecordId.slice(-4), "\uFF09") : /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210" : "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC")
+    ) : shownRunning ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, "\u6B63\u5728\u751F\u6210\u2026\uFF08", shownRecordId.slice(-4), "\uFF09") : /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t2("\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210") : t2("\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC"))
   );
-  const metaLine = /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55", meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
+  const metaLine = /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? t2("\u672A\u9009\u4E2D\u8BB0\u5F55"), meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
   if (orientation === "column") {
     return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react8.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
   }
-  return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react8.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55"), meta !== null ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react8.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
+  return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react8.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? t2("\u672A\u9009\u4E2D\u8BB0\u5F55")), meta !== null ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react8.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
 }
 
 // src/ConfirmDialog.jsx
@@ -3088,7 +3281,7 @@ var danger = {
   color: "#fff",
   fontWeight: 600
 };
-function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", onConfirm, onCancel }) {
+function ConfirmDialog({ title, message, detail, confirmLabel = t2("\u5220\u9664"), onConfirm, onCancel }) {
   const cardRef = (0, import_react9.useRef)(null);
   const cancelRef = (0, import_react9.useRef)(null);
   useDialogFocus(cardRef, { initialFocus: cancelRef });
@@ -3256,10 +3449,10 @@ function SettingsDialog({ onClose, onSaved }) {
       if (result.status === 200) {
         const next = result.body?.settings ?? {};
         setComfyUrl(next.comfyUrl ?? comfyUrl);
-        setNotice("\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E");
+        setNotice(t2("\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E"));
         onSaved?.(next.comfyUrl ?? comfyUrl);
       } else {
-        setError(result.body?.message ?? `\u4FDD\u5B58\u5931\u8D25\uFF08${result.status}\uFF09`);
+        setError(result.body?.message ?? t2("\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09", { status: result.status }));
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
@@ -3306,8 +3499,8 @@ function SettingsDialog({ onClose, onSaved }) {
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "Moss studio \u8BBE\u7F6E"), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": "\u5173\u95ED\u8BBE\u7F6E", title: "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "close", size: 16 }))),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...dim3 } }, "\u8BFB\u53D6\u4E2D\u2026") : null, /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "ComfyUI \u5730\u5740"), /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t2("Moss studio \u8BBE\u7F6E")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": t2("\u5173\u95ED\u8BBE\u7F6E"), title: t2("\u5173\u95ED"), onClick: onClose }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "close", size: 16 }))),
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...dim3 } }, t2("\u8BFB\u53D6\u4E2D\u2026")) : null, /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t2("ComfyUI \u5730\u5740")), /* @__PURE__ */ import_react10.default.createElement(
         "input",
         {
           ref: urlRef,
@@ -3321,10 +3514,10 @@ function SettingsDialog({ onClose, onSaved }) {
           },
           disabled: !editable || saving,
           placeholder: "http://127.0.0.1:8188",
-          "aria-label": "ComfyUI \u5730\u5740",
+          "aria-label": t2("ComfyUI \u5730\u5740"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "stretch", height: 30 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002" : "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002")), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09"), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? t2("\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002") : t2("\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002"))), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t2("\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09")), /* @__PURE__ */ import_react10.default.createElement(
         "input",
         {
           type: "number",
@@ -3336,28 +3529,28 @@ function SettingsDialog({ onClose, onSaved }) {
             setNotice("");
           },
           disabled: !editable || saving,
-          "aria-label": "\u5386\u53F2\u4FDD\u7559\u6761\u6570",
+          "aria-label": t2("\u5386\u53F2\u4FDD\u7559\u6761\u6570"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "flex-start", width: 120, height: 28 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09"), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t2("\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002"))), /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t2("\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t2("\u5C3A\u5BF8")), /* @__PURE__ */ import_react10.default.createElement(
         "input",
         {
           value: defaults.size,
-          onChange: (event) => setDefaults((current) => ({ ...current, size: event.target.value })),
+          onChange: (event) => setDefaults((current2) => ({ ...current2, size: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": "\u9ED8\u8BA4\u5C3A\u5BF8",
+          "aria-label": t2("\u9ED8\u8BA4\u5C3A\u5BF8"),
           style: { ...input2, flex: "0 0 120px", width: 120 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u5982 1024x1024")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, "\u6B65\u6570"), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t2("\u5982 1024x1024"))), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t2("\u6B65\u6570")), /* @__PURE__ */ import_react10.default.createElement(
         "input",
         {
           type: "number",
           min: 1,
           max: 200,
           value: defaults.steps,
-          onChange: (event) => setDefaults((current) => ({ ...current, steps: event.target.value })),
+          onChange: (event) => setDefaults((current2) => ({ ...current2, steps: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": "\u9ED8\u8BA4\u6B65\u6570",
+          "aria-label": t2("\u9ED8\u8BA4\u6B65\u6570"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
       ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react10.default.createElement(
@@ -3368,23 +3561,23 @@ function SettingsDialog({ onClose, onSaved }) {
           max: 30,
           step: 0.1,
           value: defaults.cfg,
-          onChange: (event) => setDefaults((current) => ({ ...current, cfg: event.target.value })),
+          onChange: (event) => setDefaults((current2) => ({ ...current2, cfg: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": "\u9ED8\u8BA4 CFG",
+          "aria-label": t2("\u9ED8\u8BA4 CFG"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
-      )), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u8D1F\u5411\u63D0\u793A\u8BCD"), /* @__PURE__ */ import_react10.default.createElement(
+      )), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t2("\u8D1F\u5411\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react10.default.createElement(
         "textarea",
         {
           value: defaults.negative,
-          onChange: (event) => setDefaults((current) => ({ ...current, negative: event.target.value })),
+          onChange: (event) => setDefaults((current2) => ({ ...current2, negative: event.target.value })),
           disabled: !editable || saving,
           rows: 2,
-          "aria-label": "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD",
+          "aria-label": t2("\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD"),
           style: { ...input2, flex: "0 0 auto", resize: "vertical", fontFamily: "inherit" }
         }
-      ))), wiring !== null ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F"), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u6570\u636E\u76EE\u5F55", value: wiring.dataDir }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u5DE5\u4F5C\u6D41", value: wiring.workflowPath }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u8D85\u65F6 / \u8F6E\u8BE2", value: `${Math.round((wiring.timeoutMs ?? 0) / 1e3)} \u79D2 / ${wiring.pollMs ?? 0} \u6BEB\u79D2` })) : null, notice !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: button4, onClick: onClose }, "\u5173\u95ED"), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u4FDD\u5B58"))
+      ))), wiring !== null ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t2("\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F")), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t2("\u6570\u636E\u76EE\u5F55"), value: wiring.dataDir }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t2("\u5DE5\u4F5C\u6D41"), value: wiring.workflowPath }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t2("\u8D85\u65F6 / \u8F6E\u8BE2"), value: t2("{seconds} \u79D2 / {ms} \u6BEB\u79D2", { seconds: Math.round((wiring.timeoutMs ?? 0) / 1e3), ms: wiring.pollMs ?? 0 }) })) : null, notice !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: button4, onClick: onClose }, t2("\u5173\u95ED")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? t2("\u4FDD\u5B58\u4E2D\u2026") : t2("\u4FDD\u5B58")))
     )
   );
 }
@@ -3442,14 +3635,14 @@ function formatSize(width, height) {
   return `${width}x${height}`;
 }
 function sizeProblem(width, height, widthText, heightText) {
-  if (String(widthText).trim() === "" || String(heightText).trim() === "") return "\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A";
+  if (String(widthText).trim() === "" || String(heightText).trim() === "") return t2("\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A");
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
-    return "\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570";
+    return t2("\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570");
   }
-  if (width % 16 !== 0 || height % 16 !== 0) return "\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570";
+  if (width % 16 !== 0 || height % 16 !== 0) return t2("\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570");
   const pixels = width * height;
-  if (pixels < MIN_PIXELS) return "\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09";
-  if (pixels > MAX_PIXELS) return "\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09";
+  if (pixels < MIN_PIXELS) return t2("\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09");
+  if (pixels > MAX_PIXELS) return t2("\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09");
   return null;
 }
 
@@ -3471,47 +3664,47 @@ var handleCallback = function(context, event, callback) {
     callback(context, event);
   }
 };
-var easeOut = function(t) {
-  return -Math.cos(t * Math.PI) / 2 + 0.5;
+var easeOut = function(t3) {
+  return -Math.cos(t3 * Math.PI) / 2 + 0.5;
 };
-var linear = function(t) {
-  return t;
+var linear = function(t3) {
+  return t3;
 };
-var easeInQuad = function(t) {
-  return t * t;
+var easeInQuad = function(t3) {
+  return t3 * t3;
 };
-var easeOutQuad = function(t) {
-  return t * (2 - t);
+var easeOutQuad = function(t3) {
+  return t3 * (2 - t3);
 };
-var easeInOutQuad = function(t) {
-  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+var easeInOutQuad = function(t3) {
+  return t3 < 0.5 ? 2 * t3 * t3 : -1 + (4 - 2 * t3) * t3;
 };
-var easeInCubic = function(t) {
-  return t * t * t;
+var easeInCubic = function(t3) {
+  return t3 * t3 * t3;
 };
-var easeOutCubic = function(t) {
-  return --t * t * t + 1;
+var easeOutCubic = function(t3) {
+  return --t3 * t3 * t3 + 1;
 };
-var easeInOutCubic = function(t) {
-  return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+var easeInOutCubic = function(t3) {
+  return t3 < 0.5 ? 4 * t3 * t3 * t3 : (t3 - 1) * (2 * t3 - 2) * (2 * t3 - 2) + 1;
 };
-var easeInQuart = function(t) {
-  return t * t * t * t;
+var easeInQuart = function(t3) {
+  return t3 * t3 * t3 * t3;
 };
-var easeOutQuart = function(t) {
-  return 1 - --t * t * t * t;
+var easeOutQuart = function(t3) {
+  return 1 - --t3 * t3 * t3 * t3;
 };
-var easeInOutQuart = function(t) {
-  return t < 0.5 ? 8 * t * t * t * t : 1 - 8 * --t * t * t * t;
+var easeInOutQuart = function(t3) {
+  return t3 < 0.5 ? 8 * t3 * t3 * t3 * t3 : 1 - 8 * --t3 * t3 * t3 * t3;
 };
-var easeInQuint = function(t) {
-  return t * t * t * t * t;
+var easeInQuint = function(t3) {
+  return t3 * t3 * t3 * t3 * t3;
 };
-var easeOutQuint = function(t) {
-  return 1 + --t * t * t * t * t;
+var easeOutQuint = function(t3) {
+  return 1 + --t3 * t3 * t3 * t3 * t3;
 };
-var easeInOutQuint = function(t) {
-  return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t;
+var easeInOutQuint = function(t3) {
+  return t3 < 0.5 ? 16 * t3 * t3 * t3 * t3 * t3 : 1 + 16 * --t3 * t3 * t3 * t3 * t3;
 };
 var animations = {
   easeOut,
@@ -4151,12 +4344,12 @@ function handleAlignToScaleBounds(contextInstance, mousePositionX, mousePosition
   }
 }
 var __assign = function() {
-  __assign = Object.assign || function __assign2(t) {
+  __assign = Object.assign || function __assign2(t3) {
     for (var s, i = 1, n = arguments.length; i < n; i++) {
       s = arguments[i];
-      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t3[p] = s[p];
     }
-    return t;
+    return t3;
   };
   return __assign.apply(this, arguments);
 };
@@ -4961,8 +5154,8 @@ var measureSizes = function(wrapperComponent, contentComponent) {
     contentHeight: contentComponent.offsetHeight
   };
 };
-var hasSizeChanged = function(previous, current) {
-  return !previous || previous.wrapperWidth !== current.wrapperWidth || previous.wrapperHeight !== current.wrapperHeight || previous.contentWidth !== current.contentWidth || previous.contentHeight !== current.contentHeight;
+var hasSizeChanged = function(previous, current2) {
+  return !previous || previous.wrapperWidth !== current2.wrapperWidth || previous.wrapperHeight !== current2.wrapperHeight || previous.contentWidth !== current2.contentWidth || previous.contentHeight !== current2.contentHeight;
 };
 var isPointerGestureActive = function(contextInstance) {
   return contextInstance.isPanning || contextInstance.isPinching;
@@ -6401,7 +6594,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     {
       role: "dialog",
       "aria-modal": "true",
-      "aria-label": "\u67E5\u770B\u751F\u6210\u7ED3\u679C",
+      "aria-label": t2("\u67E5\u770B\u751F\u6210\u7ED3\u679C"),
       onMouseDown: (event) => event.stopPropagation(),
       onClick: (event) => {
         event.stopPropagation();
@@ -6438,8 +6631,8 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
         {
           type: "button",
           style: { ...chromeIcon, opacity: prevId === null || prevId === void 0 ? 0.4 : 1 },
-          title: "\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09",
-          "aria-label": "\u4E0A\u4E00\u5F20",
+          title: t2("\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09"),
+          "aria-label": t2("\u4E0A\u4E00\u5F20"),
           disabled: prevId === null || prevId === void 0,
           onClick: () => onNavigate?.(prevId)
         },
@@ -6449,13 +6642,13 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
         {
           type: "button",
           style: { ...chromeIcon, opacity: nextId === null || nextId === void 0 ? 0.4 : 1 },
-          title: "\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09",
-          "aria-label": "\u4E0B\u4E00\u5F20",
+          title: t2("\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09"),
+          "aria-label": t2("\u4E0B\u4E00\u5F20"),
           disabled: nextId === null || nextId === void 0,
           onClick: () => onNavigate?.(nextId)
         },
         /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
-      )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u7F29\u5C0F", "aria-label": "\u7F29\u5C0F", onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u653E\u5927", "aria-label": "\u653E\u5927", onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u9002\u5E94\u7A97\u53E3", "aria-label": "\u9002\u5E94\u7A97\u53E3", onClick: fit }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u5173\u95ED", "aria-label": "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "close", size: 18 })))),
+      )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t2("\u7F29\u5C0F"), "aria-label": t2("\u7F29\u5C0F"), onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t2("\u653E\u5927"), "aria-label": t2("\u653E\u5927"), onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t2("\u9002\u5E94\u7A97\u53E3"), "aria-label": t2("\u9002\u5E94\u7A97\u53E3"), onClick: fit }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t2("\u5173\u95ED"), "aria-label": t2("\u5173\u95ED"), onClick: onClose }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "close", size: 18 })))),
       /* @__PURE__ */ import_react12.default.createElement(
         TransformWrapper,
         {
@@ -6482,7 +6675,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
             "img",
             {
               src: imageUrl(recordId),
-              alt: "\u653E\u5927\u67E5\u770B",
+              alt: t2("\u653E\u5927\u67E5\u770B"),
               draggable: false,
               style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", userSelect: "none" }
             }
@@ -6565,7 +6758,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
     {
       role: "group",
       tabIndex: 0,
-      "aria-label": record.prompt === "" ? "\u672A\u547D\u540D\u8BB0\u5F55" : record.prompt,
+      "aria-label": record.prompt === "" ? t2("\u672A\u547D\u540D\u8BB0\u5F55") : record.prompt,
       onClick: () => onSelect(record.id),
       onMouseEnter: () => setHovered(true),
       onMouseLeave: () => setHovered(false),
@@ -6612,7 +6805,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
       },
       record.hasImage ? /* @__PURE__ */ import_react13.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
     ),
-    /* @__PURE__ */ import_react13.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? "(\u65E0\u63D0\u793A\u8BCD)" : record.prompt), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", record.boxCount, " \u6846"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
+    /* @__PURE__ */ import_react13.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? t2("(\u65E0\u63D0\u793A\u8BCD)") : record.prompt), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", record.boxCount, " \u6846"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
     /* @__PURE__ */ import_react13.default.createElement(
       "div",
       {
@@ -6632,8 +6825,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         {
           type: "button",
           style: { ...rowAction, color: record.pinned ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))" : "inherit" },
-          title: record.pinned ? "\u53D6\u6D88\u7F6E\u9876" : "\u7F6E\u9876",
-          "aria-label": record.pinned ? "\u53D6\u6D88\u7F6E\u9876" : "\u7F6E\u9876",
+          title: record.pinned ? t2("\u53D6\u6D88\u7F6E\u9876") : t2("\u7F6E\u9876"),
+          "aria-label": record.pinned ? t2("\u53D6\u6D88\u7F6E\u9876") : t2("\u7F6E\u9876"),
           onClick: (event) => {
             event.stopPropagation();
             onPin?.(record);
@@ -6646,8 +6839,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         {
           type: "button",
           style: { ...rowAction, color: record.archived ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))" : "inherit" },
-          title: record.archived ? "\u53D6\u6D88\u5F52\u6863" : "\u5F52\u6863",
-          "aria-label": record.archived ? "\u53D6\u6D88\u5F52\u6863" : "\u5F52\u6863",
+          title: record.archived ? t2("\u53D6\u6D88\u5F52\u6863") : t2("\u5F52\u6863"),
+          "aria-label": record.archived ? t2("\u53D6\u6D88\u5F52\u6863") : t2("\u5F52\u6863"),
           onClick: (event) => {
             event.stopPropagation();
             onArchive?.(record);
@@ -6661,8 +6854,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           type: "button",
           disabled: record.status === "running",
           style: { ...rowAction, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", opacity: record.status === "running" ? 0.45 : 1 },
-          title: record.status === "running" ? "\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664" : "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55",
-          "aria-label": "\u5220\u9664\u8BB0\u5F55",
+          title: record.status === "running" ? t2("\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664") : t2("\u5220\u9664\u8FD9\u6761\u8BB0\u5F55"),
+          "aria-label": t2("\u5220\u9664\u8BB0\u5F55"),
           onClick: (event) => {
             event.stopPropagation();
             onDelete(record.id);
@@ -6676,7 +6869,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
 var optionStyle2 = { background: "var(--dsw-alias-bg-overlay, #26282a)", color: "var(--dsw-alias-label-primary, inherit)" };
 function timeOf(value) {
   if (typeof value !== "number" || value === 0) return "\u2014";
-  return new Date(value).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  return new Date(value).toLocaleTimeString(getLocale() === "en" ? "en-US" : "zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 function toCharacterSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
@@ -6740,12 +6933,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
-    setNextBefore((current) => current !== null ? current : state.nextBefore ?? null);
+    setNextBefore((current2) => current2 !== null ? current2 : state.nextBefore ?? null);
     if (!pinnedRef.current) {
       const newest = state.records[0];
       const latestDone = state.records.find((record) => record.hasImage);
       const target = newest?.status === "running" ? newest.id : latestDone?.id ?? null;
-      setActiveRecordId((current) => current === target ? current : target);
+      setActiveRecordId((current2) => current2 === target ? current2 : target);
     }
   }, []);
   const refresh = (0, import_react13.useCallback)(async () => {
@@ -6900,14 +7093,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setRevision(body.revision);
         dirtyRef.current = false;
         setParams(body.params);
-        setNotice("\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570");
+        setNotice(t2("\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570"));
       } else if (status === 200 && body !== null) {
         revisionRef.current = body.revision;
         setRevision(body.revision);
         dirtyRef.current = false;
         setError("");
       } else {
-        setError(body?.message ?? `\u4FDD\u5B58\u5931\u8D25\uFF08${status}\uFF09`);
+        setError(body?.message ?? t2("\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09", { status }));
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
@@ -6916,8 +7109,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }
   }, [sessionId]);
   const update = (0, import_react13.useCallback)((patch) => {
-    setParams((current) => {
-      const next = { ...current, ...patch };
+    setParams((current2) => {
+      const next = { ...current2, ...patch };
       dirtyRef.current = true;
       if (saveTimer.current !== null) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
@@ -6973,7 +7166,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const newDraft = (0, import_react13.useCallback)(() => {
     update({ prompt: "", boxes: [], seed: -1, characterBoxes: "", enhance: false });
     setSelectedBox(-1);
-    setNotice("\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F");
+    setNotice(t2("\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F"));
   }, [update]);
   const openEditor = (0, import_react13.useCallback)(() => {
     editorSnapshot.current = structuredClone(paramsRef.current ?? {});
@@ -6991,7 +7184,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     saveTimer.current = setTimeout(() => {
       void flush(snapshot);
     }, SAVE_DELAY_MS);
-    setNotice("\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539");
+    setNotice(t2("\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539"));
   }, [flush]);
   const waitForCompletion = (0, import_react13.useCallback)(async () => {
     const started = Date.now();
@@ -7002,24 +7195,24 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       const newest = state.records[0];
       if (newest !== void 0 && newest.status !== "running") {
         if (newest.status === "failed") {
-          setError(newest.error?.message ?? "\u751F\u6210\u5931\u8D25");
+          setError(newest.error?.message ?? t2("\u751F\u6210\u5931\u8D25"));
           setNotice("");
         } else {
           pinnedRef.current = false;
           setImageBroken(false);
           setActiveRecordId(newest.id);
-          setNotice(`\u5DF2\u5B8C\u6210\uFF1A${newest.width}\xD7${newest.height}\uFF0C${newest.seconds} \u79D2`);
+          setNotice(t2("\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2", { width: newest.width, height: newest.height, seconds: newest.seconds }));
         }
         return;
       }
     }
-    setNotice("\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D");
+    setNotice(t2("\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D"));
   }, [sessionId, applyServerState]);
   const runGenerate = (0, import_react13.useCallback)(async () => {
     if (busy) return;
     setBusy(true);
     setError("");
-    setNotice("\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026");
+    setNotice(t2("\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026"));
     try {
       const { status, body } = await generate(sessionId, revisionRef.current);
       if (status === 409 && body !== null) {
@@ -7027,15 +7220,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setRevision(body.revision);
         setParams(body.params);
         dirtyRef.current = false;
-        setNotice("\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210");
+        setNotice(t2("\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210"));
         return;
       }
       if (status === 429) {
-        setNotice("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C");
+        setNotice(t2("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C"));
         return;
       }
       if (status !== 202) {
-        setError(body?.message ?? `\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08${status}\uFF09`);
+        setError(body?.message ?? t2("\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
         return;
       }
       await waitForCompletion();
@@ -7049,15 +7242,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
     setError("");
-    setNotice("\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026");
+    setNotice(t2("\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026"));
     try {
       const { status, body } = await generate(sessionId, void 0, record.params);
       if (status === 429) {
-        setNotice("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C");
+        setNotice(t2("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C"));
         return;
       }
       if (status !== 202) {
-        setError(body?.message ?? `\u91CD\u8BD5\u5931\u8D25\uFF08${status}\uFF09`);
+        setError(body?.message ?? t2("\u91CD\u8BD5\u5931\u8D25\uFF08{status}\uFF09", { status }));
         return;
       }
       await waitForCompletion();
@@ -7108,17 +7301,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     saveTimer.current = setTimeout(() => {
       void flush(activeRecord.params);
     }, SAVE_DELAY_MS);
-    setNotice(`\u5DF2\u8F7D\u5165 ${activeRecord.id} \u7684\u53C2\u6570`);
+    setNotice(t2("\u5DF2\u8F7D\u5165 {id} \u7684\u53C2\u6570", { id: activeRecord.id }));
   }, [activeRecord, flush]);
   const removeRecordById = (0, import_react13.useCallback)(async (id) => {
     try {
       const { status, body } = await deleteRecord(id);
       if (status === 409) {
-        setError(body?.message ?? "\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220");
+        setError(body?.message ?? t2("\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220"));
         return;
       }
       if (status !== 200) {
-        setError(body?.message ?? `\u5220\u9664\u5931\u8D25\uFF08${status}\uFF09`);
+        setError(body?.message ?? t2("\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09", { status }));
         return;
       }
       setError("");
@@ -7135,11 +7328,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     try {
       const { status, body } = await patchRecord(record.id, flags);
       if (status === 405) {
-        setError("\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09");
+        setError(t2("\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09"));
         return;
       }
       if (status !== 200) {
-        setError(body?.message ?? `\u6807\u8BB0\u5931\u8D25\uFF08${status}\uFF09`);
+        setError(body?.message ?? t2("\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09", { status }));
         return;
       }
       setError("");
@@ -7185,9 +7378,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setLoadingMore(true);
     try {
       const page = await fetchRecords(40, nextBefore);
-      setOlder((current) => {
-        const seen = new Set(current.map((record) => record.id));
-        return [...current, ...page.records.filter((record) => !seen.has(record.id))];
+      setOlder((current2) => {
+        const seen = new Set(current2.map((record) => record.id));
+        return [...current2, ...page.records.filter((record) => !seen.has(record.id))];
       });
       setNextBefore(page.nextBefore);
     } catch (problem) {
@@ -7213,7 +7406,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setPendingDelete(found);
   }, [mergedRecords, activeRecord]);
   if (params === null) {
-    return /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? `\u8BFB\u53D6\u5931\u8D25\uFF1A${error}` : "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026");
+    return /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? t2("\u8BFB\u53D6\u5931\u8D25\uFF1A{error}", { error }) : "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026");
   }
   const boxes = params.boxes ?? [];
   const shownRecordId = activeRecordId ?? records.find((record) => record.hasImage)?.id ?? null;
@@ -7226,12 +7419,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const shownHasImage = shownSummary === void 0 ? shownRecordId !== null : shownSummary.hasImage;
   const shownRunning = shownSummary?.status === "running";
   const running = records.find((record) => record.status === "running");
-  return /* @__PURE__ */ import_react13.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react13.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: "\u65B0\u5EFA\u7A7A\u8349\u7A3F", "aria-label": "\u65B0\u5EFA\u8349\u7A3F", onClick: newDraft }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react13.default.createElement(
+  return /* @__PURE__ */ import_react13.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react13.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: t2("\u65B0\u5EFA\u7A7A\u8349\u7A3F"), "aria-label": t2("\u65B0\u5EFA\u8349\u7A3F"), onClick: newDraft }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react13.default.createElement(
     "button",
     {
       type: "button",
-      title: `${comfy?.ok ? `ComfyUI ${comfy.version} \xB7 ${comfy.url ?? ""}` : `\u8FDE\u4E0D\u4E0A ComfyUI${comfy?.error ? `\uFF1A${comfy.error}` : ""}`}\uFF08\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B\uFF09`,
-      "aria-label": "\u91CD\u65B0\u68C0\u6D4B ComfyUI",
+      title: `${comfy?.ok ? `${t2("ComfyUI {version}", { version: comfy.version })} \xB7 ${comfy.url ?? ""}` : `${t2("\u8FDE\u4E0D\u4E0A ComfyUI")}${comfy?.error ? `\uFF1A${comfy.error}` : ""}`}\uFF08${t2("\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B")}\uFF09`,
+      "aria-label": t2("\u91CD\u65B0\u68C0\u6D4B ComfyUI"),
       onClick: () => {
         setComfy(null);
         void checkHealth();
@@ -7263,11 +7456,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
       }
     ),
-    comfy === null ? "\u8FDE\u63A5\u4E2D" : comfy.ok ? `ComfyUI ${comfy.version}` : "ComfyUI \u79BB\u7EBF"
-  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: `\u8349\u7A3F\u4F1A\u8BDD\uFF1A${sessionId}` }, sessionId === "root" ? "\u6839\u8349\u7A3F" : sessionId === "global" ? "\u672A\u7ED1\u5B9A\u4F1A\u8BDD" : "\u5BF9\u8BDD\u8349\u7A3F"), /* @__PURE__ */ import_react13.default.createElement(
+    comfy === null ? t2("\u8FDE\u63A5\u4E2D") : comfy.ok ? t2("ComfyUI {version}", { version: comfy.version }) : t2("ComfyUI \u79BB\u7EBF")
+  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: t2("\u8349\u7A3F\u4F1A\u8BDD\uFF1A{sessionId}", { sessionId }) }, sessionId === "root" ? t2("\u6839\u8349\u7A3F") : sessionId === "global" ? t2("\u672A\u7ED1\u5B9A\u4F1A\u8BDD") : t2("\u5BF9\u8BDD\u8349\u7A3F")), /* @__PURE__ */ import_react13.default.createElement(
     "span",
     {
-      title: `\u663E\u5B58 ${gigabytes(comfy?.gpu?.vramTotal)} GB \u603B\u91CF\uFF0C\u5185\u5B58 ${gigabytes(comfy?.ramTotal)} GB \u603B\u91CF`,
+      title: t2("\u663E\u5B58 {total} GB \u603B\u91CF\uFF0C\u5185\u5B58 {ram} GB \u603B\u91CF", { total: gigabytes(comfy?.gpu?.vramTotal), ram: gigabytes(comfy?.ramTotal) }),
       style: {
         fontSize: 10,
         whiteSpace: "nowrap",
@@ -7278,7 +7471,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     },
     /* @__PURE__ */ import_react13.default.createElement("span", null, "\u663E\u5B58 ", gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)), "/", gigabytes(comfy?.gpu?.vramTotal), " G"),
     /* @__PURE__ */ import_react13.default.createElement("span", null, "\u5185\u5B58 ", gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)), "/", gigabytes(comfy?.ramTotal), " G")
-  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : `revision ${revision}`), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: "\u8BBE\u7F6E", "aria-label": "\u8BBE\u7F6E", onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
+  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t2("\u4FDD\u5B58\u4E2D\u2026") : `revision ${revision}`), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: t2("\u8BBE\u7F6E"), "aria-label": t2("\u8BBE\u7F6E"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       className: "moss-scroller",
@@ -7295,16 +7488,16 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       FilterChip,
       {
         selected: flagLocalOnly,
-        label: "\u672C\u4F1A\u8BDD",
-        title: flagLocalOnly ? "\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55" : "\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55",
+        label: t2("\u672C\u4F1A\u8BDD"),
+        title: flagLocalOnly ? t2("\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55") : t2("\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55"),
         onClick: () => setLocalOnly((value) => !value)
       }
     ), /* @__PURE__ */ import_react13.default.createElement(
       FilterChip,
       {
         selected: showArchived,
-        label: "\u5F52\u6863",
-        title: showArchived ? "\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55" : "\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55",
+        label: t2("\u5F52\u6863"),
+        title: showArchived ? t2("\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55") : t2("\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55"),
         onClick: () => {
           setShowArchived((value) => !value);
           setOlder([]);
@@ -7317,11 +7510,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       {
         value: query,
         onChange: (event) => setQuery(event.target.value),
-        placeholder: "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7",
+        placeholder: t2("\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7"),
         style: { ...input3, width: "100%", boxSizing: "border-box", fontSize: 11 }
       }
     )),
-    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761" : void 0 }, "\u7F6E\u9876 ", pinnedRecords.length, pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
+    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? t2("\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761") : void 0 }, "\u7F6E\u9876 ", pinnedRecords.length, pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
       HistoryRow,
       {
         record,
@@ -7339,7 +7532,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         onScroll: onHistoryScroll,
         style: { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 6px" }
       },
-      visibleRecords.length === 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? `\u6CA1\u6709\u5339\u914D\u300C${query.trim()}\u300D\u7684\u8BB0\u5F55` : flagLocalOnly ? "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09" : "\u8FD8\u6CA1\u6709\u8BB0\u5F55") : null,
+      visibleRecords.length === 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? t2("\u6CA1\u6709\u5339\u914D\u300C{query}\u300D\u7684\u8BB0\u5F55", { query: query.trim() }) : flagLocalOnly ? t2("\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09") : t2("\u8FD8\u6CA1\u6709\u8BB0\u5F55")) : null,
       virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
         HistoryRow,
         {
@@ -7374,7 +7567,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           )
         );
       })),
-      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? "\u52A0\u8F7D\u4E2D\u2026" : "\u52A0\u8F7D\u66F4\u591A")) : null
+      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t2("\u52A0\u8F7D\u4E2D\u2026") : t2("\u52A0\u8F7D\u66F4\u591A"))) : null
     )
   ), /* @__PURE__ */ import_react13.default.createElement(
     "div",
@@ -7385,7 +7578,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setHistoryResizing(true);
       },
       onDoubleClick: () => setHistoryWidth(wide ? 280 : 196),
-      title: "\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D",
+      title: t2("\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D"),
       style: {
         width: 5,
         flexShrink: 0,
@@ -7393,12 +7586,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
       }
     }
-  ), /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t2("\u63D0\u793A\u8BCD"))), /* @__PURE__ */ import_react13.default.createElement(
     "textarea",
     {
       value: params.prompt,
       onChange: (event) => update({ prompt: event.target.value }),
-      placeholder: "\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC",
+      placeholder: t2("\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC"),
       rows: 4,
       style: { ...input3, width: "100%", resize: "vertical", lineHeight: 1.5 }
     }
@@ -7407,8 +7600,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     {
       type: "button",
       style: iconOnly3,
-      title: showCanvas ? "\u6298\u53E0\u9884\u89C8" : "\u5C55\u5F00\u9884\u89C8",
-      "aria-label": showCanvas ? "\u6298\u53E0\u9884\u89C8" : "\u5C55\u5F00\u9884\u89C8",
+      title: showCanvas ? t2("\u6298\u53E0\u9884\u89C8") : t2("\u5C55\u5F00\u9884\u89C8"),
+      "aria-label": showCanvas ? t2("\u6298\u53E0\u9884\u89C8") : t2("\u5C55\u5F00\u9884\u89C8"),
       onClick: () => setShowCanvas((value) => !value)
     },
     /* @__PURE__ */ import_react13.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
@@ -7417,8 +7610,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     {
       type: "button",
       style: iconOnly3,
-      title: "\u7F16\u8F91\u5E03\u5C40",
-      "aria-label": "\u7F16\u8F91\u5E03\u5C40",
+      title: t2("\u7F16\u8F91\u5E03\u5C40"),
+      "aria-label": t2("\u7F16\u8F91\u5E03\u5C40"),
       onClick: openEditor
     },
     /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "dashboard_customize" })
@@ -7426,7 +7619,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     "div",
     {
       onClick: openEditor,
-      title: "\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668",
+      title: t2("\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668"),
       style: { cursor: "zoom-in" }
     },
     /* @__PURE__ */ import_react13.default.createElement(
@@ -7443,7 +7636,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         compact: boxes.length === 0
       }
     )
-  ) : null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react13.default.createElement(
+  ) : null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t2("\u5C3A\u5BF8")), /* @__PURE__ */ import_react13.default.createElement(
     "input",
     {
       type: "number",
@@ -7452,7 +7645,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       value: widthText,
       onChange: (event) => setWidthText(event.target.value),
       onBlur: () => commitSize(widthText, heightText),
-      "aria-label": "\u5BBD\u5EA6",
+      "aria-label": t2("\u5BBD\u5EA6"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
   ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react13.default.createElement(
@@ -7464,7 +7657,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       value: heightText,
       onChange: (event) => setHeightText(event.target.value),
       onBlur: () => commitSize(widthText, heightText),
-      "aria-label": "\u9AD8\u5EA6",
+      "aria-label": t2("\u9AD8\u5EA6"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
   ), /* @__PURE__ */ import_react13.default.createElement(
@@ -7478,17 +7671,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setHeightText(h);
         update({ size: event.target.value });
       },
-      "aria-label": "\u5E38\u7528\u5C3A\u5BF8",
+      "aria-label": t2("\u5E38\u7528\u5C3A\u5BF8"),
       style: { ...input3, flex: "0 0 96px", width: 96 }
     },
-    /* @__PURE__ */ import_react13.default.createElement("option", { value: "", style: optionStyle2 }, "\u9884\u8BBE"),
+    /* @__PURE__ */ import_react13.default.createElement("option", { value: "", style: optionStyle2 }, t2("\u9884\u8BBE")),
     SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react13.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
-  )), sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u6B65\u6570"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u8D1F\u5411\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react13.default.createElement(
+  )), sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t2("\u6B65\u6570")), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t2("\u8D1F\u5411\u63D0\u793A\u8BCD"))), /* @__PURE__ */ import_react13.default.createElement(
     "textarea",
     {
       value: params.negative,
       onChange: (event) => update({ negative: event.target.value }),
-      placeholder: "\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694",
+      placeholder: t2("\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694"),
       rows: 2,
       style: { ...input3, width: "100%", display: "block", resize: "vertical", lineHeight: 1.5 }
     }
@@ -7498,9 +7691,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       checked: params.enhance,
       disabled: boxes.length > 0,
       onChange: (event) => update({ enhance: event.target.checked }),
-      label: "\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09"
+      label: t2("\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09")
     }
-  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `\u751F\u6210\u4E2D ${elapsed}s${phase === "" ? "" : ` \xB7 ${PHASE_LABEL[phase] ?? phase}`}` : otherBusy ? "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210" : "\u968F\u673A seed \u751F\u6210"), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, "\u7528\u5F53\u524D seed \u751F\u6210"), running !== void 0 && !busy ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u961F\u5217\u4E2D \xB7 ", running.id.slice(-4)) : null, sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58") : null), notice !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react13.default.createElement(
+  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t2("\u751F\u6210\u4E2D {seconds}s", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t2(PHASE_LABEL[phase] ?? phase)}`}` : otherBusy ? t2("\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210") : t2("\u968F\u673A seed \u751F\u6210")), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t2("\u7528\u5F53\u524D seed \u751F\u6210")), running !== void 0 && !busy ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u961F\u5217\u4E2D \xB7 ", running.id.slice(-4)) : null, sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t2("\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58")) : null), notice !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       style: {
@@ -7539,7 +7732,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setResizing(true);
       },
       onDoubleClick: () => setResultCollapsed((value) => !value),
-      title: "\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00",
+      title: t2("\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00"),
       style: {
         height: 6,
         flexShrink: 0,
@@ -7560,13 +7753,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u7ED3\u679C"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t2("\u7ED3\u679C")), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement(
       "button",
       {
         type: "button",
         style: iconOnly3,
-        title: resultCollapsed ? "\u5C55\u5F00\u7ED3\u679C\u533A" : "\u6536\u8D77\u7ED3\u679C\u533A",
-        "aria-label": resultCollapsed ? "\u5C55\u5F00\u7ED3\u679C\u533A" : "\u6536\u8D77\u7ED3\u679C",
+        title: resultCollapsed ? t2("\u5C55\u5F00\u7ED3\u679C\u533A") : t2("\u6536\u8D77\u7ED3\u679C\u533A"),
+        "aria-label": resultCollapsed ? t2("\u5C55\u5F00\u7ED3\u679C\u533A") : t2("\u6536\u8D77\u7ED3\u679C"),
         onClick: () => setResultCollapsed((value) => !value)
       },
       /* @__PURE__ */ import_react13.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
@@ -7605,7 +7798,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react13.default.createElement(
     ConfirmDialog,
     {
-      title: "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F",
+      title: t2("\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F"),
       message: "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002",
       detail: [pendingDelete.prompt, pendingDelete.id].filter((part) => typeof part === "string" && part !== "").join(" \xB7 "),
       onCancel: () => setPendingDelete(null),
@@ -7656,9 +7849,9 @@ var PanelBoundary = class extends import_react14.default.Component {
       return import_react14.default.createElement(
         "div",
         { style: { padding: 16, fontSize: 12, opacity: 0.8, lineHeight: 1.6 } },
-        import_react14.default.createElement("div", null, "Moss studio \u9762\u677F\u51FA\u9519"),
+        import_react14.default.createElement("div", null, t2("Moss studio \u9762\u677F\u51FA\u9519")),
         import_react14.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
-        import_react14.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002")
+        import_react14.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, t2("\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002"))
       );
     }
     return this.props.children;
@@ -7710,6 +7903,12 @@ function createPlugin() {
     components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
     inject: ["slots", "sidebarRightTabs", "sidebarRight"],
     apply(ctx) {
+      try {
+        const locale = typeof ctx.get === "function" ? ctx.get("locale") : ctx.locale;
+        const tag = locale?.current?.() ?? locale?.current ?? locale?.language ?? (typeof document === "undefined" ? void 0 : document.documentElement?.lang) ?? (typeof navigator === "undefined" ? void 0 : navigator.language);
+        detectLocale(tag);
+      } catch {
+      }
       const safe = (label3, run) => {
         try {
           ctx.effect(run, label3);
@@ -7739,7 +7938,7 @@ function createPlugin() {
           id: "moss-studio",
           order: 100,
           title: () => "Moss studio",
-          description: () => "\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570",
+          description: () => t2("\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570"),
           // The start page cards render this; a guide entry without one is the only
           // card in the grid with a blank leading slot.
           icon: PanelIcon

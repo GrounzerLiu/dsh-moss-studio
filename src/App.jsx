@@ -4,6 +4,7 @@ import { BoxCanvas } from './BoxCanvas.jsx'
 import { BoxEditor } from './BoxEditor.jsx'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { FilterChip } from './FilterChip.jsx'
+import { getLocale, t } from './i18n.js'
 import { Icon } from './icons.jsx'
 import { IconCheckbox } from './IconCheckbox.jsx'
 import { ResultPane } from './ResultPane.jsx'
@@ -91,7 +92,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
     <div
       role="group"
       tabIndex={0}
-      aria-label={record.prompt === '' ? '未命名记录' : record.prompt}
+      aria-label={record.prompt === '' ? t('未命名记录') : record.prompt}
       onClick={() => onSelect(record.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -140,7 +141,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
       </span>
       <span style={{ minWidth: 0, flex: 1 }}>
         <span style={{ display: 'block', fontSize: 11, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {record.prompt === '' ? '(无提示词)' : record.prompt}
+          {record.prompt === '' ? t('(无提示词)') : record.prompt}
         </span>
         <span style={{ display: 'block', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...dim }}>
           {timeOf(record.createdAt)} · {record.size} · {record.boxCount} 框
@@ -166,8 +167,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         <button
           type="button"
           style={{ ...rowAction, color: record.pinned ? 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))' : 'inherit' }}
-          title={record.pinned ? '取消置顶' : '置顶'}
-          aria-label={record.pinned ? '取消置顶' : '置顶'}
+          title={record.pinned ? t('取消置顶') : t('置顶')}
+          aria-label={record.pinned ? t('取消置顶') : t('置顶')}
           onClick={(event) => {
             event.stopPropagation()
             onPin?.(record)
@@ -180,8 +181,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         <button
           type="button"
           style={{ ...rowAction, color: record.archived ? 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))' : 'inherit' }}
-          title={record.archived ? '取消归档' : '归档'}
-          aria-label={record.archived ? '取消归档' : '归档'}
+          title={record.archived ? t('取消归档') : t('归档')}
+          aria-label={record.archived ? t('取消归档') : t('归档')}
           onClick={(event) => {
             event.stopPropagation()
             onArchive?.(record)
@@ -194,9 +195,9 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           disabled={record.status === 'running'}
           style={{ ...rowAction, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)', opacity: record.status === 'running' ? 0.45 : 1 }}
           title={record.status === 'running'
-            ? '生成中，结束后才能删除'
-            : '删除这条记录'}
-          aria-label="删除记录"
+            ? t('生成中，结束后才能删除')
+            : t('删除这条记录')}
+          aria-label={t('删除记录')}
           onClick={(event) => {
             event.stopPropagation()
             onDelete(record.id)
@@ -213,7 +214,7 @@ const optionStyle = { background: 'var(--dsw-alias-bg-overlay, #26282a)', color:
 
 function timeOf(value) {
   if (typeof value !== 'number' || value === 0) return '—'
-  return new Date(value).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  return new Date(value).toLocaleTimeString(getLocale() === 'en' ? 'en-US' : 'zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
 function toCharacterSet(value) {
@@ -471,14 +472,14 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setRevision(body.revision)
         dirtyRef.current = false
         setParams(body.params)
-        setNotice('草稿已被 AI 更新，已同步为最新参数')
+        setNotice(t('草稿已被 AI 更新，已同步为最新参数'))
       } else if (status === 200 && body !== null) {
         revisionRef.current = body.revision
         setRevision(body.revision)
         dirtyRef.current = false
         setError('')
       } else {
-        setError(body?.message ?? `保存失败（${status}）`)
+        setError(body?.message ?? t('保存失败（{status}）', { status }))
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
@@ -557,7 +558,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const newDraft = useCallback(() => {
     update({ prompt: '', boxes: [], seed: -1, characterBoxes: '', enhance: false })
     setSelectedBox(-1)
-    setNotice('已新建空草稿')
+    setNotice(t('已新建空草稿'))
   }, [update])
 
   /** Opening the editor remembers the draft, which is what "取消" restores. */
@@ -577,7 +578,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     setParams(snapshot)
     if (saveTimer.current !== null) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => { void flush(snapshot) }, SAVE_DELAY_MS)
-    setNotice('已撤销本次布局修改')
+    setNotice(t('已撤销本次布局修改'))
   }, [flush])
 
   /** Wait for the newest record to leave `running`, then report its outcome. */
@@ -590,25 +591,25 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       const newest = state.records[0]
       if (newest !== undefined && newest.status !== 'running') {
         if (newest.status === 'failed') {
-          setError(newest.error?.message ?? '生成失败')
+          setError(newest.error?.message ?? t('生成失败'))
           setNotice('')
         } else {
           pinnedRef.current = false
           setImageBroken(false)
           setActiveRecordId(newest.id)
-          setNotice(`已完成：${newest.width}×${newest.height}，${newest.seconds} 秒`)
+          setNotice(t('已完成：{width}×{height}，{seconds} 秒', { width: newest.width, height: newest.height, seconds: newest.seconds }))
         }
         return
       }
     }
-    setNotice('等待超时，任务可能仍在 ComfyUI 队列中')
+    setNotice(t('等待超时，任务可能仍在 ComfyUI 队列中'))
   }, [sessionId, applyServerState])
 
   const runGenerate = useCallback(async () => {
     if (busy) return
     setBusy(true)
     setError('')
-    setNotice('已提交，等待 ComfyUI 出图…')
+    setNotice(t('已提交，等待 ComfyUI 出图…'))
     try {
       const { status, body } = await generate(sessionId, revisionRef.current)
       if (status === 409 && body !== null) {
@@ -616,15 +617,15 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setRevision(body.revision)
         setParams(body.params)
         dirtyRef.current = false
-        setNotice('草稿已更新，请确认后再生成')
+        setNotice(t('草稿已更新，请确认后再生成'))
         return
       }
       if (status === 429) {
-        setNotice('上一次生成还在进行')
+        setNotice(t('上一次生成还在进行'))
         return
       }
       if (status !== 202) {
-        setError(body?.message ?? `生成请求失败（${status}）`)
+        setError(body?.message ?? t('生成请求失败（{status}）', { status }))
         return
       }
       await waitForCompletion()
@@ -640,17 +641,17 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     if (busy || record === null || record === undefined) return
     setBusy(true)
     setError('')
-    setNotice('已按这条记录重试，等待出图…')
+    setNotice(t('已按这条记录重试，等待出图…'))
     try {
       // No revision: the point of a retry is the recorded parameters, not the
       // draft someone may have edited since.
       const { status, body } = await generate(sessionId, undefined, record.params)
       if (status === 429) {
-        setNotice('上一次生成还在进行')
+        setNotice(t('上一次生成还在进行'))
         return
       }
       if (status !== 202) {
-        setError(body?.message ?? `重试失败（${status}）`)
+        setError(body?.message ?? t('重试失败（{status}）', { status }))
         return
       }
       await waitForCompletion()
@@ -701,7 +702,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     dirtyRef.current = true
     if (saveTimer.current !== null) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => { void flush(activeRecord.params) }, SAVE_DELAY_MS)
-    setNotice(`已载入 ${activeRecord.id} 的参数`)
+    setNotice(t('已载入 {id} 的参数', { id: activeRecord.id }))
   }, [activeRecord, flush])
 
   const removeRecordById = useCallback(async (id) => {
@@ -709,11 +710,11 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       const { status, body } = await deleteRecord(id)
       if (status === 409) {
         // The engine is still writing this record; deleting it would drop the image.
-        setError(body?.message ?? '这条记录还在生成，等它结束再删')
+        setError(body?.message ?? t('这条记录还在生成，等它结束再删'))
         return
       }
       if (status !== 200) {
-        setError(body?.message ?? `删除失败（${status}）`)
+        setError(body?.message ?? t('删除失败（{status}）', { status }))
         return
       }
       setError('')
@@ -733,11 +734,11 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       const { status, body } = await patchRecord(record.id, flags)
       if (status === 405) {
         // The browser half is newer than the running host: PATCH is not registered yet.
-        setError('置顶/归档需要新版宿主：重启应用后生效（当前进程还是旧版本）')
+        setError(t('置顶/归档需要新版宿主：重启应用后生效（当前进程还是旧版本）'))
         return
       }
       if (status !== 200) {
-        setError(body?.message ?? `标记失败（${status}）`)
+        setError(body?.message ?? t('标记失败（{status}）', { status }))
         return
       }
       setError('')
@@ -830,7 +831,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   if (params === null) {
     return (
       <div style={{ ...panel, padding: 16, ...dim }}>
-        {error !== '' ? `读取失败：${error}` : '正在读取 moss studio 状态…'}
+        {error !== '' ? t('读取失败：{error}', { error }) : '正在读取 moss studio 状态…'}
       </div>
     )
   }
@@ -858,13 +859,15 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
       <ScopeStyles />
       <div style={{ ...row, justifyContent: 'space-between', gap: 8, padding: '6px 8px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
         <div style={{ ...row, gap: 6, minWidth: 0 }}>
-          <button type="button" style={iconOnly} title="新建空草稿" aria-label="新建草稿" onClick={newDraft}>
+          <button type="button" style={iconOnly} title={t('新建空草稿')} aria-label={t('新建草稿')} onClick={newDraft}>
             <Icon name="add" />
           </button>
           <button
             type="button"
-            title={`${comfy?.ok ? `ComfyUI ${comfy.version} · ${comfy.url ?? ''}` : `连不上 ComfyUI${comfy?.error ? `：${comfy.error}` : ''}`}（点击重新检测）`}
-            aria-label="重新检测 ComfyUI"
+            title={`${comfy?.ok
+              ? `${t('ComfyUI {version}', { version: comfy.version })} · ${comfy.url ?? ''}`
+              : `${t('连不上 ComfyUI')}${comfy?.error ? `：${comfy.error}` : ''}`}（${t('点击重新检测')}）`}
+            aria-label={t('重新检测 ComfyUI')}
             onClick={() => { setComfy(null); void checkHealth() }}
             style={{
               display: 'inline-flex',
@@ -894,17 +897,17 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                     : 'var(--dsw-alias-state-error-primary, #ff8f7a)',
               }}
             />
-            {comfy === null ? '连接中' : comfy.ok ? `ComfyUI ${comfy.version}` : 'ComfyUI 离线'}
+            {comfy === null ? t('连接中') : comfy.ok ? t('ComfyUI {version}', { version: comfy.version }) : t('ComfyUI 离线')}
           </button>
           {/* Session ids are long and meaningless at a glance; say which draft
               this is, and keep the exact id in the tooltip. */}
-          <span style={{ fontSize: 10, ...dim, whiteSpace: 'nowrap' }} title={`草稿会话：${sessionId}`}>
-            {sessionId === 'root' ? '根草稿' : sessionId === 'global' ? '未绑定会话' : '对话草稿'}
+          <span style={{ fontSize: 10, ...dim, whiteSpace: 'nowrap' }} title={t('草稿会话：{sessionId}', { sessionId })}>
+            {sessionId === 'root' ? t('根草稿') : sessionId === 'global' ? t('未绑定会话') : t('对话草稿')}
           </span>
           {/* Live memory, not the draft summary: while a job runs, what matters is
               whether the model stack still fits. */}
           <span
-            title={`显存 ${gigabytes(comfy?.gpu?.vramTotal)} GB 总量，内存 ${gigabytes(comfy?.ramTotal)} GB 总量`}
+            title={t('显存 {total} GB 总量，内存 {ram} GB 总量', { total: gigabytes(comfy?.gpu?.vramTotal), ram: gigabytes(comfy?.ramTotal) })}
             style={{
               fontSize: 10,
               whiteSpace: 'nowrap',
@@ -926,8 +929,8 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
           </span>
         </div>
         <div style={{ ...row, gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: 10, ...dim }}>{saving ? '保存中…' : `revision ${revision}`}</span>
-          <button type="button" style={iconOnly} title="设置" aria-label="设置" onClick={() => setSettingsOpen(true)}>
+          <span style={{ fontSize: 10, ...dim }}>{saving ? t('保存中…') : `revision ${revision}`}</span>
+          <button type="button" style={iconOnly} title={t('设置')} aria-label={t('设置')} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" />
           </button>
         </div>
@@ -955,14 +958,14 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             <div style={{ ...row, gap: 4 }}>
               <FilterChip
                 selected={flagLocalOnly}
-                label="本会话"
-                title={flagLocalOnly ? '显示全部会话的记录' : '只看本会话的记录'}
+                label={t('本会话')}
+                title={flagLocalOnly ? t('显示全部会话的记录') : t('只看本会话的记录')}
                 onClick={() => setLocalOnly((value) => !value)}
               />
               <FilterChip
                 selected={showArchived}
-                label="归档"
-                title={showArchived ? '隐藏已归档的记录' : '显示已归档的记录'}
+                label={t('归档')}
+                title={showArchived ? t('隐藏已归档的记录') : t('显示已归档的记录')}
                 onClick={() => {
                   setShowArchived((value) => !value)
                   setOlder([])
@@ -975,14 +978,14 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索提示词或记录号"
+              placeholder={t('搜索提示词或记录号')}
               style={{ ...input, width: '100%', boxSizing: 'border-box', fontSize: 11 }}
             />
           </div>
 
           {pinnedRecords.length > 0 ? (
             <div style={{ padding: '0 6px 6px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', marginBottom: 6 }}>
-              <div style={{ fontSize: 10, ...dim, marginBottom: 4 }} title={pinnedTruncated ? '置顶超过 50 条，只显示最近 50 条' : undefined}>
+              <div style={{ fontSize: 10, ...dim, marginBottom: 4 }} title={pinnedTruncated ? t('置顶超过 50 条，只显示最近 50 条') : undefined}>
               置顶 {pinnedRecords.length}
               {pinnedTruncated ? ' +' : ''}
             </div>
@@ -1009,10 +1012,10 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             {visibleRecords.length === 0 ? (
               <div style={{ ...dim, padding: 8, lineHeight: 1.6 }}>
                 {needle !== ''
-                  ? `没有匹配「${query.trim()}」的记录`
+                  ? t('没有匹配「{query}」的记录', { query: query.trim() })
                   : flagLocalOnly
-                    ? '这个会话还没有记录（可以关掉「本会话」看全部）'
-                    : '还没有记录'}
+                    ? t('这个会话还没有记录（可以关掉「本会话」看全部）')
+                    : t('还没有记录')}
               </div>
             ) : null}
 
@@ -1058,7 +1061,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             {nextBefore !== null && needle === '' ? (
               <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
                 <button type="button" style={iconButton} onClick={() => void loadMore()} disabled={loadingMore}>
-                  {loadingMore ? '加载中…' : '加载更多'}
+                  {loadingMore ? t('加载中…') : t('加载更多')}
                 </button>
               </div>
             ) : null}
@@ -1073,7 +1076,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             setHistoryResizing(true)
           }}
           onDoubleClick={() => setHistoryWidth(wide ? 280 : 196)}
-          title="拖动调整历史列宽，双击复位"
+          title={t('拖动调整历史列宽，双击复位')}
           style={{
             width: 5,
             flexShrink: 0,
@@ -1088,12 +1091,12 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div>
               <div style={{ ...row, justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={label}>提示词</span>
+                <span style={label}>{t('提示词')}</span>
               </div>
               <textarea
                 value={params.prompt}
                 onChange={(event) => update({ prompt: event.target.value })}
-                placeholder="整图描述；框内细节写在每个框的 desc 里"
+                placeholder={t('整图描述；框内细节写在每个框的 desc 里')}
                 rows={4}
                 style={{ ...input, width: '100%', resize: 'vertical', lineHeight: 1.5 }}
               />
@@ -1106,8 +1109,8 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                   <button
                     type="button"
                     style={iconOnly}
-                    title={showCanvas ? '折叠预览' : '展开预览'}
-                    aria-label={showCanvas ? '折叠预览' : '展开预览'}
+                    title={showCanvas ? t('折叠预览') : t('展开预览')}
+                    aria-label={showCanvas ? t('折叠预览') : t('展开预览')}
                     onClick={() => setShowCanvas((value) => !value)}
                   >
                     <Icon name={showCanvas ? 'unfold_less' : 'unfold_more'} />
@@ -1115,8 +1118,8 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                   <button
                     type="button"
                     style={iconOnly}
-                    title="编辑布局"
-                    aria-label="编辑布局"
+                    title={t('编辑布局')}
+                    aria-label={t('编辑布局')}
                     onClick={openEditor}
                   >
                     <Icon name="dashboard_customize" />
@@ -1126,7 +1129,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
               {showCanvas ? (
                 <div
                   onClick={openEditor}
-                  title="点击打开布局编辑器"
+                  title={t('点击打开布局编辑器')}
                   style={{ cursor: 'zoom-in' }}
                 >
                   <BoxCanvas
@@ -1145,7 +1148,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ ...row, gap: 4, alignItems: 'center' }}>
-                  <span style={label}>尺寸</span>
+                  <span style={label}>{t('尺寸')}</span>
                   <input
                     type="number"
                     min={16}
@@ -1153,7 +1156,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                     value={widthText}
                     onChange={(event) => setWidthText(event.target.value)}
                     onBlur={() => commitSize(widthText, heightText)}
-                    aria-label="宽度"
+                    aria-label={t('宽度')}
                     style={{ ...input, flex: '0 0 64px', width: 64, textAlign: 'right' }}
                   />
                   <span style={{ ...dim, fontSize: 11 }}>×</span>
@@ -1164,7 +1167,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                     value={heightText}
                     onChange={(event) => setHeightText(event.target.value)}
                     onBlur={() => commitSize(widthText, heightText)}
-                    aria-label="高度"
+                    aria-label={t('高度')}
                     style={{ ...input, flex: '0 0 64px', width: 64, textAlign: 'right' }}
                   />
                   <select
@@ -1176,10 +1179,10 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                       setHeightText(h)
                       update({ size: event.target.value })
                     }}
-                    aria-label="常用尺寸"
+                    aria-label={t('常用尺寸')}
                     style={{ ...input, flex: '0 0 96px', width: 96 }}
                   >
-                    <option value="" style={optionStyle}>预设</option>
+                    <option value="" style={optionStyle}>{t('预设')}</option>
                     {SIZE_PRESETS.map((size) => <option key={size} value={size} style={optionStyle}>{size}</option>)}
                   </select>
                 </div>
@@ -1188,7 +1191,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                 ) : null}
               </div>
               <label style={row}>
-                <span style={label}>步数</span>
+                <span style={label}>{t('步数')}</span>
                 <input type="number" min={1} max={200} value={params.steps} onChange={(event) => update({ steps: Number(event.target.value) || 1 })} style={input} />
               </label>
               <label style={row}>
@@ -1203,12 +1206,12 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
 
             <div>
               <div style={{ ...row, justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={label}>负向提示词</span>
+                <span style={label}>{t('负向提示词')}</span>
               </div>
               <textarea
                 value={params.negative}
                 onChange={(event) => update({ negative: event.target.value })}
-                placeholder="不希望出现的内容，逗号分隔"
+                placeholder={t('不希望出现的内容，逗号分隔')}
                 rows={2}
                 style={{ ...input, width: '100%', display: 'block', resize: 'vertical', lineHeight: 1.5 }}
               />
@@ -1218,18 +1221,18 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
               checked={params.enhance}
               disabled={boxes.length > 0}
               onChange={(event) => update({ enhance: event.target.checked })}
-              label="先用本地 9B 扩写提示词（有框时不可用）"
+              label={t('先用本地 9B 扩写提示词（有框时不可用）')}
             />
           </div>
 
           <div style={{ borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ ...row, flexWrap: 'wrap' }}>
               <button type="button" style={primary} disabled={busy || otherBusy || sizeHint !== null} onClick={generateRandom}>
-                {busy ? `生成中 ${elapsed}s${phase === '' ? '' : ` · ${PHASE_LABEL[phase] ?? phase}`}` : otherBusy ? '另一会话正在生成' : '随机 seed 生成'}
+                {busy ? `${t('生成中 {seconds}s', { seconds: elapsed })}${phase === '' ? '' : ` · ${t(PHASE_LABEL[phase] ?? phase)}`}` : otherBusy ? t('另一会话正在生成') : t('随机 seed 生成')}
               </button>
-              <button type="button" style={button} disabled={busy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>用当前 seed 生成</button>
+              <button type="button" style={button} disabled={busy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>{t('用当前 seed 生成')}</button>
               {running !== undefined && !busy ? <span style={{ fontSize: 11, ...dim }}>队列中 · {running.id.slice(-4)}</span> : null}
-              {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>尺寸无效，未保存</span> : null}
+              {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{t('尺寸无效，未保存')}</span> : null}
             </div>
             {notice !== '' ? <div style={{ fontSize: 11, ...dim }}>{notice}</div> : null}
             {error !== '' ? <div style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{error}</div> : null}
@@ -1277,7 +1280,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
           setResizing(true)
         }}
         onDoubleClick={() => setResultCollapsed((value) => !value)}
-        title="拖动调整高度，双击收起/展开"
+        title={t('拖动调整高度，双击收起/展开')}
         style={{
           height: 6,
           flexShrink: 0,
@@ -1298,13 +1301,13 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 8px 0', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, ...dim }}>结果</span>
+          <span style={{ fontSize: 11, ...dim }}>{t('结果')}</span>
           <span style={{ flex: 1 }} />
           <button
             type="button"
             style={iconOnly}
-            title={resultCollapsed ? '展开结果区' : '收起结果区'}
-            aria-label={resultCollapsed ? '展开结果区' : '收起结果'}
+            title={resultCollapsed ? t('展开结果区') : t('收起结果区')}
+            aria-label={resultCollapsed ? t('展开结果区') : t('收起结果')}
             onClick={() => setResultCollapsed((value) => !value)}
           >
             <Icon name={resultCollapsed ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} />
@@ -1350,7 +1353,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
 
       {pendingDelete !== null ? (
         <ConfirmDialog
-          title="删除这条记录？"
+          title={t('删除这条记录？')}
           message="记录与图片会一起删除，无法恢复。"
           detail={[pendingDelete.prompt, pendingDelete.id].filter((part) => typeof part === 'string' && part !== '').join(' · ')}
           onCancel={() => setPendingDelete(null)}

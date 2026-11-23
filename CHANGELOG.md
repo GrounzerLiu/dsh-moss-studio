@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- The panel UI is translated. Chinese text doubles as the translation key, so a
+  missing English entry still shows readable text; placeholders use `{name}`.
+- Language follows the app locale when the client exposes one, then the document
+  language, then the browser; anything that is not English falls back to Chinese.
+- Timestamps use the matching locale format.
+- Host-side validation messages (errors returned by routes and tools) are still
+  Chinese; only the panel is translated so far.
+
 ## 0.2.0
 
 First public release. Everything below is in this version.

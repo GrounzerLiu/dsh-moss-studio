@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { t } from './i18n.js'
 import { createPortal } from 'react-dom'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import { imageUrl } from './api.js'
@@ -67,7 +68,7 @@ export function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="查看生成结果"
+      aria-label={t('查看生成结果')}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation()
@@ -108,8 +109,8 @@ export function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
             <button
               type="button"
               style={{ ...chromeIcon, opacity: prevId === null || prevId === undefined ? 0.4 : 1 }}
-              title="上一张（较新）"
-              aria-label="上一张"
+              title={t('上一张（较新）')}
+              aria-label={t('上一张')}
               disabled={prevId === null || prevId === undefined}
               onClick={() => onNavigate?.(prevId)}
             >
@@ -118,8 +119,8 @@ export function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
             <button
               type="button"
               style={{ ...chromeIcon, opacity: nextId === null || nextId === undefined ? 0.4 : 1 }}
-              title="下一张（较旧）"
-              aria-label="下一张"
+              title={t('下一张（较旧）')}
+              aria-label={t('下一张')}
               disabled={nextId === null || nextId === undefined}
               onClick={() => onNavigate?.(nextId)}
             >
@@ -127,16 +128,16 @@ export function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
             </button>
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button type="button" style={chromeIcon} title="缩小" aria-label="缩小" onClick={() => zoomBy('zoomOut')}>
+            <button type="button" style={chromeIcon} title={t('缩小')} aria-label={t('缩小')} onClick={() => zoomBy('zoomOut')}>
               <Icon name="zoom_out" size={18} />
             </button>
-            <button type="button" style={chromeIcon} title="放大" aria-label="放大" onClick={() => zoomBy('zoomIn')}>
+            <button type="button" style={chromeIcon} title={t('放大')} aria-label={t('放大')} onClick={() => zoomBy('zoomIn')}>
               <Icon name="zoom_in" size={18} />
             </button>
-            <button type="button" style={chromeIcon} title="适应窗口" aria-label="适应窗口" onClick={fit}>
+            <button type="button" style={chromeIcon} title={t('适应窗口')} aria-label={t('适应窗口')} onClick={fit}>
               <Icon name="fit_screen" size={18} />
             </button>
-            <button type="button" style={chromeIcon} title="关闭" aria-label="关闭" onClick={onClose}>
+            <button type="button" style={chromeIcon} title={t('关闭')} aria-label={t('关闭')} onClick={onClose}>
               <Icon name="close" size={18} />
             </button>
           </div>
@@ -166,7 +167,7 @@ export function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
               >
                 <img
                   src={imageUrl(recordId)}
-                  alt="放大查看"
+                  alt={t('放大查看')}
                   draggable={false}
                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none' }}
                 />

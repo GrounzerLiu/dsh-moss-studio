@@ -1,6 +1,6 @@
 {
   "name": "dsh-moss-studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "MOSS-Image studio: a sidebar workbench for local ComfyUI layout generation, with history and AI-readable drafts.",
