@@ -175,7 +175,7 @@ export function SettingsDialog({ onClose, onSaved }) {
               disabled={!editable || saving}
               placeholder="http://127.0.0.1:8188"
               aria-label="ComfyUI 地址"
-              style={input}
+              style={{ ...input, flex: '0 0 auto', alignSelf: 'stretch', height: 30 }}
             />
             <span style={{ ...dim, fontSize: 11 }}>
               {editable
@@ -194,7 +194,7 @@ export function SettingsDialog({ onClose, onSaved }) {
               onChange={(event) => { setRetention(event.target.value); setNotice('') }}
               disabled={!editable || saving}
               aria-label="历史保留条数"
-              style={{ ...input, flex: '0 0 120px', width: 120 }}
+              style={{ ...input, flex: '0 0 auto', alignSelf: 'flex-start', width: 120, height: 28 }}
             />
             <span style={{ ...dim, fontSize: 11 }}>超出时删最旧的；置顶与正在生成的记录不会被删。</span>
           </label>
@@ -245,7 +245,7 @@ export function SettingsDialog({ onClose, onSaved }) {
                 disabled={!editable || saving}
                 rows={2}
                 aria-label="默认负向提示词"
-                style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }}
+                style={{ ...input, flex: '0 0 auto', resize: 'vertical', fontFamily: 'inherit' }}
               />
             </label>
           </div>

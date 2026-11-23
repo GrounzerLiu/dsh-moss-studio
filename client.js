@@ -3322,7 +3322,7 @@ function SettingsDialog({ onClose, onSaved }) {
           disabled: !editable || saving,
           placeholder: "http://127.0.0.1:8188",
           "aria-label": "ComfyUI \u5730\u5740",
-          style: input2
+          style: { ...input2, flex: "0 0 auto", alignSelf: "stretch", height: 30 }
         }
       ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002" : "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002")), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09"), /* @__PURE__ */ import_react10.default.createElement(
         "input",
@@ -3337,7 +3337,7 @@ function SettingsDialog({ onClose, onSaved }) {
           },
           disabled: !editable || saving,
           "aria-label": "\u5386\u53F2\u4FDD\u7559\u6761\u6570",
-          style: { ...input2, flex: "0 0 120px", width: 120 }
+          style: { ...input2, flex: "0 0 auto", alignSelf: "flex-start", width: 120, height: 28 }
         }
       ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09"), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react10.default.createElement(
         "input",
@@ -3381,7 +3381,7 @@ function SettingsDialog({ onClose, onSaved }) {
           disabled: !editable || saving,
           rows: 2,
           "aria-label": "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD",
-          style: { ...input2, resize: "vertical", fontFamily: "inherit" }
+          style: { ...input2, flex: "0 0 auto", resize: "vertical", fontFamily: "inherit" }
         }
       ))), wiring !== null ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F"), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u6570\u636E\u76EE\u5F55", value: wiring.dataDir }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u5DE5\u4F5C\u6D41", value: wiring.workflowPath }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u8D85\u65F6 / \u8F6E\u8BE2", value: `${Math.round((wiring.timeoutMs ?? 0) / 1e3)} \u79D2 / ${wiring.pollMs ?? 0} \u6BEB\u79D2` })) : null, notice !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
       /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: button4, onClick: onClose }, "\u5173\u95ED"), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u4FDD\u5B58"))
