@@ -1,0 +1,9 @@
+- insert:
+    - id: moss-studio
+      name: dsh-moss-studio
+      config:
+        comfyUrl: http://127.0.0.1:8188
+        steps: 25
+        cfg: 2.5
+        timeoutMs: 600000
+        pollMs: 1000

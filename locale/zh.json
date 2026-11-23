@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Moss 生图工作台",
+    "description": "在侧栏管理本机 ComfyUI 的 MOSS-Image 生图：历史记录、框位编辑、参数调整，AI 可读写同一份草稿。",
+    "detail": "docs/DETAIL.md"
+  }
+}

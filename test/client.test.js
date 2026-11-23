@@ -1,0 +1,172 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+
+import React from 'react'
+import { renderToString } from 'react-dom/server'
+
+const require = createRequire(import.meta.url)
+const bundlePath = fileURLToPath(new URL('../client.js', import.meta.url))
+
+/**
+ * Evaluate the built client bundle the way the Web client does: capture the
+ * ModuleLoader registration, hand it `require`, and return the plugin.
+ */
+function loadPlugin() {
+  const source = readFileSync(bundlePath, 'utf8')
+  let captured
+  const window = {
+    __ModuleLoader__: {
+      load(entry) {
+        captured = entry
+      },
+    },
+  }
+  // eslint-disable-next-line no-new-func
+  new Function('window', 'require', source)(window, require)
+  assert.ok(captured !== undefined, 'bundle did not call __ModuleLoader__.load')
+  assert.equal(captured.id, 'dsh-moss-studio')
+  return captured.factory(require)
+}
+
+function fakeContext() {
+  const calls = { tabTypes: [], slots: [], opened: [] }
+  const ctx = {
+    effect(fn) {
+      const dispose = fn()
+      return typeof dispose === 'function' ? dispose : () => {}
+    },
+    slots: {
+      inject(owner, register) {
+        calls.slots.push(owner)
+        return register()
+      },
+      register(definition, component) {
+        calls.registrations = calls.registrations ?? []
+        calls.registrations.push({ definition, component })
+        return () => {}
+      },
+    },
+    sidebarRightTabs: {
+      register(definition) {
+        calls.tabTypes.push(definition)
+        return () => {}
+      },
+    },
+    sidebarRight: {
+      openTab(kind) {
+        calls.opened.push(kind)
+        return kind
+      },
+    },
+  }
+  return { ctx, calls }
+}
+
+test('the bundle registers the tab, the main panel, and its sidebar launcher', () => {
+  const plugin = loadPlugin()
+  const { ctx, calls } = fakeContext()
+
+  plugin.apply(ctx)
+
+  assert.deepEqual(plugin.inject, ['slots', 'sidebarRightTabs', 'sidebarRight'])
+  assert.equal(calls.tabTypes.length, 1)
+  assert.equal(calls.tabTypes[0].id, 'dsh-moss-studio')
+  assert.equal(calls.tabTypes[0].kind, 'moss-studio')
+  assert.equal(calls.tabTypes[0].title(), 'Moss studio')
+  const guide = calls.tabTypes[0].guide[0]
+  assert.equal(guide.id, 'moss-studio')
+  assert.equal(typeof guide.order, 'number')
+  assert.equal(typeof guide.title, 'function')
+  assert.equal(guide.title(), 'Moss studio')
+  assert.equal(typeof guide.description, 'function')
+  assert.equal(typeof guide.icon, 'function', 'the start page card needs a guide icon')
+
+  const body = calls.registrations.find((entry) => entry.definition.name === 'sidebar.right.pane.tab')
+  assert.equal(body.definition.key, 'dsh-moss-studio')
+  assert.deepEqual(body.definition.inject('sess-1'), { sessionId: 'sess-1' })
+
+  const main = calls.registrations.find((entry) => entry.definition.name === 'main')
+  assert.equal(main.definition.key, 'moss-studio')
+
+  const launcher = calls.registrations.find((entry) => entry.definition.name === 'sidebar.panellist')
+  assert.equal(launcher.definition.id, 'moss-studio')
+  assert.equal(launcher.definition.label(), 'Moss studio')
+
+  assert.equal(
+    calls.registrations.find((entry) => entry.definition.name === 'sidebar.footer.action'),
+    undefined,
+    'the footer button is gone',
+  )
+})
+
+test('the launcher icon renders and the main page falls back to the right tab', () => {
+  const plugin = loadPlugin()
+  const { ctx, calls } = fakeContext()
+  plugin.apply(ctx)
+  const launcher = calls.registrations.find((entry) => entry.definition.name === 'sidebar.panellist')
+  const html = renderToString(React.createElement(launcher.component, { size: 18, active: true }))
+  assert.match(html, /svg/, 'the launcher renders its glyph')
+})
+
+test('the panel renders its loading state before state arrives', () => {
+  const plugin = loadPlugin()
+  const { ctx, calls } = fakeContext()
+  plugin.apply(ctx)
+  const body = calls.registrations.find((entry) => entry.definition.name === 'sidebar.right.pane.tab')
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true, revision: 0, params: {}, records: [] }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
+  const html = renderToString(React.createElement(body.component, { sessionId: 'sess-1' }))
+  assert.match(html, /moss studio/i)
+})
+test('the layout editor modal renders its controls', () => {
+  const plugin = loadPlugin()
+  const Editor = plugin.components.BoxEditor
+  const html = renderToString(React.createElement(Editor, {
+    params: {
+      prompt: 'p',
+      negative: 'x',
+      size: '768x1024',
+      steps: 25,
+      cfg: 2.5,
+      seed: -1,
+      characterBoxes: '1',
+      enhance: false,
+      boxes: [{ x: 0.1, y: 0.1, width: 0.3, height: 0.2, type: 'obj', text: '', desc: '红圈', palette: [] }],
+    },
+    selected: 0,
+    onSelect: () => {},
+    onChange: () => {},
+    onAdd: () => {},
+    onRemove: () => {},
+    onToggleCharacter: () => {},
+    onClose: () => {},
+    onCancel: () => {},
+  }))
+  assert.match(html, /编辑布局/)
+  assert.match(html, /768x1024/)
+  assert.match(html, /红圈/)
+  assert.match(html, /完成/)
+})
+
+test('a box draws its caption inside the frame', () => {
+  const plugin = loadPlugin()
+  const Editor = plugin.components.BoxEditor
+  const boxes = [{ x: 0.1, y: 0.1, width: 0.6, height: 0.5, type: 'obj', text: '', desc: '红圈在左侧', palette: [] }]
+  const html = renderToString(React.createElement(Editor, {
+    params: { prompt: 'p', negative: 'x', size: '1024x1024', steps: 25, cfg: 2.5, seed: -1, characterBoxes: '', enhance: false, boxes },
+    selected: -1,
+    onSelect: () => {},
+    onChange: () => {},
+    onAdd: () => {},
+    onRemove: () => {},
+    onToggleCharacter: () => {},
+    onClose: () => {},
+    onCancel: () => {},
+  }))
+  assert.match(html, /红圈在左侧/)
+})

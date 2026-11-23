@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Moss studio",
+    "description": "Sidebar workbench for generating pictures with the local ComfyUI MOSS-Image layout workflow, with history the model can read and edit.",
+    "detail": "docs/DETAIL.md"
+  }
+}
