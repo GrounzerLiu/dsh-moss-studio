@@ -13,6 +13,8 @@ import React from 'react'
 import { StudioPanel } from './App.jsx'
 import { BoxCanvas } from './BoxCanvas.jsx'
 import { BoxEditor } from './BoxEditor.jsx'
+import { ConfirmDialog } from './ConfirmDialog.jsx'
+import { SettingsDialog } from './SettingsDialog.jsx'
 import { Icon } from './icons.jsx'
 
 const PANEL_ID = 'moss-studio'
@@ -105,7 +107,7 @@ export function createPlugin() {
   }
   return {
     // Internal seam for tests and embedding; the loader ignores it.
-    components: { StudioPanel, BoxEditor, BoxCanvas },
+    components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
     inject: ['slots', 'sidebarRightTabs', 'sidebarRight'],
     apply(ctx) {
       /**

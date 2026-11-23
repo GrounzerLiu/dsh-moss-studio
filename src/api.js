@@ -88,10 +88,10 @@ export async function fetchSettings() {
   return body
 }
 
-/** Persist a new ComfyUI address; the host validates and writes it back. */
-export async function saveComfyUrl(comfyUrl) {
+/** Persist an editable settings patch; the host validates and writes it back. */
+export async function saveSettings(patch) {
   return request('/settings', {
     method: 'PATCH',
-    body: JSON.stringify({ comfyUrl }),
+    body: JSON.stringify(patch),
   })
 }

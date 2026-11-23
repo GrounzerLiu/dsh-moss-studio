@@ -295,34 +295,48 @@ test('records can be searched by prompt across every page', async () => {
     assert.ok(hits.body.records.every((row) => row.prompt.includes('kite')))
   })
 })
-test('settings expose the wiring and accept a new ComfyUI address', async () => {
-  let saved = null
+test('settings expose the wiring and accept an editable patch', async () => {
+  const saved = []
+  const state = () => ({
+    ok: true,
+    settings: {
+      comfyUrl: 'http://127.0.0.1:8188',
+      retention: 0,
+      defaults: { size: '1024x1024', steps: 25, cfg: 2.5, negative: 'nsfw' },
+      editable: true,
+    },
+    wiring: { dataDir: 'C:/x', workflowPath: 'C:/x/wf.json', timeoutMs: 600000, pollMs: 1000 },
+  })
+
   await harness(async ({ call }) => {
     const read = await call({ url: '/plugins/dsh-moss-studio/settings' })
     assert.equal(read.out.status, 200)
     assert.equal(read.body.settings.comfyUrl, 'http://127.0.0.1:8188')
+    assert.equal(read.body.settings.defaults.steps, 25)
     assert.equal(typeof read.body.wiring.dataDir, 'string')
-    assert.equal(typeof read.body.wiring.workflowPath, 'string')
+
+    const badUrl = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: { comfyUrl: 'ftp://x' } })
+    assert.equal(badUrl.out.status, 400)
+    const badKey = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: { nope: 1 } })
+    assert.equal(badKey.out.status, 400)
+    const badRetention = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: { retention: -1 } })
+    assert.equal(badRetention.out.status, 400)
+    const empty = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: {} })
+    assert.equal(empty.out.status, 400)
+
+    const good = await call({
+      method: 'PATCH',
+      url: '/plugins/dsh-moss-studio/settings',
+      body: { comfyUrl: 'http://127.0.0.1:8189/', retention: 50, defaults: { steps: 30, cfg: 3 } },
+    })
+    assert.equal(good.out.status, 200)
+    assert.equal(good.body.settings.comfyUrl, 'http://127.0.0.1:8188')
   }, {
-    settings: () => ({
-      ok: true,
-      settings: { comfyUrl: 'http://127.0.0.1:8188', editable: true },
-      wiring: { dataDir: 'C:/x', workflowPath: 'C:/x/wf.json', timeoutMs: 600000, pollMs: 1000, defaults: { steps: 25, cfg: 2.5 } },
-    }),
-    saveComfyUrl: (value) => { saved = value; return { comfyUrl: value } },
+    settings: state,
+    saveSettings: (body) => { saved.push(body); return state() },
   })
 
-  await harness(async ({ call }) => {
-    const bad = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: { comfyUrl: 'ftp://x' } })
-    assert.equal(bad.out.status, 400)
-    const good = await call({ method: 'PATCH', url: '/plugins/dsh-moss-studio/settings', body: { comfyUrl: 'http://127.0.0.1:8189/' } })
-    assert.equal(good.out.status, 200)
-    assert.equal(good.body.settings.comfyUrl, 'http://127.0.0.1:8189')
-  }, {
-    settings: () => ({ ok: true, settings: { comfyUrl: 'http://127.0.0.1:8188', editable: true }, wiring: {} }),
-    saveComfyUrl: (value) => { saved = value; return { comfyUrl: value } },
-  })
-  assert.equal(saved, 'http://127.0.0.1:8189')
+  assert.equal(saved.length, 1)
 })
 
 test('a session-scoped stream ignores drafts from other sessions', async () => {

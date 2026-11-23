@@ -9,6 +9,7 @@ import { IconCheckbox } from './IconCheckbox.jsx'
 import { ResultPane } from './ResultPane.jsx'
 import { ConfirmDialog } from './ConfirmDialog.jsx'
 import { SettingsDialog } from './SettingsDialog.jsx'
+import { DEFAULT_UI, loadUiPrefs, saveUiPrefs } from './ui-prefs.js'
 import { SIZE_PRESETS, formatSize, sizeProblem } from './size.js'
 import { gigabytes, usedPercent } from './format.js'
 import { ImageViewer } from './ImageViewer.jsx'
@@ -254,8 +255,15 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const openViewer = useCallback(() => setZoom(true), [])
   const [editorOpen, setEditorOpen] = useState(false)
 
-  const [resultHeight, setResultHeight] = useState(240)
-  const [resultCollapsed, setResultCollapsed] = useState(false)
+  // Layout preferences survive a reload: they describe the person, not the draft.
+  const initialUiRef = useRef(null)
+  if (initialUiRef.current === null) initialUiRef.current = loadUiPrefs()
+  const initialUi = initialUiRef.current
+  const [resultHeight, setResultHeight] = useState(initialUi.resultHeight)
+  const [resultCollapsed, setResultCollapsed] = useState(initialUi.resultCollapsed)
+  const [historyWidth, setHistoryWidth] = useState(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow)
+  const [historyResizing, setHistoryResizing] = useState(false)
+  const historyResizeRef = useRef(null)
   const [resizing, setResizing] = useState(false)
   const resizeRef = useRef(null)
 
@@ -405,6 +413,35 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     return () => clearInterval(timer)
   }, [busy])
 
+  // Write the layout preferences back whenever they change.
+  useEffect(() => {
+    saveUiPrefs({
+      resultHeight,
+      resultCollapsed,
+      historyWidth: wide
+        ? { ...loadUiPrefs().historyWidth, wide: historyWidth }
+        : { ...loadUiPrefs().historyWidth, narrow: historyWidth },
+    })
+  }, [resultHeight, resultCollapsed, historyWidth, wide])
+
+  useEffect(() => {
+    if (!historyResizing) return undefined
+    function onMove(event) {
+      const drag = historyResizeRef.current
+      if (drag === null) return
+      setHistoryWidth(Math.min(420, Math.max(160, drag.width + (event.clientX - drag.x))))
+    }
+    function onUp() {
+      historyResizeRef.current = null
+      setHistoryResizing(false)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [historyResizing])
   useEffect(() => {
     if (!resizing) return undefined
     function onMove(event) {
@@ -900,7 +937,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
         <div
           className="moss-scroller"
           style={{
-            width: wide ? 280 : 196,
+            width: historyWidth,
             flexShrink: 0,
             borderRight: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))',
             display: 'flex',
@@ -1027,6 +1064,25 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
             ) : null}
           </div>
         </div>
+
+        {/* Drag to resize the history column; the width is remembered. */}
+        <div
+          onPointerDown={(event) => {
+            event.preventDefault()
+            historyResizeRef.current = { x: event.clientX, width: historyWidth }
+            setHistoryResizing(true)
+          }}
+          onDoubleClick={() => setHistoryWidth(wide ? 280 : 196)}
+          title="拖动调整历史列宽，双击复位"
+          style={{
+            width: 5,
+            flexShrink: 0,
+            cursor: 'col-resize',
+            background: historyResizing
+              ? 'var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))'
+              : 'transparent',
+          }}
+        />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>

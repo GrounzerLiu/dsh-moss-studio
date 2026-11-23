@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { ScopeStyles } from './ScopeStyles.jsx'
+import { useDialogFocus } from './useDialogFocus.js'
 
 const button = {
   padding: '5px 14px',
@@ -26,7 +27,9 @@ const danger = {
  * show what exactly is about to disappear.
  */
 export function ConfirmDialog({ title, message, detail, confirmLabel = '删除', onConfirm, onCancel }) {
+  const cardRef = useRef(null)
   const cancelRef = useRef(null)
+  useDialogFocus(cardRef, { initialFocus: cancelRef })
 
   useEffect(() => {
     // Focus the safe choice; Enter on the dialog then cancels rather than deletes.
@@ -54,6 +57,7 @@ export function ConfirmDialog({ title, message, detail, confirmLabel = '删除',
     >
       <ScopeStyles />
       <div
+        ref={cardRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}

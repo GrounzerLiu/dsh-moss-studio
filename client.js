@@ -38,10 +38,10 @@ __export(client_exports, {
   createPlugin: () => createPlugin
 });
 module.exports = __toCommonJS(client_exports);
-var import_react13 = __toESM(require("react"), 1);
+var import_react14 = __toESM(require("react"), 1);
 
 // src/App.jsx
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 
 // src/api.js
 var PREFIX = "/plugins/dsh-moss-studio";
@@ -111,10 +111,10 @@ async function fetchSettings() {
   if (status !== 200 || body === null) throw new Error(body?.message ?? `\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08${status}\uFF09`);
   return body;
 }
-async function saveComfyUrl(comfyUrl) {
+async function saveSettings(patch) {
   return request("/settings", {
     method: "PATCH",
-    body: JSON.stringify({ comfyUrl })
+    body: JSON.stringify(patch)
   });
 }
 
@@ -359,7 +359,7 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
 }
 
 // src/BoxEditor.jsx
-var import_react5 = __toESM(require("react"), 1);
+var import_react6 = __toESM(require("react"), 1);
 
 // src/icons.jsx
 var import_react2 = __toESM(require("react"), 1);
@@ -512,6 +512,45 @@ function ScopeStyles() {
 `);
 }
 
+// src/useDialogFocus.js
+var import_react5 = require("react");
+var FOCUSABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])'
+].join(",");
+function useDialogFocus(containerRef, options = {}) {
+  (0, import_react5.useEffect)(() => {
+    const container = containerRef.current;
+    if (container === null) return void 0;
+    const previous = typeof document === "undefined" ? null : document.activeElement;
+    const target = options.initialFocus?.current ?? container.querySelector(FOCUSABLE) ?? container;
+    target.focus?.();
+    function onKey(event) {
+      if (event.key !== "Tab") return;
+      const items = [...container.querySelectorAll(FOCUSABLE) ?? []].filter((node) => node.offsetParent !== null || node === document.activeElement);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    container.addEventListener("keydown", onKey);
+    return () => {
+      container.removeEventListener("keydown", onKey);
+      if (previous !== null && typeof previous.focus === "function") previous.focus();
+    };
+  }, [containerRef, options.initialFocus]);
+}
+
 // src/BoxEditor.jsx
 var row = { display: "flex", alignItems: "center", gap: 6 };
 var dim = { color: "var(--dsw-alias-label-secondary, inherit)" };
@@ -554,17 +593,17 @@ function toSet(value) {
 }
 function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onToggleCharacter, onClose, onCancel }) {
   const boxes = params.boxes ?? [];
-  const [size] = (0, import_react5.useState)(() => params.size);
-  const characters = (0, import_react5.useMemo)(() => toSet(params.characterBoxes), [params.characterBoxes]);
+  const [size] = (0, import_react6.useState)(() => params.size);
+  const characters = (0, import_react6.useMemo)(() => toSet(params.characterBoxes), [params.characterBoxes]);
   const budget = typeof window === "undefined" ? 520 : Math.min(560, Math.max(260, Math.round(window.innerHeight * 0.58)));
-  (0, import_react5.useEffect)(() => {
+  (0, import_react6.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onCancel?.();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
-  (0, import_react5.useEffect)(() => {
+  (0, import_react6.useEffect)(() => {
     if (selected === void 0 || selected < 0) return void 0;
     function onKey(event) {
       const delta = event.shiftKey ? 0.1 : 0.01;
@@ -590,7 +629,10 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
   const updateBox = (index, patch) => {
     onChange(boxes.map((box, position) => position === index ? { ...box, ...patch } : box));
   };
-  return /* @__PURE__ */ import_react5.default.createElement(
+  const titleId = (0, import_react6.useId)();
+  const cardRef = (0, import_react6.useRef)(null);
+  useDialogFocus(cardRef);
+  return /* @__PURE__ */ import_react6.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -607,10 +649,14 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
         if (event.target === event.currentTarget) onClose();
       }
     },
-    /* @__PURE__ */ import_react5.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react5.default.createElement(
+    /* @__PURE__ */ import_react6.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react6.default.createElement(
       "div",
       {
+        ref: cardRef,
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": titleId,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -625,8 +671,8 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react5.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react5.default.createElement("span", { style: { fontSize: 13 } }, "\u7F16\u8F91\u5E03\u5C40 \xB7 ", boxes.length, " \u4E2A\u6846 \xB7 ", size), /* @__PURE__ */ import_react5.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react5.default.createElement("button", { type: "button", style: iconOnly, title: "\u52A0\u4E00\u4E2A\u6846", "aria-label": "\u52A0\u6846", onClick: onAdd }, /* @__PURE__ */ import_react5.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react5.default.createElement("button", { type: "button", style: iconOnly, title: "\u5B8C\u6210", "aria-label": "\u5B8C\u6210", onClick: onClose }, /* @__PURE__ */ import_react5.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react5.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": "\u53D6\u6D88", title: "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539" }, /* @__PURE__ */ import_react5.default.createElement(Icon, { name: "close" })))),
-      /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react5.default.createElement(
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "\u7F16\u8F91\u5E03\u5C40 \xB7 ", boxes.length, " \u4E2A\u6846 \xB7 ", size), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: "\u52A0\u4E00\u4E2A\u6846", "aria-label": "\u52A0\u6846", onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: "\u5B8C\u6210", "aria-label": "\u5B8C\u6210", onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": "\u53D6\u6D88", title: "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539" }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react6.default.createElement(
         BoxCanvas,
         {
           boxes,
@@ -636,7 +682,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           onSelect,
           onChange
         }
-      )), /* @__PURE__ */ import_react5.default.createElement("div", { style: { width: 300, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, boxes.length === 0 ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, "\u8FD8\u6CA1\u6709\u6846\u3002\u70B9\u300C\u52A0\u6846\u300D\u653E\u4E00\u4E2A\uFF0C\u7136\u540E\u62D6\u52A8\u79FB\u52A8\u3001\u62C9\u53F3\u4E0B\u89D2\u6539\u5927\u5C0F\u3002") : null, boxes.map((box, index) => /* @__PURE__ */ import_react5.default.createElement(
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 300, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, "\u8FD8\u6CA1\u6709\u6846\u3002\u70B9\u300C\u52A0\u6846\u300D\u653E\u4E00\u4E2A\uFF0C\u7136\u540E\u62D6\u52A8\u79FB\u52A8\u3001\u62C9\u53F3\u4E0B\u89D2\u6539\u5927\u5C0F\u3002") : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
           key: index,
@@ -652,23 +698,23 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
             border: `1px solid ${index === selected ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`
           }
         },
-        /* @__PURE__ */ import_react5.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react5.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react5.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react6.default.createElement(
           "select",
           {
             value: box.type ?? "obj",
             onChange: (event) => updateBox(index, { type: event.target.value }),
             style: { ...input, flex: "0 0 64px", padding: "2px 2px" }
           },
-          /* @__PURE__ */ import_react5.default.createElement("option", { value: "obj", style: optionStyle }, "obj"),
-          /* @__PURE__ */ import_react5.default.createElement("option", { value: "text", style: optionStyle }, "text")
-        ), box.type === "text" ? null : /* @__PURE__ */ import_react5.default.createElement(
+          /* @__PURE__ */ import_react6.default.createElement("option", { value: "obj", style: optionStyle }, "obj"),
+          /* @__PURE__ */ import_react6.default.createElement("option", { value: "text", style: optionStyle }, "text")
+        ), box.type === "text" ? null : /* @__PURE__ */ import_react6.default.createElement(
           IconCheckbox,
           {
             checked: characters.has(index + 1),
             onChange: () => onToggleCharacter(index),
             label: "\u4EBA\u7269"
           }
-        ), /* @__PURE__ */ import_react5.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react5.default.createElement(
+        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement(
           "button",
           {
             type: "button",
@@ -680,9 +726,9 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
               onRemove(index);
             }
           },
-          /* @__PURE__ */ import_react5.default.createElement(Icon, { name: "delete" })
+          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete" })
         )),
-        box.type === "text" ? /* @__PURE__ */ import_react5.default.createElement("label", { style: row }, /* @__PURE__ */ import_react5.default.createElement("span", { style: { ...label, minWidth: 28 } }, "\u6587\u5B57"), /* @__PURE__ */ import_react5.default.createElement(
+        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, "\u6587\u5B57"), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
             value: box.text ?? "",
@@ -691,7 +737,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
             style: input
           }
         )) : null,
-        /* @__PURE__ */ import_react5.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement(
           "textarea",
           {
             value: box.desc ?? "",
@@ -701,12 +747,12 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
             style: { ...input, width: "100%", resize: "vertical", lineHeight: 1.45 }
           }
         ),
-        /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } }, [
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } }, [
           ["X", "x", box.x],
           ["Y", "y", box.y],
           ["\u5BBD", "width", box.width],
           ["\u9AD8", "height", box.height]
-        ].map(([label3, key, value]) => /* @__PURE__ */ import_react5.default.createElement("label", { key, style: { display: "flex", alignItems: "center", gap: 2, minWidth: 0, fontSize: 10, ...dim } }, /* @__PURE__ */ import_react5.default.createElement("span", { style: { flexShrink: 0 } }, label3), /* @__PURE__ */ import_react5.default.createElement(
+        ].map(([label3, key, value]) => /* @__PURE__ */ import_react6.default.createElement("label", { key, style: { display: "flex", alignItems: "center", gap: 2, minWidth: 0, fontSize: 10, ...dim } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, label3), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
             type: "number",
@@ -722,7 +768,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
             },
             style: { ...input, width: "100%", minWidth: 0, padding: "1px 3px", fontSize: 11, textAlign: "right" }
           }
-        ), /* @__PURE__ */ import_react5.default.createElement("span", { style: { flexShrink: 0 } }, "%"))))
+        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, "%"))))
       ))))
     )
   );
@@ -2878,9 +2924,9 @@ function useVirtualizer(options) {
 }
 
 // src/FilterChip.jsx
-var import_react6 = __toESM(require("react"), 1);
+var import_react7 = __toESM(require("react"), 1);
 function FilterChip({ selected, label: label3, onClick, title, disabled = false }) {
-  return /* @__PURE__ */ import_react6.default.createElement(
+  return /* @__PURE__ */ import_react7.default.createElement(
     "button",
     {
       type: "button",
@@ -2906,13 +2952,13 @@ function FilterChip({ selected, label: label3, onClick, title, disabled = false 
         transition: "background 120ms ease, border-color 120ms ease"
       }
     },
-    selected ? /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check", size: 13 }) : null,
+    selected ? /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "check", size: 13 }) : null,
     label3
   );
 }
 
 // src/ResultPane.jsx
-var import_react7 = __toESM(require("react"), 1);
+var import_react8 = __toESM(require("react"), 1);
 
 // src/format.js
 function gigabytes(bytes) {
@@ -2966,7 +3012,7 @@ function ResultPane({
   error
 }) {
   const meta = activeRecord?.result ?? null;
-  const actions = /* @__PURE__ */ import_react7.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react7.default.createElement("button", { type: "button", style: iconOnly2, title: "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5", "aria-label": "\u91CD\u8BD5", onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react7.default.createElement("button", { type: "button", style: iconOnly2, title: "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F", "aria-label": "\u8F7D\u5165\u53C2\u6570", disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react7.default.createElement(
+  const actions = /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5", "aria-label": "\u91CD\u8BD5", onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F", "aria-label": "\u8F7D\u5165\u53C2\u6570", disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react8.default.createElement(
     "button",
     {
       type: "button",
@@ -2976,8 +3022,8 @@ function ResultPane({
       disabled: activeRecordId === null,
       onClick: onRemove
     },
-    /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "delete", size: 14 })
-  ), shownRecordId !== null ? /* @__PURE__ */ import_react7.default.createElement(
+    /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "delete", size: 14 })
+  ), shownRecordId !== null ? /* @__PURE__ */ import_react8.default.createElement(
     "a",
     {
       href: imageUrl(shownRecordId),
@@ -2986,9 +3032,9 @@ function ResultPane({
       "aria-label": "\u4E0B\u8F7D",
       style: { ...iconOnly2, textDecoration: "none" }
     },
-    /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "download", size: 14 })
+    /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "download", size: 14 })
   ) : null);
-  const image = /* @__PURE__ */ import_react7.default.createElement(
+  const image = /* @__PURE__ */ import_react8.default.createElement(
     "div",
     {
       onClick: () => {
@@ -3007,7 +3053,7 @@ function ResultPane({
         cursor: shownHasImage ? "zoom-in" : "default"
       }
     },
-    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react7.default.createElement(
+    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react8.default.createElement(
       "img",
       {
         src: imageUrl(shownRecordId),
@@ -3015,17 +3061,17 @@ function ResultPane({
         onError: onImageError,
         style: { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain", display: "block" }
       }
-    ) : shownRunning ? /* @__PURE__ */ import_react7.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, "\u6B63\u5728\u751F\u6210\u2026\uFF08", shownRecordId.slice(-4), "\uFF09") : /* @__PURE__ */ import_react7.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210" : "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC")
+    ) : shownRunning ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, "\u6B63\u5728\u751F\u6210\u2026\uFF08", shownRecordId.slice(-4), "\uFF09") : /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210" : "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC")
   );
-  const metaLine = /* @__PURE__ */ import_react7.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55", meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
+  const metaLine = /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55", meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
   if (orientation === "column") {
-    return /* @__PURE__ */ import_react7.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react7.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react7.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react7.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
+    return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react8.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
   }
-  return /* @__PURE__ */ import_react7.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react7.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react7.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55"), meta !== null ? /* @__PURE__ */ import_react7.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react7.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react7.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react7.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
+  return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react8.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? "\u672A\u9009\u4E2D\u8BB0\u5F55"), meta !== null ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react8.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
 }
 
 // src/ConfirmDialog.jsx
-var import_react8 = __toESM(require("react"), 1);
+var import_react9 = __toESM(require("react"), 1);
 var button3 = {
   padding: "5px 14px",
   fontSize: 12,
@@ -3043,8 +3089,10 @@ var danger = {
   fontWeight: 600
 };
 function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", onConfirm, onCancel }) {
-  const cancelRef = (0, import_react8.useRef)(null);
-  (0, import_react8.useEffect)(() => {
+  const cardRef = (0, import_react9.useRef)(null);
+  const cancelRef = (0, import_react9.useRef)(null);
+  useDialogFocus(cardRef, { initialFocus: cancelRef });
+  (0, import_react9.useEffect)(() => {
     cancelRef.current?.focus();
     function onKey(event) {
       if (event.key === "Escape") onCancel();
@@ -3052,7 +3100,7 @@ function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
-  return /* @__PURE__ */ import_react8.default.createElement(
+  return /* @__PURE__ */ import_react9.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -3069,10 +3117,11 @@ function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", 
         if (event.target === event.currentTarget) onCancel();
       }
     },
-    /* @__PURE__ */ import_react8.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react8.default.createElement(
+    /* @__PURE__ */ import_react9.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react9.default.createElement(
       "div",
       {
+        ref: cardRef,
         role: "dialog",
         "aria-modal": "true",
         "aria-label": title,
@@ -3087,8 +3136,8 @@ function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", 
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react8.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
-      /* @__PURE__ */ import_react8.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react8.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react8.default.createElement(
+      /* @__PURE__ */ import_react9.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
+      /* @__PURE__ */ import_react9.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react9.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react9.default.createElement(
         "div",
         {
           style: {
@@ -3104,13 +3153,13 @@ function ConfirmDialog({ title, message, detail, confirmLabel = "\u5220\u9664", 
         },
         detail
       ) : null),
-      /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", ref: cancelRef, style: button3, onClick: onCancel }, "\u53D6\u6D88"), /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
+      /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", ref: cancelRef, style: button3, onClick: onCancel }, "\u53D6\u6D88"), /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
     )
   );
 }
 
 // src/SettingsDialog.jsx
-var import_react9 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 var row2 = { display: "flex", alignItems: "center", gap: 6 };
 var dim3 = { color: "var(--dsw-alias-label-secondary, inherit)" };
 var input2 = {
@@ -3142,20 +3191,33 @@ var primary = {
   fontWeight: 600
 };
 function SettingsDialog({ onClose, onSaved }) {
-  const [loading, setLoading] = (0, import_react9.useState)(true);
-  const [comfyUrl, setComfyUrl] = (0, import_react9.useState)("");
-  const [editable, setEditable] = (0, import_react9.useState)(false);
-  const [wiring, setWiring] = (0, import_react9.useState)(null);
-  const [saving, setSaving] = (0, import_react9.useState)(false);
-  const [error, setError] = (0, import_react9.useState)("");
-  const [notice, setNotice] = (0, import_react9.useState)("");
-  (0, import_react9.useEffect)(() => {
+  const [loading, setLoading] = (0, import_react10.useState)(true);
+  const [comfyUrl, setComfyUrl] = (0, import_react10.useState)("");
+  const [retention, setRetention] = (0, import_react10.useState)("0");
+  const [defaults, setDefaults] = (0, import_react10.useState)({ size: "1024x1024", steps: "25", cfg: "2.5", negative: "" });
+  const [editable, setEditable] = (0, import_react10.useState)(false);
+  const [wiring, setWiring] = (0, import_react10.useState)(null);
+  const [saving, setSaving] = (0, import_react10.useState)(false);
+  const [error, setError] = (0, import_react10.useState)("");
+  const [notice, setNotice] = (0, import_react10.useState)("");
+  const titleId = (0, import_react10.useId)();
+  const cardRef = (0, import_react10.useRef)(null);
+  const urlRef = (0, import_react10.useRef)(null);
+  useDialogFocus(cardRef, { initialFocus: urlRef });
+  (0, import_react10.useEffect)(() => {
     let alive = true;
     void (async () => {
       try {
         const state = await fetchSettings();
         if (!alive) return;
         setComfyUrl(state.settings?.comfyUrl ?? "");
+        setRetention(String(state.settings?.retention ?? 0));
+        setDefaults({
+          size: state.settings?.defaults?.size ?? "1024x1024",
+          steps: String(state.settings?.defaults?.steps ?? 25),
+          cfg: String(state.settings?.defaults?.cfg ?? 2.5),
+          negative: state.settings?.defaults?.negative ?? ""
+        });
         setEditable(state.settings?.editable === true);
         setWiring(state.wiring ?? null);
         setError("");
@@ -3169,24 +3231,33 @@ function SettingsDialog({ onClose, onSaved }) {
       alive = false;
     };
   }, []);
-  (0, import_react9.useEffect)(() => {
+  (0, import_react10.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const save = (0, import_react9.useCallback)(async () => {
+  const save = (0, import_react10.useCallback)(async () => {
     setSaving(true);
     setError("");
     setNotice("");
     try {
-      const result = await saveComfyUrl(comfyUrl);
+      const result = await saveSettings({
+        comfyUrl,
+        retention: Number(retention) || 0,
+        defaults: {
+          size: defaults.size,
+          steps: Number(defaults.steps),
+          cfg: Number(defaults.cfg),
+          negative: defaults.negative
+        }
+      });
       if (result.status === 200) {
-        const next = result.body?.settings?.comfyUrl ?? comfyUrl;
-        setComfyUrl(next);
-        setNotice("\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740");
-        onSaved?.(next);
+        const next = result.body?.settings ?? {};
+        setComfyUrl(next.comfyUrl ?? comfyUrl);
+        setNotice("\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E");
+        onSaved?.(next.comfyUrl ?? comfyUrl);
       } else {
         setError(result.body?.message ?? `\u4FDD\u5B58\u5931\u8D25\uFF08${result.status}\uFF09`);
       }
@@ -3195,8 +3266,8 @@ function SettingsDialog({ onClose, onSaved }) {
     } finally {
       setSaving(false);
     }
-  }, [comfyUrl, onSaved]);
-  return /* @__PURE__ */ import_react9.default.createElement(
+  }, [comfyUrl, retention, defaults, onSaved]);
+  return /* @__PURE__ */ import_react10.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -3213,10 +3284,14 @@ function SettingsDialog({ onClose, onSaved }) {
         if (event.target === event.currentTarget) onClose();
       }
     },
-    /* @__PURE__ */ import_react9.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react9.default.createElement(
+    /* @__PURE__ */ import_react10.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
+        ref: cardRef,
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": titleId,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -3231,10 +3306,11 @@ function SettingsDialog({ onClose, onSaved }) {
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 13 } }, "Moss studio \u8BBE\u7F6E"), /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": "\u5173\u95ED\u8BBE\u7F6E", title: "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "close", size: 16 }))),
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { ...dim3 } }, "\u8BFB\u53D6\u4E2D\u2026") : null, /* @__PURE__ */ import_react9.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "ComfyUI \u5730\u5740"), /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "Moss studio \u8BBE\u7F6E"), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": "\u5173\u95ED\u8BBE\u7F6E", title: "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "close", size: 16 }))),
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...dim3 } }, "\u8BFB\u53D6\u4E2D\u2026") : null, /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "ComfyUI \u5730\u5740"), /* @__PURE__ */ import_react10.default.createElement(
         "input",
         {
+          ref: urlRef,
           value: comfyUrl,
           onChange: (event) => {
             setComfyUrl(event.target.value);
@@ -3248,13 +3324,114 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": "ComfyUI \u5730\u5740",
           style: input2
         }
-      ), /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002" : "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002")), wiring !== null ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F"), /* @__PURE__ */ import_react9.default.createElement(ReadOnly, { label: "\u6570\u636E\u76EE\u5F55", value: wiring.dataDir }), /* @__PURE__ */ import_react9.default.createElement(ReadOnly, { label: "\u5DE5\u4F5C\u6D41", value: wiring.workflowPath }), /* @__PURE__ */ import_react9.default.createElement(ReadOnly, { label: "\u8D85\u65F6 / \u8F6E\u8BE2", value: `${Math.round((wiring.timeoutMs ?? 0) / 1e3)} \u79D2 / ${wiring.pollMs ?? 0} \u6BEB\u79D2` }), /* @__PURE__ */ import_react9.default.createElement(ReadOnly, { label: "\u9ED8\u8BA4\u6B65\u6570 / CFG", value: `${wiring.defaults?.steps} / ${wiring.defaults?.cfg}` })) : null, notice !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: button4, onClick: onClose }, "\u5173\u95ED"), /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u4FDD\u5B58"))
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002" : "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002")), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09"), /* @__PURE__ */ import_react10.default.createElement(
+        "input",
+        {
+          type: "number",
+          min: 0,
+          step: 10,
+          value: retention,
+          onChange: (event) => {
+            setRetention(event.target.value);
+            setNotice("");
+          },
+          disabled: !editable || saving,
+          "aria-label": "\u5386\u53F2\u4FDD\u7559\u6761\u6570",
+          style: { ...input2, flex: "0 0 120px", width: 120 }
+        }
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09"), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react10.default.createElement(
+        "input",
+        {
+          value: defaults.size,
+          onChange: (event) => setDefaults((current) => ({ ...current, size: event.target.value })),
+          disabled: !editable || saving,
+          "aria-label": "\u9ED8\u8BA4\u5C3A\u5BF8",
+          style: { ...input2, flex: "0 0 120px", width: 120 }
+        }
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u5982 1024x1024")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, "\u6B65\u6570"), /* @__PURE__ */ import_react10.default.createElement(
+        "input",
+        {
+          type: "number",
+          min: 1,
+          max: 200,
+          value: defaults.steps,
+          onChange: (event) => setDefaults((current) => ({ ...current, steps: event.target.value })),
+          disabled: !editable || saving,
+          "aria-label": "\u9ED8\u8BA4\u6B65\u6570",
+          style: { ...input2, flex: "0 0 90px", width: 90 }
+        }
+      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react10.default.createElement(
+        "input",
+        {
+          type: "number",
+          min: 0,
+          max: 30,
+          step: 0.1,
+          value: defaults.cfg,
+          onChange: (event) => setDefaults((current) => ({ ...current, cfg: event.target.value })),
+          disabled: !editable || saving,
+          "aria-label": "\u9ED8\u8BA4 CFG",
+          style: { ...input2, flex: "0 0 90px", width: 90 }
+        }
+      )), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, "\u8D1F\u5411\u63D0\u793A\u8BCD"), /* @__PURE__ */ import_react10.default.createElement(
+        "textarea",
+        {
+          value: defaults.negative,
+          onChange: (event) => setDefaults((current) => ({ ...current, negative: event.target.value })),
+          disabled: !editable || saving,
+          rows: 2,
+          "aria-label": "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD",
+          style: { ...input2, resize: "vertical", fontFamily: "inherit" }
+        }
+      ))), wiring !== null ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F"), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u6570\u636E\u76EE\u5F55", value: wiring.dataDir }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u5DE5\u4F5C\u6D41", value: wiring.workflowPath }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: "\u8D85\u65F6 / \u8F6E\u8BE2", value: `${Math.round((wiring.timeoutMs ?? 0) / 1e3)} \u79D2 / ${wiring.pollMs ?? 0} \u6BEB\u79D2` })) : null, notice !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: button4, onClick: onClose }, "\u5173\u95ED"), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u4FDD\u5B58"))
     )
   );
 }
 function ReadOnly({ label: label3, value }) {
-  return /* @__PURE__ */ import_react9.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label3), /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
+  return /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label3), /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
+}
+
+// src/ui-prefs.js
+var KEY = "moss-studio.ui";
+var DEFAULT_UI = Object.freeze({
+  resultHeight: 240,
+  resultCollapsed: false,
+  historyWidth: { narrow: 196, wide: 280 }
+});
+function clamp2(value, min, max, fallback) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+function memoryStorage() {
+  if (typeof localStorage === "undefined") return void 0;
+  return localStorage;
+}
+function loadUiPrefs(storage = memoryStorage()) {
+  const defaults = { ...DEFAULT_UI, historyWidth: { ...DEFAULT_UI.historyWidth } };
+  if (storage === void 0) return defaults;
+  let raw;
+  try {
+    raw = JSON.parse(storage.getItem(KEY) ?? "null");
+  } catch {
+    raw = null;
+  }
+  if (raw === null || typeof raw !== "object") return defaults;
+  return {
+    resultHeight: clamp2(raw.resultHeight, 120, 720, DEFAULT_UI.resultHeight),
+    resultCollapsed: raw.resultCollapsed === true,
+    historyWidth: {
+      narrow: clamp2(raw.historyWidth?.narrow, 160, 420, DEFAULT_UI.historyWidth.narrow),
+      wide: clamp2(raw.historyWidth?.wide, 160, 420, DEFAULT_UI.historyWidth.wide)
+    }
+  };
+}
+function saveUiPrefs(patch, storage = memoryStorage()) {
+  if (storage === void 0) return;
+  const next = { ...loadUiPrefs(storage), ...patch };
+  try {
+    storage.setItem(KEY, JSON.stringify(next));
+  } catch {
+  }
 }
 
 // src/size.js
@@ -3277,11 +3454,11 @@ function sizeProblem(width, height, widthText, heightText) {
 }
 
 // src/ImageViewer.jsx
-var import_react11 = __toESM(require("react"), 1);
+var import_react12 = __toESM(require("react"), 1);
 var import_react_dom2 = require("react-dom");
 
 // node_modules/react-zoom-pan-pinch/dist/index.esm.js
-var import_react10 = __toESM(require("react"));
+var import_react11 = __toESM(require("react"));
 var import_jsx_runtime = require("react/jsx-runtime");
 var roundNumber = function(num, decimal) {
   return Number(num.toFixed(decimal));
@@ -3498,7 +3675,7 @@ var calculateBounds = function(contextInstance, newScale) {
   }
   return bounds;
 };
-function clamp2(v, min, max) {
+function clamp3(v, min, max) {
   return Math.max(min, Math.min(v, max));
 }
 function rubberband(distance, dimension, constant) {
@@ -3510,7 +3687,7 @@ var MAX_RUBBER_BAND_RATIO = 0.9;
 var RUBBER_BAND_CONSTANT = 0.55;
 function getRubberBandPosition(position, min, max, padding) {
   if (padding <= 0)
-    return clamp2(position, min, max);
+    return clamp3(position, min, max);
   if (position < min)
     return min - rubberband(min - position, padding, RUBBER_BAND_CONSTANT);
   if (position > max)
@@ -4719,7 +4896,7 @@ function mergeRefs(refs) {
     });
   };
 }
-var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react10.useLayoutEffect : import_react10.useEffect;
+var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react11.useLayoutEffect : import_react11.useEffect;
 var KEYBOARD_KEYS = {
   panLeft: ["ArrowLeft"],
   panRight: ["ArrowRight"],
@@ -5989,37 +6166,37 @@ var ZoomPanPinch = (
     return ZoomPanPinch2;
   })()
 );
-var Context = import_react10.default.createContext(null);
+var Context = import_react11.default.createContext(null);
 var getContent = function(children, ctx) {
   if (typeof children === "function") {
     return children(ctx);
   }
   return children;
 };
-var TransformWrapper = import_react10.default.forwardRef(function(props, ref) {
-  var instanceRef = (0, import_react10.useRef)(null);
+var TransformWrapper = import_react11.default.forwardRef(function(props, ref) {
+  var instanceRef = (0, import_react11.useRef)(null);
   if (instanceRef.current === null) {
     instanceRef.current = new ZoomPanPinch(props);
   }
   var instance = instanceRef.current;
   var content = getContent(props.children, getControls(instance));
-  (0, import_react10.useImperativeHandle)(ref, function() {
+  (0, import_react11.useImperativeHandle)(ref, function() {
     return getControls(instance);
   }, [instance]);
-  (0, import_react10.useEffect)(function() {
+  (0, import_react11.useEffect)(function() {
     instance.mount();
     return function() {
       instance.unmount();
     };
   }, [instance]);
-  (0, import_react10.useEffect)(function() {
+  (0, import_react11.useEffect)(function() {
     instance.update(props);
   }, [instance, props]);
   return (0, import_jsx_runtime.jsx)(Context.Provider, __assign({ value: instance }, { children: content }));
 });
-var KeepScale = import_react10.default.forwardRef(function(props, ref) {
-  var localRef = (0, import_react10.useRef)(null);
-  var instance = (0, import_react10.useContext)(Context);
+var KeepScale = import_react11.default.forwardRef(function(props, ref) {
+  var localRef = (0, import_react11.useRef)(null);
+  var instance = (0, import_react11.useContext)(Context);
   useIsomorphicLayoutEffect2(function() {
     var applyInverseScale = function(scale) {
       if (localRef.current) {
@@ -6042,11 +6219,11 @@ var stylesheet = stylesheet$1;
 var TransformComponent = function(_a) {
   var _b;
   var children = _a.children, _c = _a.wrapperClass, wrapperClass = _c === void 0 ? "" : _c, _d = _a.contentClass, contentClass = _d === void 0 ? "" : _d, wrapperStyle = _a.wrapperStyle, contentStyle = _a.contentStyle, _e = _a.wrapperProps, wrapperProps = _e === void 0 ? {} : _e, _f = _a.contentProps, contentProps = _f === void 0 ? {} : _f, _g = _a.infinite, infinite = _g === void 0 ? false : _g, nonce = _a.nonce, _h = _a.disableStyleInjection, disableStyleInjection = _h === void 0 ? false : _h;
-  var instance = (0, import_react10.useContext)(Context);
+  var instance = (0, import_react11.useContext)(Context);
   var init = instance.init, cleanupWindowEvents = instance.cleanupWindowEvents;
-  var wrapperRef = (0, import_react10.useRef)(null);
-  var contentRef = (0, import_react10.useRef)(null);
-  var gridRef = (0, import_react10.useRef)(null);
+  var wrapperRef = (0, import_react11.useRef)(null);
+  var contentRef = (0, import_react11.useRef)(null);
+  var gridRef = (0, import_react11.useRef)(null);
   useIsomorphicLayoutEffect2(function() {
     var wrapper = wrapperRef.current;
     var content = contentRef.current;
@@ -6060,7 +6237,7 @@ var TransformComponent = function(_a) {
       cleanupWindowEvents === null || cleanupWindowEvents === void 0 ? void 0 : cleanupWindowEvents();
     };
   }, []);
-  (0, import_react10.useEffect)(function() {
+  (0, import_react11.useEffect)(function() {
     if (!infinite)
       return;
     var grid = gridRef.current;
@@ -6114,9 +6291,9 @@ function isElementVisible(opts) {
   var overlap = getOverlapArea(viewport, element);
   return overlap / elementArea >= threshold;
 }
-var Virtualize = import_react10.default.forwardRef(function(_a, ref) {
+var Virtualize = import_react11.default.forwardRef(function(_a, ref) {
   var x = _a.x, y = _a.y, width = _a.width, height = _a.height, _b = _a.margin, margin = _b === void 0 ? 0 : _b, _c = _a.threshold, threshold = _c === void 0 ? 0 : _c, _d = _a.placeholder, placeholder = _d === void 0 ? null : _d, onShow = _a.onShow, onHide = _a.onHide, children = _a.children, className = _a.className, style = _a.style;
-  var instance = (0, import_react10.useContext)(Context);
+  var instance = (0, import_react11.useContext)(Context);
   var computeVisible = function() {
     var wrapper = instance.wrapperComponent;
     if (!wrapper)
@@ -6135,10 +6312,10 @@ var Virtualize = import_react10.default.forwardRef(function(_a, ref) {
       threshold
     });
   };
-  var _e = (0, import_react10.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
-  var visibleRef = (0, import_react10.useRef)(false);
-  var onShowRef = (0, import_react10.useRef)(onShow);
-  var onHideRef = (0, import_react10.useRef)(onHide);
+  var _e = (0, import_react11.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
+  var visibleRef = (0, import_react11.useRef)(false);
+  var onShowRef = (0, import_react11.useRef)(onShow);
+  var onHideRef = (0, import_react11.useRef)(onHide);
   onShowRef.current = onShow;
   onHideRef.current = onHide;
   useIsomorphicLayoutEffect2(function() {
@@ -6196,8 +6373,8 @@ var chromeIcon = {
   padding: 0
 };
 function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
-  const [scale, setScale] = (0, import_react11.useState)(1);
-  const zoomRef = (0, import_react11.useRef)(null);
+  const [scale, setScale] = (0, import_react12.useState)(1);
+  const zoomRef = (0, import_react12.useRef)(null);
   const zoomBy = (method) => {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api[method] === "function") api[method](0.2);
@@ -6206,7 +6383,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api.resetTransform === "function") api.resetTransform();
   };
-  (0, import_react11.useEffect)(() => {
+  (0, import_react12.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft" && prevId !== null && prevId !== void 0) onNavigate?.(prevId);
@@ -6215,11 +6392,11 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onNavigate, prevId, nextId]);
-  const onTransformed = (0, import_react11.useCallback)((ref) => {
+  const onTransformed = (0, import_react12.useCallback)((ref) => {
     const next = ref?.state?.scale;
     if (typeof next === "number") setScale(next);
   }, []);
-  const node = /* @__PURE__ */ import_react11.default.createElement(
+  const node = /* @__PURE__ */ import_react12.default.createElement(
     "div",
     {
       role: "dialog",
@@ -6241,7 +6418,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
         isolation: "isolate"
       }
     },
-    /* @__PURE__ */ import_react11.default.createElement(
+    /* @__PURE__ */ import_react12.default.createElement(
       "div",
       {
         style: {
@@ -6256,7 +6433,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           overflow: "hidden"
         }
       },
-      /* @__PURE__ */ import_react11.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, "\u6EDA\u8F6E\u7F29\u653E \xB7 \u62D6\u52A8\u5E73\u79FB \xB7 \u53CC\u51FB\u5207\u6362 \xB7 Esc \u5173\u95ED"), /* @__PURE__ */ import_react11.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react11.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react11.default.createElement(
+      /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, "\u6EDA\u8F6E\u7F29\u653E \xB7 \u62D6\u52A8\u5E73\u79FB \xB7 \u53CC\u51FB\u5207\u6362 \xB7 Esc \u5173\u95ED"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement(
         "button",
         {
           type: "button",
@@ -6266,8 +6443,8 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           disabled: prevId === null || prevId === void 0,
           onClick: () => onNavigate?.(prevId)
         },
-        /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
-      ), /* @__PURE__ */ import_react11.default.createElement(
+        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
+      ), /* @__PURE__ */ import_react12.default.createElement(
         "button",
         {
           type: "button",
@@ -6277,9 +6454,9 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           disabled: nextId === null || nextId === void 0,
           onClick: () => onNavigate?.(nextId)
         },
-        /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
-      )), /* @__PURE__ */ import_react11.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: chromeIcon, title: "\u7F29\u5C0F", "aria-label": "\u7F29\u5C0F", onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: chromeIcon, title: "\u653E\u5927", "aria-label": "\u653E\u5927", onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: chromeIcon, title: "\u9002\u5E94\u7A97\u53E3", "aria-label": "\u9002\u5E94\u7A97\u53E3", onClick: fit }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: chromeIcon, title: "\u5173\u95ED", "aria-label": "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "close", size: 18 })))),
-      /* @__PURE__ */ import_react11.default.createElement(
+        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
+      )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u7F29\u5C0F", "aria-label": "\u7F29\u5C0F", onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u653E\u5927", "aria-label": "\u653E\u5927", onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u9002\u5E94\u7A97\u53E3", "aria-label": "\u9002\u5E94\u7A97\u53E3", onClick: fit }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: "\u5173\u95ED", "aria-label": "\u5173\u95ED", onClick: onClose }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "close", size: 18 })))),
+      /* @__PURE__ */ import_react12.default.createElement(
         TransformWrapper,
         {
           minScale: 0.5,
@@ -6295,13 +6472,13 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           onTransformed,
           ref: zoomRef
         },
-        () => /* @__PURE__ */ import_react11.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react11.default.createElement(
+        () => /* @__PURE__ */ import_react12.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react12.default.createElement(
           TransformComponent,
           {
             wrapperStyle: { width: "100%", height: "100%" },
             contentStyle: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }
           },
-          /* @__PURE__ */ import_react11.default.createElement(
+          /* @__PURE__ */ import_react12.default.createElement(
             "img",
             {
               src: imageUrl(recordId),
@@ -6380,10 +6557,10 @@ var rowAction = {
   boxShadow: "0 1px 4px rgba(0,0,0,0.35)"
 };
 function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
-  const [hovered, setHovered] = (0, import_react12.useState)(false);
-  const [focused, setFocused] = (0, import_react12.useState)(false);
+  const [hovered, setHovered] = (0, import_react13.useState)(false);
+  const [focused, setFocused] = (0, import_react13.useState)(false);
   const revealed = hovered || focused;
-  return /* @__PURE__ */ import_react12.default.createElement(
+  return /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       role: "group",
@@ -6417,7 +6594,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         opacity: record.archived ? 0.55 : 1
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       "span",
       {
         style: {
@@ -6433,10 +6610,10 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           ...record.hasImage ? {} : dim4
         }
       },
-      record.hasImage ? /* @__PURE__ */ import_react12.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
+      record.hasImage ? /* @__PURE__ */ import_react13.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
     ),
-    /* @__PURE__ */ import_react12.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? "(\u65E0\u63D0\u793A\u8BCD)" : record.prompt), /* @__PURE__ */ import_react12.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", record.boxCount, " \u6846"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? "(\u65E0\u63D0\u793A\u8BCD)" : record.prompt), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", record.boxCount, " \u6846"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
+    /* @__PURE__ */ import_react13.default.createElement(
       "div",
       {
         style: {
@@ -6450,7 +6627,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           transition: "opacity 120ms ease"
         }
       },
-      /* @__PURE__ */ import_react12.default.createElement(
+      /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           type: "button",
@@ -6462,9 +6639,9 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onPin?.(record);
           }
         },
-        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
+        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
       ),
-      /* @__PURE__ */ import_react12.default.createElement(
+      /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           type: "button",
@@ -6476,9 +6653,9 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onArchive?.(record);
           }
         },
-        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
+        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
       ),
-      /* @__PURE__ */ import_react12.default.createElement(
+      /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           type: "button",
@@ -6491,7 +6668,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onDelete(record.id);
           }
         },
-        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "delete", size: 14 })
+        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "delete", size: 14 })
       )
     )
   );
@@ -6508,49 +6685,55 @@ function fromCharacterSet(set) {
   return [...set].sort((a, b) => a - b).join(", ");
 }
 function StudioPanel({ sessionId = "global", wide = false }) {
-  const [params, setParams] = (0, import_react12.useState)(null);
-  const [records, setRecords] = (0, import_react12.useState)([]);
-  const [selectedBox, setSelectedBox] = (0, import_react12.useState)(-1);
-  const [activeRecordId, setActiveRecordId] = (0, import_react12.useState)(null);
-  const [activeRecord, setActiveRecord] = (0, import_react12.useState)(null);
-  const [notice, setNotice] = (0, import_react12.useState)("");
-  const [error, setError] = (0, import_react12.useState)("");
-  const [saving, setSaving] = (0, import_react12.useState)(false);
-  const [busy, setBusy] = (0, import_react12.useState)(false);
-  const [elapsed, setElapsed] = (0, import_react12.useState)(0);
-  const [phase, setPhase] = (0, import_react12.useState)("");
-  const [flagLocalOnly, setLocalOnly] = (0, import_react12.useState)(false);
-  const [query, setQuery] = (0, import_react12.useState)("");
-  const [showArchived, setShowArchived] = (0, import_react12.useState)(false);
-  const [comfy, setComfy] = (0, import_react12.useState)(null);
-  const [settingsOpen, setSettingsOpen] = (0, import_react12.useState)(false);
-  const [pendingDelete, setPendingDelete] = (0, import_react12.useState)(null);
-  const [queue, setQueue] = (0, import_react12.useState)({ busy: false, sessionId: null });
-  const [pinnedRecords, setPinnedRecords] = (0, import_react12.useState)([]);
-  const [pinnedTruncated, setPinnedTruncated] = (0, import_react12.useState)(false);
-  const [matches, setMatches] = (0, import_react12.useState)(null);
-  const [older, setOlder] = (0, import_react12.useState)([]);
-  const [nextBefore, setNextBefore] = (0, import_react12.useState)(null);
-  const [loadingMore, setLoadingMore] = (0, import_react12.useState)(false);
-  const historyRef = (0, import_react12.useRef)(null);
-  const [showCanvas, setShowCanvas] = (0, import_react12.useState)(true);
-  const [zoom, setZoom] = (0, import_react12.useState)(false);
-  const openViewer = (0, import_react12.useCallback)(() => setZoom(true), []);
-  const [editorOpen, setEditorOpen] = (0, import_react12.useState)(false);
-  const [resultHeight, setResultHeight] = (0, import_react12.useState)(240);
-  const [resultCollapsed, setResultCollapsed] = (0, import_react12.useState)(false);
-  const [resizing, setResizing] = (0, import_react12.useState)(false);
-  const resizeRef = (0, import_react12.useRef)(null);
-  const revisionRef = (0, import_react12.useRef)(0);
-  const [revision, setRevision] = (0, import_react12.useState)(0);
-  const dirtyRef = (0, import_react12.useRef)(false);
-  const saveTimer = (0, import_react12.useRef)(null);
-  const paramsRef = (0, import_react12.useRef)(null);
-  const editorSnapshot = (0, import_react12.useRef)(null);
-  const pinnedRef = (0, import_react12.useRef)(false);
-  const [imageBroken, setImageBroken] = (0, import_react12.useState)(false);
+  const [params, setParams] = (0, import_react13.useState)(null);
+  const [records, setRecords] = (0, import_react13.useState)([]);
+  const [selectedBox, setSelectedBox] = (0, import_react13.useState)(-1);
+  const [activeRecordId, setActiveRecordId] = (0, import_react13.useState)(null);
+  const [activeRecord, setActiveRecord] = (0, import_react13.useState)(null);
+  const [notice, setNotice] = (0, import_react13.useState)("");
+  const [error, setError] = (0, import_react13.useState)("");
+  const [saving, setSaving] = (0, import_react13.useState)(false);
+  const [busy, setBusy] = (0, import_react13.useState)(false);
+  const [elapsed, setElapsed] = (0, import_react13.useState)(0);
+  const [phase, setPhase] = (0, import_react13.useState)("");
+  const [flagLocalOnly, setLocalOnly] = (0, import_react13.useState)(false);
+  const [query, setQuery] = (0, import_react13.useState)("");
+  const [showArchived, setShowArchived] = (0, import_react13.useState)(false);
+  const [comfy, setComfy] = (0, import_react13.useState)(null);
+  const [settingsOpen, setSettingsOpen] = (0, import_react13.useState)(false);
+  const [pendingDelete, setPendingDelete] = (0, import_react13.useState)(null);
+  const [queue, setQueue] = (0, import_react13.useState)({ busy: false, sessionId: null });
+  const [pinnedRecords, setPinnedRecords] = (0, import_react13.useState)([]);
+  const [pinnedTruncated, setPinnedTruncated] = (0, import_react13.useState)(false);
+  const [matches, setMatches] = (0, import_react13.useState)(null);
+  const [older, setOlder] = (0, import_react13.useState)([]);
+  const [nextBefore, setNextBefore] = (0, import_react13.useState)(null);
+  const [loadingMore, setLoadingMore] = (0, import_react13.useState)(false);
+  const historyRef = (0, import_react13.useRef)(null);
+  const [showCanvas, setShowCanvas] = (0, import_react13.useState)(true);
+  const [zoom, setZoom] = (0, import_react13.useState)(false);
+  const openViewer = (0, import_react13.useCallback)(() => setZoom(true), []);
+  const [editorOpen, setEditorOpen] = (0, import_react13.useState)(false);
+  const initialUiRef = (0, import_react13.useRef)(null);
+  if (initialUiRef.current === null) initialUiRef.current = loadUiPrefs();
+  const initialUi = initialUiRef.current;
+  const [resultHeight, setResultHeight] = (0, import_react13.useState)(initialUi.resultHeight);
+  const [resultCollapsed, setResultCollapsed] = (0, import_react13.useState)(initialUi.resultCollapsed);
+  const [historyWidth, setHistoryWidth] = (0, import_react13.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
+  const [historyResizing, setHistoryResizing] = (0, import_react13.useState)(false);
+  const historyResizeRef = (0, import_react13.useRef)(null);
+  const [resizing, setResizing] = (0, import_react13.useState)(false);
+  const resizeRef = (0, import_react13.useRef)(null);
+  const revisionRef = (0, import_react13.useRef)(0);
+  const [revision, setRevision] = (0, import_react13.useState)(0);
+  const dirtyRef = (0, import_react13.useRef)(false);
+  const saveTimer = (0, import_react13.useRef)(null);
+  const paramsRef = (0, import_react13.useRef)(null);
+  const editorSnapshot = (0, import_react13.useRef)(null);
+  const pinnedRef = (0, import_react13.useRef)(false);
+  const [imageBroken, setImageBroken] = (0, import_react13.useState)(false);
   paramsRef.current = params;
-  const applyServerState = (0, import_react12.useCallback)((state) => {
+  const applyServerState = (0, import_react13.useCallback)((state) => {
     revisionRef.current = state.revision;
     setRevision(state.revision);
     if (!dirtyRef.current) setParams(state.params);
@@ -6565,7 +6748,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setActiveRecordId((current) => current === target ? current : target);
     }
   }, []);
-  const refresh = (0, import_react12.useCallback)(async () => {
+  const refresh = (0, import_react13.useCallback)(async () => {
     try {
       const state = await fetchState(sessionId, 40, showArchived);
       applyServerState(state);
@@ -6574,10 +6757,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [sessionId, applyServerState, showArchived]);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     void refresh();
   }, [refresh]);
-  const checkHealth = (0, import_react12.useCallback)(async () => {
+  const checkHealth = (0, import_react13.useCallback)(async () => {
     try {
       const health = await fetchHealth();
       setComfy(health.comfy ?? { ok: false });
@@ -6586,15 +6769,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setComfy({ ok: false });
     }
   }, []);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     void checkHealth();
     const timer = setInterval(() => {
       void checkHealth();
     }, 5e3);
     return () => clearInterval(timer);
   }, [checkHealth]);
-  const [pushed, setPushed] = (0, import_react12.useState)(() => typeof EventSource === "function");
-  (0, import_react12.useEffect)(() => {
+  const [pushed, setPushed] = (0, import_react13.useState)(() => typeof EventSource === "function");
+  (0, import_react13.useEffect)(() => {
     if (!pushed) {
       const timer = setInterval(() => {
         void refresh();
@@ -6654,7 +6837,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       source?.close();
     };
   }, [pushed, sessionId, refresh]);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     if (!busy) {
       setElapsed(0);
       setPhase("");
@@ -6664,7 +6847,32 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1e3)), 500);
     return () => clearInterval(timer);
   }, [busy]);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
+    saveUiPrefs({
+      resultHeight,
+      resultCollapsed,
+      historyWidth: wide ? { ...loadUiPrefs().historyWidth, wide: historyWidth } : { ...loadUiPrefs().historyWidth, narrow: historyWidth }
+    });
+  }, [resultHeight, resultCollapsed, historyWidth, wide]);
+  (0, import_react13.useEffect)(() => {
+    if (!historyResizing) return void 0;
+    function onMove(event) {
+      const drag = historyResizeRef.current;
+      if (drag === null) return;
+      setHistoryWidth(Math.min(420, Math.max(160, drag.width + (event.clientX - drag.x))));
+    }
+    function onUp() {
+      historyResizeRef.current = null;
+      setHistoryResizing(false);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [historyResizing]);
+  (0, import_react13.useEffect)(() => {
     if (!resizing) return void 0;
     function onMove(event) {
       const drag = resizeRef.current;
@@ -6683,7 +6891,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [resizing]);
-  const flush = (0, import_react12.useCallback)(async (patch) => {
+  const flush = (0, import_react13.useCallback)(async (patch) => {
     setSaving(true);
     try {
       const { status, body } = await putDraft(sessionId, patch, revisionRef.current);
@@ -6707,7 +6915,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setSaving(false);
     }
   }, [sessionId]);
-  const update = (0, import_react12.useCallback)((patch) => {
+  const update = (0, import_react13.useCallback)((patch) => {
     setParams((current) => {
       const next = { ...current, ...patch };
       dirtyRef.current = true;
@@ -6718,17 +6926,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       return next;
     });
   }, [flush]);
-  const [widthText, setWidthText] = (0, import_react12.useState)("1024");
-  const [heightText, setHeightText] = (0, import_react12.useState)("1024");
-  const [sizeHint, setSizeHint] = (0, import_react12.useState)(null);
-  (0, import_react12.useEffect)(() => {
+  const [widthText, setWidthText] = (0, import_react13.useState)("1024");
+  const [heightText, setHeightText] = (0, import_react13.useState)("1024");
+  const [sizeHint, setSizeHint] = (0, import_react13.useState)(null);
+  (0, import_react13.useEffect)(() => {
     const parts = String(params?.size ?? "").split("x");
     if (parts.length !== 2) return;
     setWidthText(parts[0]);
     setHeightText(parts[1]);
     setSizeHint(null);
   }, [params?.size]);
-  const commitSize = (0, import_react12.useCallback)((widthSource, heightSource) => {
+  const commitSize = (0, import_react13.useCallback)((widthSource, heightSource) => {
     const width = Number(widthSource);
     const height = Number(heightSource);
     const problem = sizeProblem(width, height, widthSource, heightSource);
@@ -6740,40 +6948,40 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const next = formatSize(width, height);
     if (next !== paramsRef.current?.size) update({ size: next });
   }, [update]);
-  const updateBox = (0, import_react12.useCallback)((index, patch) => {
+  const updateBox = (0, import_react13.useCallback)((index, patch) => {
     const boxes2 = (paramsRef.current?.boxes ?? []).map((box, position) => position === index ? { ...box, ...patch } : box);
     update({ boxes: boxes2 });
   }, [update]);
-  const addBox = (0, import_react12.useCallback)(() => {
+  const addBox = (0, import_react13.useCallback)(() => {
     const boxes2 = [...paramsRef.current?.boxes ?? []];
     boxes2.push(defaultBox());
     update({ boxes: boxes2 });
     setSelectedBox(boxes2.length - 1);
     setShowCanvas(true);
   }, [update]);
-  const removeBox = (0, import_react12.useCallback)((index) => {
+  const removeBox = (0, import_react13.useCallback)((index) => {
     const boxes2 = (paramsRef.current?.boxes ?? []).filter((_, position) => position !== index);
     update({ boxes: boxes2 });
     setSelectedBox(-1);
   }, [update]);
-  const toggleCharacter = (0, import_react12.useCallback)((index) => {
+  const toggleCharacter = (0, import_react13.useCallback)((index) => {
     const set = toCharacterSet(paramsRef.current?.characterBoxes);
     if (set.has(index + 1)) set.delete(index + 1);
     else set.add(index + 1);
     update({ characterBoxes: fromCharacterSet(set) });
   }, [update]);
-  const newDraft = (0, import_react12.useCallback)(() => {
+  const newDraft = (0, import_react13.useCallback)(() => {
     update({ prompt: "", boxes: [], seed: -1, characterBoxes: "", enhance: false });
     setSelectedBox(-1);
     setNotice("\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F");
   }, [update]);
-  const openEditor = (0, import_react12.useCallback)(() => {
+  const openEditor = (0, import_react13.useCallback)(() => {
     editorSnapshot.current = structuredClone(paramsRef.current ?? {});
     setZoom(false);
     setEditorOpen(true);
   }, []);
-  const closeEditor = (0, import_react12.useCallback)(() => setEditorOpen(false), []);
-  const cancelEditor = (0, import_react12.useCallback)(() => {
+  const closeEditor = (0, import_react13.useCallback)(() => setEditorOpen(false), []);
+  const cancelEditor = (0, import_react13.useCallback)(() => {
     const snapshot = editorSnapshot.current;
     setEditorOpen(false);
     if (snapshot === null) return;
@@ -6785,7 +6993,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }, SAVE_DELAY_MS);
     setNotice("\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539");
   }, [flush]);
-  const waitForCompletion = (0, import_react12.useCallback)(async () => {
+  const waitForCompletion = (0, import_react13.useCallback)(async () => {
     const started = Date.now();
     while (Date.now() - started < 6e5) {
       await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -6807,7 +7015,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }
     setNotice("\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D");
   }, [sessionId, applyServerState]);
-  const runGenerate = (0, import_react12.useCallback)(async () => {
+  const runGenerate = (0, import_react13.useCallback)(async () => {
     if (busy) return;
     setBusy(true);
     setError("");
@@ -6837,7 +7045,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setBusy(false);
     }
   }, [busy, sessionId, waitForCompletion]);
-  const retryRecord = (0, import_react12.useCallback)(async (record) => {
+  const retryRecord = (0, import_react13.useCallback)(async (record) => {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
     setError("");
@@ -6859,13 +7067,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setBusy(false);
     }
   }, [busy, sessionId, waitForCompletion]);
-  const generateRandom = (0, import_react12.useCallback)(() => {
+  const generateRandom = (0, import_react13.useCallback)(() => {
     update({ seed: -1 });
     setTimeout(() => {
       void runGenerate();
     }, SAVE_DELAY_MS + 80);
   }, [update, runGenerate]);
-  const selectRecord = (0, import_react12.useCallback)(async (id) => {
+  const selectRecord = (0, import_react13.useCallback)(async (id) => {
     pinnedRef.current = true;
     setImageBroken(false);
     setActiveRecordId(id);
@@ -6875,7 +7083,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setActiveRecord(null);
     }
   }, []);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     if (activeRecordId === null) {
       setActiveRecord(null);
       return void 0;
@@ -6889,10 +7097,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       alive = false;
     };
   }, [activeRecordId]);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     setImageBroken(false);
   }, [activeRecordId]);
-  const loadRecord = (0, import_react12.useCallback)(() => {
+  const loadRecord = (0, import_react13.useCallback)(() => {
     if (activeRecord === null) return;
     setParams(activeRecord.params);
     dirtyRef.current = true;
@@ -6902,7 +7110,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }, SAVE_DELAY_MS);
     setNotice(`\u5DF2\u8F7D\u5165 ${activeRecord.id} \u7684\u53C2\u6570`);
   }, [activeRecord, flush]);
-  const removeRecordById = (0, import_react12.useCallback)(async (id) => {
+  const removeRecordById = (0, import_react13.useCallback)(async (id) => {
     try {
       const { status, body } = await deleteRecord(id);
       if (status === 409) {
@@ -6923,7 +7131,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [activeRecordId, refresh]);
-  const toggleFlag = (0, import_react12.useCallback)(async (record, flags) => {
+  const toggleFlag = (0, import_react13.useCallback)(async (record, flags) => {
     try {
       const { status, body } = await patchRecord(record.id, flags);
       if (status === 405) {
@@ -6940,17 +7148,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [refresh]);
-  const removeRecord = (0, import_react12.useCallback)(async () => {
+  const removeRecord = (0, import_react13.useCallback)(async () => {
     if (activeRecordId === null) return;
     await removeRecordById(activeRecordId);
   }, [activeRecordId, removeRecordById]);
-  const characterSet = (0, import_react12.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
+  const characterSet = (0, import_react13.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
   const mergedRecords = (() => {
     const seen = new Set(records.map((record) => record.id));
     return [...records, ...older.filter((record) => !seen.has(record.id))];
   })();
   const needle = query.trim().toLowerCase();
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     if (needle === "") {
       setMatches(null);
       return void 0;
@@ -6972,7 +7180,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     };
   }, [needle, showArchived]);
   const visibleRecords = (needle === "" ? mergedRecords : matches ?? []).filter((record) => flagLocalOnly ? record.sessionId === sessionId : true);
-  const loadMore = (0, import_react12.useCallback)(async () => {
+  const loadMore = (0, import_react13.useCallback)(async () => {
     if (loadingMore || nextBefore === null || query.trim() !== "") return;
     setLoadingMore(true);
     try {
@@ -6995,17 +7203,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     overscan: 6
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const onHistoryScroll = (0, import_react12.useCallback)((event) => {
+  const onHistoryScroll = (0, import_react13.useCallback)((event) => {
     const element = event.currentTarget;
     if (element.scrollHeight - element.scrollTop - element.clientHeight < 120) void loadMore();
   }, [loadMore]);
-  const selectForDelete = (0, import_react12.useCallback)((id) => {
+  const selectForDelete = (0, import_react13.useCallback)((id) => {
     if (id === null || id === void 0) return;
     const found = mergedRecords.find((record) => record.id === id) ?? (activeRecord?.id === id ? activeRecord : { id });
     setPendingDelete(found);
   }, [mergedRecords, activeRecord]);
   if (params === null) {
-    return /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? `\u8BFB\u53D6\u5931\u8D25\uFF1A${error}` : "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026");
+    return /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? `\u8BFB\u53D6\u5931\u8D25\uFF1A${error}` : "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026");
   }
   const boxes = params.boxes ?? [];
   const shownRecordId = activeRecordId ?? records.find((record) => record.hasImage)?.id ?? null;
@@ -7018,7 +7226,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const shownHasImage = shownSummary === void 0 ? shownRecordId !== null : shownSummary.hasImage;
   const shownRunning = shownSummary?.status === "running";
   const running = records.find((record) => record.status === "running");
-  return /* @__PURE__ */ import_react12.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react12.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: iconOnly3, title: "\u65B0\u5EFA\u7A7A\u8349\u7A3F", "aria-label": "\u65B0\u5EFA\u8349\u7A3F", onClick: newDraft }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react12.default.createElement(
+  return /* @__PURE__ */ import_react13.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react13.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: "\u65B0\u5EFA\u7A7A\u8349\u7A3F", "aria-label": "\u65B0\u5EFA\u8349\u7A3F", onClick: newDraft }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react13.default.createElement(
     "button",
     {
       type: "button",
@@ -7043,7 +7251,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.ok ? "inherit" : "var(--dsw-alias-state-error-primary, #ff8f7a)"
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       "span",
       {
         "aria-hidden": "true",
@@ -7056,7 +7264,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       }
     ),
     comfy === null ? "\u8FDE\u63A5\u4E2D" : comfy.ok ? `ComfyUI ${comfy.version}` : "ComfyUI \u79BB\u7EBF"
-  ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: `\u8349\u7A3F\u4F1A\u8BDD\uFF1A${sessionId}` }, sessionId === "root" ? "\u6839\u8349\u7A3F" : sessionId === "global" ? "\u672A\u7ED1\u5B9A\u4F1A\u8BDD" : "\u5BF9\u8BDD\u8349\u7A3F"), /* @__PURE__ */ import_react12.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: `\u8349\u7A3F\u4F1A\u8BDD\uFF1A${sessionId}` }, sessionId === "root" ? "\u6839\u8349\u7A3F" : sessionId === "global" ? "\u672A\u7ED1\u5B9A\u4F1A\u8BDD" : "\u5BF9\u8BDD\u8349\u7A3F"), /* @__PURE__ */ import_react13.default.createElement(
     "span",
     {
       title: `\u663E\u5B58 ${gigabytes(comfy?.gpu?.vramTotal)} GB \u603B\u91CF\uFF0C\u5185\u5B58 ${gigabytes(comfy?.ramTotal)} GB \u603B\u91CF`,
@@ -7068,14 +7276,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.gpu !== void 0 && usedPercent(comfy.gpu.vramTotal, comfy.gpu.vramFree) >= 90 ? "var(--dsw-alias-state-error-primary, #ff8f7a)" : "var(--dsw-alias-label-secondary, inherit)"
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement("span", null, "\u663E\u5B58 ", gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)), "/", gigabytes(comfy?.gpu?.vramTotal), " G"),
-    /* @__PURE__ */ import_react12.default.createElement("span", null, "\u5185\u5B58 ", gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)), "/", gigabytes(comfy?.ramTotal), " G")
-  )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : `revision ${revision}`), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: iconOnly3, title: "\u8BBE\u7F6E", "aria-label": "\u8BBE\u7F6E", onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("span", null, "\u663E\u5B58 ", gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)), "/", gigabytes(comfy?.gpu?.vramTotal), " G"),
+    /* @__PURE__ */ import_react13.default.createElement("span", null, "\u5185\u5B58 ", gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)), "/", gigabytes(comfy?.ramTotal), " G")
+  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? "\u4FDD\u5B58\u4E2D\u2026" : `revision ${revision}`), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: "\u8BBE\u7F6E", "aria-label": "\u8BBE\u7F6E", onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       className: "moss-scroller",
       style: {
-        width: wide ? 280 : 196,
+        width: historyWidth,
         flexShrink: 0,
         borderRight: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))",
         display: "flex",
@@ -7083,7 +7291,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         minHeight: 0
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u5386\u53F2 ", visibleRecords.length, mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u5386\u53F2 ", visibleRecords.length, mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement(
       FilterChip,
       {
         selected: flagLocalOnly,
@@ -7091,7 +7299,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         title: flagLocalOnly ? "\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55" : "\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55",
         onClick: () => setLocalOnly((value) => !value)
       }
-    ), /* @__PURE__ */ import_react12.default.createElement(
+    ), /* @__PURE__ */ import_react13.default.createElement(
       FilterChip,
       {
         selected: showArchived,
@@ -7104,7 +7312,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
       }
     ))),
-    /* @__PURE__ */ import_react12.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react13.default.createElement(
       "input",
       {
         value: query,
@@ -7113,7 +7321,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         style: { ...input3, width: "100%", boxSizing: "border-box", fontSize: 11 }
       }
     )),
-    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761" : void 0 }, "\u7F6E\u9876 ", pinnedRecords.length, pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react12.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react12.default.createElement(
+    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761" : void 0 }, "\u7F6E\u9876 ", pinnedRecords.length, pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
       HistoryRow,
       {
         record,
@@ -7124,15 +7332,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
       }
     )))) : null,
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       "div",
       {
         ref: historyRef,
         onScroll: onHistoryScroll,
         style: { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 6px" }
       },
-      visibleRecords.length === 0 ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? `\u6CA1\u6709\u5339\u914D\u300C${query.trim()}\u300D\u7684\u8BB0\u5F55` : flagLocalOnly ? "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09" : "\u8FD8\u6CA1\u6709\u8BB0\u5F55") : null,
-      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react12.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react12.default.createElement(
+      visibleRecords.length === 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? `\u6CA1\u6709\u5339\u914D\u300C${query.trim()}\u300D\u7684\u8BB0\u5F55` : flagLocalOnly ? "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09" : "\u8FD8\u6CA1\u6709\u8BB0\u5F55") : null,
+      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
         HistoryRow,
         {
           record,
@@ -7142,10 +7350,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           onPin: (row4) => void toggleFlag(row4, { pinned: !row4.pinned }),
           onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
         }
-      ))) : /* @__PURE__ */ import_react12.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
+      ))) : /* @__PURE__ */ import_react13.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
         const record = visibleRecords[item.index];
         if (record === void 0) return null;
-        return /* @__PURE__ */ import_react12.default.createElement(
+        return /* @__PURE__ */ import_react13.default.createElement(
           "div",
           {
             key: record.id,
@@ -7153,7 +7361,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
             ref: rowVirtualizer.measureElement,
             style: { position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${item.start}px)`, paddingBottom: 5 }
           },
-          /* @__PURE__ */ import_react12.default.createElement(
+          /* @__PURE__ */ import_react13.default.createElement(
             HistoryRow,
             {
               record,
@@ -7166,9 +7374,26 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           )
         );
       })),
-      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? "\u52A0\u8F7D\u4E2D\u2026" : "\u52A0\u8F7D\u66F4\u591A")) : null
+      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? "\u52A0\u8F7D\u4E2D\u2026" : "\u52A0\u8F7D\u66F4\u591A")) : null
     )
-  ), /* @__PURE__ */ import_react12.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react12.default.createElement("div", null, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react12.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement(
+    "div",
+    {
+      onPointerDown: (event) => {
+        event.preventDefault();
+        historyResizeRef.current = { x: event.clientX, width: historyWidth };
+        setHistoryResizing(true);
+      },
+      onDoubleClick: () => setHistoryWidth(wide ? 280 : 196),
+      title: "\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D",
+      style: {
+        width: 5,
+        flexShrink: 0,
+        cursor: "col-resize",
+        background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
+      }
+    }
+  ), /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react13.default.createElement(
     "textarea",
     {
       value: params.prompt,
@@ -7177,7 +7402,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       rows: 4,
       style: { ...input3, width: "100%", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react12.default.createElement("div", null, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...label2, minWidth: 0 } }, "\u5E03\u5C40\u6846 ", boxes.length), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react12.default.createElement(
+  )), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { ...label2, minWidth: 0 } }, "\u5E03\u5C40\u6846 ", boxes.length), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react13.default.createElement(
     "button",
     {
       type: "button",
@@ -7186,8 +7411,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": showCanvas ? "\u6298\u53E0\u9884\u89C8" : "\u5C55\u5F00\u9884\u89C8",
       onClick: () => setShowCanvas((value) => !value)
     },
-    /* @__PURE__ */ import_react12.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
-  ), /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
+  ), /* @__PURE__ */ import_react13.default.createElement(
     "button",
     {
       type: "button",
@@ -7196,15 +7421,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": "\u7F16\u8F91\u5E03\u5C40",
       onClick: openEditor
     },
-    /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "dashboard_customize" })
-  ))), showCanvas ? /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "dashboard_customize" })
+  ))), showCanvas ? /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       onClick: openEditor,
       title: "\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668",
       style: { cursor: "zoom-in" }
     },
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       BoxCanvas,
       {
         boxes,
@@ -7218,7 +7443,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         compact: boxes.length === 0
       }
     )
-  ) : null), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react12.default.createElement(
+  ) : null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u5C3A\u5BF8"), /* @__PURE__ */ import_react13.default.createElement(
     "input",
     {
       type: "number",
@@ -7230,7 +7455,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": "\u5BBD\u5EA6",
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react12.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react13.default.createElement(
     "input",
     {
       type: "number",
@@ -7242,7 +7467,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": "\u9AD8\u5EA6",
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react12.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement(
     "select",
     {
       value: SIZE_PRESETS.includes(params.size) ? params.size : "",
@@ -7256,9 +7481,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": "\u5E38\u7528\u5C3A\u5BF8",
       style: { ...input3, flex: "0 0 96px", width: 96 }
     },
-    /* @__PURE__ */ import_react12.default.createElement("option", { value: "", style: optionStyle2 }, "\u9884\u8BBE"),
-    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react12.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
-  )), sizeHint !== null ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react12.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "\u6B65\u6570"), /* @__PURE__ */ import_react12.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react12.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react12.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react12.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react12.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react12.default.createElement("div", null, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: label2 }, "\u8D1F\u5411\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("option", { value: "", style: optionStyle2 }, "\u9884\u8BBE"),
+    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react13.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
+  )), sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u6B65\u6570"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "\u8D1F\u5411\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react13.default.createElement(
     "textarea",
     {
       value: params.negative,
@@ -7267,7 +7492,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       rows: 2,
       style: { ...input3, width: "100%", display: "block", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react12.default.createElement(
+  )), /* @__PURE__ */ import_react13.default.createElement(
     IconCheckbox,
     {
       checked: params.enhance,
@@ -7275,7 +7500,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onChange: (event) => update({ enhance: event.target.checked }),
       label: "\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09"
     }
-  )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `\u751F\u6210\u4E2D ${elapsed}s${phase === "" ? "" : ` \xB7 ${PHASE_LABEL[phase] ?? phase}`}` : otherBusy ? "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210" : "\u968F\u673A seed \u751F\u6210"), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, "\u7528\u5F53\u524D seed \u751F\u6210"), running !== void 0 && !busy ? /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u961F\u5217\u4E2D \xB7 ", running.id.slice(-4)) : null, sizeHint !== null ? /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58") : null), notice !== "" ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react12.default.createElement(
+  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `\u751F\u6210\u4E2D ${elapsed}s${phase === "" ? "" : ` \xB7 ${PHASE_LABEL[phase] ?? phase}`}` : otherBusy ? "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210" : "\u968F\u673A seed \u751F\u6210"), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, "\u7528\u5F53\u524D seed \u751F\u6210"), running !== void 0 && !busy ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u961F\u5217\u4E2D \xB7 ", running.id.slice(-4)) : null, sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58") : null), notice !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       style: {
@@ -7287,7 +7512,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         display: "flex"
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       ResultPane,
       {
         orientation: "column",
@@ -7305,7 +7530,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     )
-  ) : null), wide ? null : /* @__PURE__ */ import_react12.default.createElement(import_react12.default.Fragment, null, /* @__PURE__ */ import_react12.default.createElement(
+  ) : null), wide ? null : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       onPointerDown: (event) => {
@@ -7323,7 +7548,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"
       }
     }
-  ), /* @__PURE__ */ import_react12.default.createElement(
+  ), /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       style: {
@@ -7335,7 +7560,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))"
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u7ED3\u679C"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u7ED3\u679C"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement(
       "button",
       {
         type: "button",
@@ -7344,9 +7569,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         "aria-label": resultCollapsed ? "\u5C55\u5F00\u7ED3\u679C\u533A" : "\u6536\u8D77\u7ED3\u679C",
         onClick: () => setResultCollapsed((value) => !value)
       },
-      /* @__PURE__ */ import_react12.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
+      /* @__PURE__ */ import_react13.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
     )),
-    resultCollapsed ? null : /* @__PURE__ */ import_react12.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react12.default.createElement(
+    resultCollapsed ? null : /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
       ResultPane,
       {
         orientation: "row",
@@ -7364,7 +7589,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     ))
-  )), editorOpen ? /* @__PURE__ */ import_react12.default.createElement(
+  )), editorOpen ? /* @__PURE__ */ import_react13.default.createElement(
     BoxEditor,
     {
       params,
@@ -7377,7 +7602,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onClose: closeEditor,
       onCancel: cancelEditor
     }
-  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react12.default.createElement(
+  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react13.default.createElement(
     ConfirmDialog,
     {
       title: "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F",
@@ -7390,7 +7615,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         void removeRecordById(id);
       }
     }
-  ) : null, settingsOpen ? /* @__PURE__ */ import_react12.default.createElement(
+  ) : null, settingsOpen ? /* @__PURE__ */ import_react13.default.createElement(
     SettingsDialog,
     {
       onClose: () => setSettingsOpen(false),
@@ -7398,7 +7623,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setComfy(null);
       }
     }
-  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react12.default.createElement(
+  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react13.default.createElement(
     ImageViewer,
     {
       recordId: shownRecordId,
@@ -7418,7 +7643,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
 var PANEL_ID = "moss-studio";
 var TAB_ID = "dsh-moss-studio";
 var TAB_KIND = "moss-studio";
-var PanelBoundary = class extends import_react13.default.Component {
+var PanelBoundary = class extends import_react14.default.Component {
   constructor(props) {
     super(props);
     this.state = { error: null };
@@ -7428,12 +7653,12 @@ var PanelBoundary = class extends import_react13.default.Component {
   }
   render() {
     if (this.state.error !== null) {
-      return import_react13.default.createElement(
+      return import_react14.default.createElement(
         "div",
         { style: { padding: 16, fontSize: 12, opacity: 0.8, lineHeight: 1.6 } },
-        import_react13.default.createElement("div", null, "Moss studio \u9762\u677F\u51FA\u9519"),
-        import_react13.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
-        import_react13.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002")
+        import_react14.default.createElement("div", null, "Moss studio \u9762\u677F\u51FA\u9519"),
+        import_react14.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
+        import_react14.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002")
       );
     }
     return this.props.children;
@@ -7443,7 +7668,7 @@ function createPlugin() {
   function PanelIcon({ size = 16, active = false }) {
     const edge = typeof size === "number" && size > 0 ? size : 16;
     const brand = active ? "var(--dsw-alias-brand-primary, #78be91)" : "currentColor";
-    return import_react13.default.createElement(
+    return import_react14.default.createElement(
       "span",
       {
         style: {
@@ -7455,7 +7680,7 @@ function createPlugin() {
           flexShrink: 0
         }
       },
-      import_react13.default.createElement(
+      import_react14.default.createElement(
         "svg",
         {
           xmlns: "http://www.w3.org/2000/svg",
@@ -7467,22 +7692,22 @@ function createPlugin() {
           focusable: "false",
           style: { display: "block" }
         },
-        import_react13.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
-        import_react13.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
-        import_react13.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
+        import_react14.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
+        import_react14.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
+        import_react14.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
       )
     );
   }
   const ROOT_SESSION = "root";
   function StudioMainPanel() {
     function Main() {
-      return import_react13.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
+      return import_react14.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
     }
     return Main;
   }
   return {
     // Internal seam for tests and embedding; the loader ignores it.
-    components: { StudioPanel, BoxEditor, BoxCanvas },
+    components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
     inject: ["slots", "sidebarRightTabs", "sidebarRight"],
     apply(ctx) {
       const safe = (label3, run) => {

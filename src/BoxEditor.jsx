@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BoxCanvas } from './BoxCanvas.jsx'
 import { Icon } from './icons.jsx'
 import { IconCheckbox } from './IconCheckbox.jsx'
 import { moveBox, updateBoxGeometry } from './box-math.js'
 import { ScopeStyles } from './ScopeStyles.jsx'
+import { useDialogFocus } from './useDialogFocus.js'
 import { selectionFill } from './theme.js'
 
 const row = { display: 'flex', alignItems: 'center', gap: 6 }
@@ -95,6 +96,10 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
     onChange(boxes.map((box, position) => (position === index ? { ...box, ...patch } : box)))
   }
 
+  const titleId = useId()
+  const cardRef = useRef(null)
+  useDialogFocus(cardRef)
+
   return (
     <div
       className="moss-studio"
@@ -111,6 +116,10 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
     >
       <ScopeStyles />
       <div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -126,7 +135,7 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
         }}
       >
         <div style={{ ...row, justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
-          <span style={{ fontSize: 13 }}>编辑布局 · {boxes.length} 个框 · {size}</span>
+          <span id={titleId} style={{ fontSize: 13 }}>编辑布局 · {boxes.length} 个框 · {size}</span>
           <div style={{ ...row }}>
             <button type="button" style={iconOnly} title="加一个框" aria-label="加框" onClick={onAdd}>
               <Icon name="add_box" />

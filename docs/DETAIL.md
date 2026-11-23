@@ -177,3 +177,13 @@ records/<id>/image.png
 - 忙碌会话可见：生成期间宿主记录 `runningSession`，`/health` 返回 `busySession`；别的会话占用时按钮禁用并显示「另一会话正在生成」。
 - 记录带 `version: 1`：为后续结构迁移留锚点。
 - 清理死代码：删除 `settings()`、`saveSettings()`、`invalidateIndex()`、`imageStat()`，`settings.json` 不再被读写（设置走 `configEditor`）。
+
+## 第四批：布局持久化、保留策略、默认值、版本
+
+- 布局偏好写入 `localStorage['moss-studio.ui']`：结果区高度（120–720）、折叠状态、历史列宽（窄栏/全宽各自记忆，160–420）。读取时做区间夹取，损坏的 JSON 或抛错的 storage 都回退默认值；历史列与参数列之间加了 5px 拖拽条，双击复位。
+- 历史保留：`Config.retention`（volatile，默认 0 = 不限制）。每次生成成功后按上限清理最旧记录，跳过置顶与正在生成的；设置为 0 时完全不清理。
+- 新草稿默认值：`defaultSize` / `defaultSteps` / `defaultCfg` / `defaultNegative` 四个 volatile 字段，`StudioStore` 通过 `defaults` 回调在新建草稿时读取，已有草稿不受影响。
+- 设置对话框扩成三组：ComfyUI 地址、历史保留条数、新草稿默认值；只读的接线信息（数据目录、工作流、超时/轮询）放在最下方。
+- `/settings` 的 PATCH 接受 `comfyUrl`、`retention`、`defaults` 的任意组合（至少一项），未知键与越界值返回 400；一次 `configEditor.edit` 写完。
+- 无障碍：`useDialogFocus` 统一处理三个对话框的初始焦点、Tab 循环与关闭后焦点归还；设置与编辑布局补上 `role="dialog"`、`aria-modal`、`aria-labelledby`。
+- 版本升到 0.2.0，新增 CHANGELOG.md。

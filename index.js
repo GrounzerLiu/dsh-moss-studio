@@ -12,8 +12,8 @@ import { fileURLToPath } from 'node:url'
 import { probe } from './lib/comfy.js'
 import { runGeneration } from './lib/engine.js'
 import { ROUTE_PREFIX, studioRoutes } from './lib/routes.js'
-import { normalizeComfyUrl, settingsState } from './lib/settings.js'
-import { DEFAULT_NEGATIVE, StudioError, StudioStore, defaultDataRoot } from './lib/storage.js'
+import { readSettingsPatch, settingsState } from './lib/settings.js'
+import { DEFAULT_NEGATIVE, DEFAULT_PARAMS, StudioError, StudioStore, defaultDataRoot } from './lib/storage.js'
 import { studioTools } from './lib/tools.js'
 
 export const name = 'dsh-moss-studio'
@@ -34,6 +34,11 @@ export const Config = z.object({
   steps: z.number().default(25).description('新草稿的默认步数'),
   cfg: z.number().default(2.5).description('新草稿的默认 CFG'),
   negative: z.string().default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词'),
+  retention: z.number().default(0).description('最多保留多少条记录；0 表示不限制。置顶与生成中的记录不会被清理').volatile(),
+  defaultSize: z.string().default('1024x1024').description('新草稿的默认尺寸').volatile(),
+  defaultSteps: z.number().default(25).description('新草稿的默认步数').volatile(),
+  defaultCfg: z.number().default(2.5).description('新草稿的默认 CFG').volatile(),
+  defaultNegative: z.string().default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词').volatile(),
   timeoutMs: z.number().default(600000).description('单次生成的超时毫秒数'),
   pollMs: z.number().default(1000).description('轮询 ComfyUI 的间隔毫秒数'),
 })
@@ -58,6 +63,11 @@ function normalizeConfig(raw) {
     comfyUrl: text(config.comfyUrl, 'http://127.0.0.1:8188'),
     workflowPath: text(config.workflowPath, ''),
     dataDir: text(config.dataDir, defaultDataRoot()),
+    retention: number(config.retention, 0),
+    defaultSize: text(config.defaultSize, '1024x1024'),
+    defaultSteps: number(config.defaultSteps, 25),
+    defaultCfg: number(config.defaultCfg, 2.5),
+    defaultNegative: typeof config.defaultNegative === 'string' ? config.defaultNegative : DEFAULT_NEGATIVE,
     steps: number(config.steps, 25),
     cfg: number(config.cfg, 2.5),
     negative: typeof config.negative === 'string' && config.negative !== '' ? config.negative : DEFAULT_NEGATIVE,
@@ -74,7 +84,20 @@ export function apply(ctx, rawConfig) {
   const config = normalizeConfig(derefConfig(rawConfig))
   /** Fresh config for values that can change while the plugin is running. */
   const live = () => normalizeConfig(derefConfig(rawConfig))
-  const store = new StudioStore({ root: config.dataDir })
+  const store = new StudioStore({
+    root: config.dataDir,
+    // Read on every new draft so a settings change applies without a restart.
+    defaults: () => {
+      const now = live()
+      return {
+        ...DEFAULT_PARAMS,
+        size: now.defaultSize,
+        steps: now.defaultSteps,
+        cfg: now.defaultCfg,
+        negative: now.defaultNegative,
+      }
+    },
+  })
   const templateCache = new Map()
 
   async function template() {
@@ -109,8 +132,15 @@ export function apply(ctx, rawConfig) {
    * intact, and (because the field is volatile) updates this run in place
    * instead of remounting the plugin.
    */
-  async function saveComfyUrl(value) {
-    const next = normalizeComfyUrl(value)
+  /**
+   * Persist an editable settings patch into the profile's patch layer.
+   *
+   * `configEditor.edit` validates the whole row, keeps the rest of the YAML
+   * intact, and (because these fields are volatile) updates this run in place
+   * instead of remounting the plugin.
+   */
+  async function saveSettings(body) {
+    const patch = readSettingsPatch(body)
     const editor = typeof ctx.get === 'function' ? ctx.get('configEditor') : undefined
     if (typeof editor?.edit !== 'function') {
       throw new StudioError('NO_EDITOR', '当前 profile 没有配置编辑器，只能改 cordis.patch.yml')
@@ -119,8 +149,14 @@ export function apply(ctx, rawConfig) {
     if (entry === undefined) {
       throw new StudioError('NO_ENTRY', '这行插件没有可写的 profile 条目')
     }
+    const { comfyUrl, retention, defaults } = patch
     try {
-      await editor.edit(entry, (current) => ({ ...(current ?? {}), comfyUrl: next }))
+      await editor.edit(entry, (current) => ({
+        ...(current ?? {}),
+        ...(comfyUrl === undefined ? {} : { comfyUrl }),
+        ...(retention === undefined ? {} : { retention }),
+        ...(defaults === undefined ? {} : defaults),
+      }))
     } catch (error) {
       // A higher layer (profile patch or a launch arg) can pin the row; say so
       // instead of pretending the value was saved.
@@ -128,24 +164,25 @@ export function apply(ctx, rawConfig) {
       throw new StudioError('SAVE_REJECTED', `保存被拒绝：${reason}`)
     }
     resetHealth()
-    return { comfyUrl: live().comfyUrl }
+    return settingsForPanel()
   }
-
   function settingsForPanel() {
     const now = live()
     const editor = typeof ctx.get === 'function' ? ctx.get('configEditor') : undefined
     return settingsState({
       comfyUrl: now.comfyUrl,
+      retention: now.retention,
+      defaultSize: now.defaultSize,
+      defaultSteps: now.defaultSteps,
+      defaultCfg: now.defaultCfg,
+      defaultNegative: now.defaultNegative,
       dataDir: now.dataDir,
       workflowPath: now.workflowPath !== '' ? now.workflowPath : BUNDLED_WORKFLOW,
       timeoutMs: now.timeoutMs,
       pollMs: now.pollMs,
-      steps: now.steps,
-      cfg: now.cfg,
       editable: typeof editor?.edit === 'function',
     })
   }
-
   // Cached so a panel that asks often cannot flood ComfyUI with probes.
   let healthCache = { at: 0, value: { ok: false, error: '未检测' } }
   async function health() {
@@ -233,6 +270,17 @@ export function apply(ctx, rawConfig) {
         data: result.data,
       })
 
+      // Trim the history after a successful run so the cap is enforced at the
+      // moment the pile grows, not only when someone opens settings.
+      const limit = live().retention
+      if (limit > 0) {
+        try {
+          await store.pruneRecords(limit)
+        } catch (error) {
+          ctx.logger?.warn?.(`moss-studio: 清理旧记录失败：${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+
       return {
         recordId: record.id,
         width: result.meta.width,
@@ -270,7 +318,7 @@ export function apply(ctx, rawConfig) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ROUTE_PREFIX,
-    handler: studioRoutes({ store, generate, isGenerating: busy, busySession, health, settings: settingsForPanel, saveComfyUrl }),
+    handler: studioRoutes({ store, generate, isGenerating: busy, busySession, health, settings: settingsForPanel, saveSettings }),
   }), 'moss-studio: routes')
 
   ctx.logger?.info?.(`moss-studio: 数据目录 ${config.dataDir}，ComfyUI ${config.comfyUrl}`)

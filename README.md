@@ -35,6 +35,8 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
 - Status strip: ComfyUI health (click the pill to re-probe), VRAM and RAM, draft scope, revision.
 - Settings dialog: the ComfyUI address is a volatile config field, so a new address applies to the next generation without a restart.
+- Settings also hold the history retention cap (0 = unlimited; pinned and running records are never pruned) and the defaults for new drafts (size, steps, CFG, negative prompt).
+- Layout choices — result height, collapsed state, history column width — are remembered per browser.
 
 ## Build the client bundle
 

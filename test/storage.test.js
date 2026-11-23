@@ -197,3 +197,29 @@ test('records carry a schema version for later migrations', async () => {
     assert.equal(reread.version, 1)
   })
 })
+test('pruning drops the oldest records but never pinned or running ones', async () => {
+  await withStore(async (store) => {
+    const ids = []
+    for (let index = 0; index < 4; index++) {
+      const record = await store.createRecord({ sessionId: 's1', params: { prompt: `p${index}` } })
+      await store.finishRecord(record.id, { status: 'failed', error: { message: 'x' } })
+      ids.push(record.id)
+      await new Promise((resolve) => setTimeout(resolve, 2))
+    }
+    const running = await store.createRecord({ sessionId: 's1', params: { prompt: 'running' } })
+    await store.setRecordFlags(ids[0], { pinned: true })
+
+    const result = await store.pruneRecords(2)
+    // The paged list excludes pinned records by design, so check them separately.
+    const pinned = (await store.listRecords({ limit: 20, pinnedOnly: true })).map((row) => row.id)
+    const page = (await store.listRecords({ limit: 20 })).map((row) => row.id)
+
+    assert.equal(result.kept, 2)
+    assert.deepEqual(pinned, [ids[0]], 'pinned survives')
+    assert.ok(page.includes(running.id), 'running survives')
+    assert.equal(pinned.length + page.length, 2)
+
+    // Disabled pruning is a no-op.
+    assert.deepEqual(await store.pruneRecords(0), { removed: 0, kept: 2 })
+  })
+})
