@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.7.1
+
+A review of 0.7.0 turned up one class of bug (state that undo did not carry) and
+one class of lie (controls that looked like they worked and did not).
+
+**Undo carries the whole layout**
+
+- History entries now hold `{ boxes, characters }`. Deleting a box renumbers the
+  character marks, and undoing that deletion used to bring the box back without
+  its marks, leaving them pointed at the wrong boxes.
+- Adding or drawing a box is recorded as one undo step. It used to be invisible to
+  the stack, so the first undo either did nothing (nothing to go back to) or
+  reverted an unrelated earlier edit.
+- Toggling a character mark is undoable too; it used to bypass the stack entirely.
+- `undo`/`redo` no longer call the host from inside a state updater, so React's
+  double invocation in development cannot apply a snapshot twice.
+
+**Locks actually lock**
+
+- A locked box no longer shows resize grips, and its grips would not have worked:
+  the handle path ignored the flag (measured: dragging the east grip resized a
+  locked box from 0.2 to 0.3).
+- Locked boxes are skipped by group drags, arrow-key nudges, alignment and
+  distribution. The multi-selection lock/hide buttons now apply to the whole
+  selection instead of only the last-clicked box.
+
+**Aspect lock is real**
+
+- The canvas now honours the inspector's lock toggle, not just Shift.
+- Edge handles lock as well (the old code required both axes to be moving, so an
+  east-edge drag under Shift distorted the box).
+- The geometry is solved against the space actually available: a relative-change
+  comparison picks the driving axis, width is derived once and height follows, so
+  the ratio survives hitting the frame edge. Fuzzing 32,000 random locked drags
+  found 0 ratio drift, 0 escapes from the frame and 0 boxes below the minimum;
+  the previous version broke the ratio on 17% of corner drags and always on edges.
+- Free resizes now snap the edge being dragged.
+
+**Say what is missing before generating**
+
+- `boxProblem`/`boxesProblem` are pure checks: a box needs a description (or text
+  for a text box) and the list may not exceed 24.
+- The editor marks unfinished rows with a red count and per-row marker; the
+  generate button reports the offending box in the user's language instead of
+  failing later with an English node error.
+- The 25th box is refused in the editor with a message.
+
+**Keyboard and pointer**
+
+- Ctrl+Z / Ctrl+Y / Ctrl+D inside a text field are left to the field: the editor
+  used to swallow them, so text could not be undone and Ctrl+D duplicated boxes
+  from inside a textarea.
+- Tab belongs to the dialog's focus trap again (it never moved focus while cycling
+  boxes); boxes cycle with `[` and `]`.
+- The right button neither drags nor draws; `pointercancel` ends a drag cleanly
+  instead of leaving it half-open; the window listeners are no longer re-registered
+  on every pointer move.
+- Duplicating a box no longer copies its locked/hidden state; a copy is meant to be
+  adjusted.
+
+Also removed: three unused imports, a dead `selectedBoxes`, two unused translation
+keys and an unused `updateBox` in the panel.
+
 ## 0.7.0
 
 Boxes can be locked and hidden — the two states a layout needs once some of it is

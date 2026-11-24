@@ -4,10 +4,9 @@ import { BoxCanvas } from './BoxCanvas.jsx'
 import { Icon } from './icons.jsx'
 import { IconCheckbox } from './IconCheckbox.jsx'
 import {
-  HANDLES,
-  MIN_SIZE,
+  MAX_BOXES,
   alignBoxes,
-  clamp,
+  boxProblem,
   distributeBoxes,
   duplicateBoxes,
   moveBoxes,
@@ -87,12 +86,35 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
 
   const [selection, setSelection] = useState([])
   const [lockAspect, setLockAspect] = useState(false)
-  const [history, setHistory] = useState(() => ({ stack: [boxes], index: 0 }))
+  const [notice, setNotice] = useState('')
+  /**
+   * Character marks live beside the boxes, not inside them, so a history entry
+   * has to carry both. Deleting a box renumbers the marks (see
+   * `charactersAfter`); undoing that deletion without restoring the marks left
+   * them pointing at whichever box had taken the freed position.
+   */
+  const charactersRef = useRef(params.characterBoxes ?? '')
+  const [history, setHistory] = useState(() => ({
+    stack: [{ boxes, characters: params.characterBoxes ?? '' }],
+    index: 0,
+  }))
   const lastCommitRef = useRef(0)
+
+  const pushHistory = useCallback((snapshot, coalesce) => {
+    setHistory((current) => {
+      const stack = current.stack.slice(0, current.index + 1)
+      // Never coalesce into the baseline entry: that would make the first edit
+      // of a session impossible to undo.
+      if (coalesce === true && stack.length > 1) stack[stack.length - 1] = snapshot
+      else stack.push(snapshot)
+      while (stack.length > HANDLE_HISTORY) stack.shift()
+      return { stack, index: stack.length - 1 }
+    })
+  }, [])
 
   /** Characters are stored as 1-based positions, so they follow deletions here. */
   const charactersAfter = useCallback((removed) => {
-    const set = toSet(params.characterBoxes)
+    const set = toSet(charactersRef.current)
     const kept = new Set()
     for (const value of set) {
       if (removed.has(value - 1)) continue
@@ -101,43 +123,44 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
       kept.add(value - shift)
     }
     return toText(kept)
-  }, [params.characterBoxes])
+  }, [])
+
+  const applySnapshot = useCallback((snapshot) => {
+    charactersRef.current = snapshot.characters
+    onApply(snapshot.boxes, snapshot.characters)
+  }, [onApply])
 
   const commit = useCallback((nextBoxes, options = {}) => {
     const now = Date.now()
     const coalesce = options.coalesce === true && now - lastCommitRef.current < COALESCE_MS
     lastCommitRef.current = now
-    onApply(nextBoxes, options.characters)
-    setHistory((current) => {
-      const stack = current.stack.slice(0, current.index + 1)
-      if (coalesce) stack[stack.length - 1] = nextBoxes
-      else stack.push(nextBoxes)
-      while (stack.length > HANDLE_HISTORY) stack.shift()
-      return { stack, index: stack.length - 1 }
-    })
-  }, [onApply])
+    const characters = options.characters ?? charactersRef.current
+    charactersRef.current = characters
+    onApply(nextBoxes, characters)
+    pushHistory({ boxes: nextBoxes, characters }, coalesce)
+  }, [onApply, pushHistory])
 
   const undo = useCallback(() => {
-    setHistory((current) => {
-      if (current.index <= 0) return current
-      const index = current.index - 1
-      onApply(current.stack[index])
-      return { ...current, index }
-    })
-  }, [onApply])
+    const index = history.index - 1
+    if (index < 0) return
+    applySnapshot(history.stack[index])
+    setHistory((current) => ({ ...current, index }))
+  }, [applySnapshot, history])
 
   const redo = useCallback(() => {
-    setHistory((current) => {
-      if (current.index >= current.stack.length - 1) return current
-      const index = current.index + 1
-      onApply(current.stack[index])
-      return { ...current, index }
-    })
-  }, [onApply])
+    const index = history.index + 1
+    if (index >= history.stack.length) return
+    applySnapshot(history.stack[index])
+    setHistory((current) => ({ ...current, index }))
+  }, [applySnapshot, history])
 
-  const selectedBoxes = selection.map((index) => boxes[index]).filter(Boolean)
   const primaryIndex = selection.length > 0 ? selection[selection.length - 1] : -1
   const primary = boxes[primaryIndex]
+  const allLocked = selection.length > 0 && selection.every((index) => boxes[index]?.locked === true)
+  const allHidden = selection.length > 0 && selection.every((index) => boxes[index]?.hidden === true)
+  /** Locked boxes keep their place through moves, nudges, alignment and distribution. */
+  const movable = selection.filter((index) => boxes[index]?.locked !== true)
+  const incomplete = boxes.filter((box) => boxProblem(box) !== undefined).length
 
   useEffect(() => {
     // Drop indexes that no longer exist after a deletion or an undo.
@@ -161,30 +184,43 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
 
   const selectAll = useCallback(() => setSelection(boxes.map((_, index) => index)), [boxes])
 
-  const addAt = useCallback(() => {
-    const index = onAdd?.()
-    if (typeof index === 'number' && index >= 0) setSelection([index])
-  }, [onAdd])
+  /**
+   * Adding a box happens in the panel, which owns the draft, so the new list
+   * comes back from `onAdd`. Recording it here is what keeps undo honest: a
+   * drawn box used to be invisible to the stack, so the first undo either did
+   * nothing or reverted an unrelated earlier edit.
+   */
+  const record = useCallback((result) => {
+    if (result === undefined || result === null || !Array.isArray(result.boxes)) return
+    const characters = result.characters ?? charactersRef.current
+    charactersRef.current = characters
+    pushHistory({ boxes: result.boxes, characters }, false)
+    if (typeof result.index === 'number' && result.index >= 0) setSelection([result.index])
+  }, [pushHistory])
 
-  const createAt = useCallback((geometry) => {
-    const index = onAdd?.(geometry)
-    if (typeof index === 'number' && index >= 0) setSelection([index])
-  }, [onAdd])
+  const addAt = useCallback((geometry) => {
+    if (boxes.length >= MAX_BOXES) {
+      setNotice(t('editor.limit', { max: MAX_BOXES }))
+      return
+    }
+    setNotice('')
+    record(onAdd?.(geometry))
+  }, [boxes.length, onAdd, record])
 
   const nudge = useCallback((dx, dy) => {
-    if (selection.length === 0) return
-    commit(moveBoxes(boxes, selection, dx, dy), { coalesce: true })
-  }, [boxes, commit, selection])
+    if (movable.length === 0) return
+    commit(moveBoxes(boxes, movable, dx, dy), { coalesce: true })
+  }, [boxes, commit, movable])
 
   const move = useCallback((mode) => {
-    if (selection.length === 0) return
-    commit(alignBoxes(boxes, selection, mode))
-  }, [boxes, commit, selection])
+    if (movable.length === 0) return
+    commit(alignBoxes(boxes, movable, mode))
+  }, [boxes, commit, movable])
 
   const spread = useCallback((axis) => {
-    if (selection.length < 3) return
-    commit(distributeBoxes(boxes, selection, axis))
-  }, [boxes, commit, selection])
+    if (movable.length < 3) return
+    commit(distributeBoxes(boxes, movable, axis))
+  }, [boxes, commit, movable])
 
   /**
    * Apply a partial box change.
@@ -203,12 +239,23 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     commit(next, { coalesce })
   }, [boxes, commit])
 
-  const toggleCharacter = useCallback((index) => {
-    const set = toSet(params.characterBoxes)
-    if (set.has(index + 1)) set.delete(index + 1)
-    else set.add(index + 1)
-    onApply(boxes, toText(set))
-  }, [boxes, onApply, params.characterBoxes])
+  /** Set a flag on every selected box, so the multi-selection controls act on all of them. */
+  const setFlagFor = useCallback((key, value) => {
+    commit(boxes.map((box, index) => (
+      selection.includes(index) ? { ...box, [key]: value } : box
+    )))
+  }, [boxes, commit, selection])
+
+  const toggleCharacter = useCallback((indices) => {
+    const set = toSet(charactersRef.current)
+    const list = Array.isArray(indices) ? indices : [indices]
+    const allMarked = list.length > 0 && list.every((index) => set.has(index + 1))
+    for (const index of list) {
+      if (allMarked) set.delete(index + 1)
+      else set.add(index + 1)
+    }
+    commit(boxes, { characters: toText(set) })
+  }, [boxes, commit])
 
   const cycle = useCallback((direction) => {
     if (boxes.length === 0) return
@@ -236,6 +283,10 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         }
         return
       }
+      // While a field has focus its own editing has priority: Ctrl+Z has to undo
+      // the typing, not the last box drag, and Ctrl+D must not duplicate boxes
+      // from inside a textarea.
+      if (typing) return
       if (mod && (key === 'z' || key === 'Z')) {
         event.preventDefault()
         if (event.shiftKey) redo()
@@ -247,7 +298,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         redo()
         return
       }
-      if (mod && (key === 'a' || key === 'A') && !typing) {
+      if (mod && (key === 'a' || key === 'A')) {
         event.preventDefault()
         selectAll()
         return
@@ -257,14 +308,16 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         duplicate()
         return
       }
-      if ((key === 'Delete' || key === 'Backspace') && !typing) {
+      if (key === 'Delete' || key === 'Backspace') {
         event.preventDefault()
         remove(selection)
         return
       }
-      if (key === 'Tab' && !typing) {
+      // Tab belongs to the dialog's focus trap; boxes are cycled with the
+      // bracket keys so keyboard users can still reach the inspector.
+      if (key === '[' || key === ']') {
         event.preventDefault()
-        cycle(event.shiftKey ? -1 : 1)
+        cycle(key === ']' ? 1 : -1)
         return
       }
       if (typing) return
@@ -350,6 +403,12 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           </div>
         </div>
 
+        {notice !== '' ? (
+          <div style={{ padding: '4px 12px', fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
+            {notice}
+          </div>
+        ) : null}
+
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, background: 'var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))' }}>
             <BoxCanvas
@@ -357,13 +416,20 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
               size={params.size}
               budget={budget}
               selected={selection}
+              lockAspect={lockAspect}
               onSelect={setSelection}
               onChange={(next) => commit(next)}
-              onCreate={createAt}
+              onCreate={addAt}
             />
           </div>
 
           <div style={{ width: 320, flexShrink: 0, borderLeft: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {incomplete > 0 ? (
+              <div style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)', padding: '2px 4px' }}>
+                {t('editor.incomplete', { count: incomplete })}
+              </div>
+            ) : null}
+
             {selection.length > 1 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 8, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', background: 'var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))' }}>
                 <span style={{ fontSize: 11, ...dim }}>{t('editor.selectionCount', { count: selection.length })}</span>
@@ -383,23 +449,32 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   </button>
                   <button
                     type="button"
-                    style={primary.locked ? iconOnly : { ...iconOnly, opacity: 0.6 }}
-                    title={primary.locked ? t('editor.unlock') : t('editor.lock')}
-                    aria-label={primary.locked ? t('editor.unlock') : t('editor.lock')}
-                    aria-pressed={primary.locked === true}
-                    onClick={() => patchBox(primaryIndex, { locked: primary.locked !== true })}
+                    style={allLocked ? iconOnly : { ...iconOnly, opacity: 0.6 }}
+                    title={allLocked ? t('editor.unlockSelected') : t('editor.lockSelected')}
+                    aria-label={allLocked ? t('editor.unlockSelected') : t('editor.lockSelected')}
+                    aria-pressed={allLocked}
+                    onClick={() => setFlagFor('locked', !allLocked)}
                   >
-                    <Icon name={primary.locked ? 'lock' : 'lock_open'} size={14} />
+                    <Icon name={allLocked ? 'lock' : 'lock_open'} size={14} />
                   </button>
                   <button
                     type="button"
-                    style={primary.hidden ? iconOnly : { ...iconOnly, opacity: 0.6 }}
-                    title={primary.hidden ? t('editor.show') : t('editor.hide')}
-                    aria-label={primary.hidden ? t('editor.show') : t('editor.hide')}
-                    aria-pressed={primary.hidden === true}
-                    onClick={() => patchBox(primaryIndex, { hidden: primary.hidden !== true })}
+                    style={allHidden ? iconOnly : { ...iconOnly, opacity: 0.6 }}
+                    title={allHidden ? t('editor.showSelected') : t('editor.hideSelected')}
+                    aria-label={allHidden ? t('editor.showSelected') : t('editor.hideSelected')}
+                    aria-pressed={allHidden}
+                    onClick={() => setFlagFor('hidden', !allHidden)}
                   >
-                    <Icon name={primary.hidden ? 'visibility_off' : 'visibility'} size={14} />
+                    <Icon name={allHidden ? 'visibility_off' : 'visibility'} size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    style={iconOnly}
+                    title={t('editor.markPeople')}
+                    aria-label={t('editor.markPeople')}
+                    onClick={() => toggleCharacter(selection)}
+                  >
+                    <Icon name="person" size={14} />
                   </button>
                   <span style={{ flex: 1 }} />
                   <button type="button" style={iconOnly} title={t('editor.duplicate')} aria-label={t('editor.duplicate')} onClick={duplicate}>
@@ -529,7 +604,16 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   <span style={{ ...input, flex: 1, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 'none', opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? 'line-through' : 'none' }}>
                     {box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc'))}
                   </span>
-                  <span style={{ ...dim, fontSize: 10, whiteSpace: 'nowrap' }}>
+                  <span
+                    title={boxProblem(box) === undefined ? undefined : t(boxProblem(box) === 'text' ? 'editor.needsText' : 'editor.needsDesc')}
+                    style={{
+                      ...dim,
+                      fontSize: 10,
+                      whiteSpace: 'nowrap',
+                      color: boxProblem(box) === undefined ? undefined : 'var(--dsw-alias-state-error-primary, #ff8f7a)',
+                    }}
+                  >
+                    {boxProblem(box) === undefined ? '' : '! '}
                     {Math.round(box.width * 100)}×{Math.round(box.height * 100)}
                   </span>
                   {/* Locking protects a finished box from accidental drags; hiding

@@ -329,3 +329,185 @@ test('a locked box cannot be dragged, a hidden one is drawn dashed', async (t) =
   await act(async () => { gesture(dom, frames()[0], [80, 80], [200, 200]) })
   assert.equal(applied.length, 0, 'dragging a locked box changes nothing')
 })
+
+// --- undo, lock and keyboard ----------------------------------------------
+
+const editorParams = (boxes, characters = '') => ({
+  prompt: 'p',
+  negative: 'x',
+  size: '1024x1024',
+  steps: 25,
+  cfg: 2.5,
+  seed: -1,
+  characterBoxes: characters,
+  enhance: false,
+  boxes,
+})
+
+async function mountEditor(t, params, extra = {}) {
+  const { dom, act, root, Editor } = setup(t)
+  const calls = []
+  await act(async () => {
+    root.render(React.createElement(Editor, {
+      params,
+      onApply: (boxes, characters) => calls.push({ boxes, characters }),
+      onAdd: () => undefined,
+      onClose: () => {},
+      onCancel: () => {},
+      ...extra,
+    }))
+  })
+  return { dom, act, root, calls, Editor }
+}
+
+test('undo after deleting a box restores the character marks too', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'a', palette: [] },
+    { type: 'obj', x: 0.6, y: 0.6, width: 0.2, height: 0.2, desc: 'b', palette: [] },
+  ]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes, '2'))
+
+  canvasArea(dom)
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+
+  await act(async () => { gesture(dom, frames()[0], [100, 100]) })
+  await act(async () => {
+    dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+  })
+  const afterDelete = calls.at(-1)
+  assert.equal(afterDelete.boxes.length, 1)
+  assert.equal(afterDelete.characters, '1', 'the surviving mark is renumbered')
+
+  await act(async () => {
+    dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }))
+  })
+  const afterUndo = calls.at(-1)
+  assert.equal(afterUndo.boxes.length, 2, 'the box comes back')
+  assert.equal(afterUndo.characters, '2', 'and so does the mark that pointed at it')
+})
+
+test('a locked box has no grips and cannot be dragged', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.2, y: 0.2, width: 0.3, height: 0.3, desc: 'a', palette: [], locked: true },
+  ]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+  await act(async () => { gesture(dom, frames()[0], [220, 220]) })
+
+  const grips = [...dom.window.document.querySelectorAll('#root span')].filter((node) => node.style.cursor.endsWith('-resize'))
+  assert.equal(grips.length, 0, 'no resize handles on a locked box')
+
+  await act(async () => { gesture(dom, frames()[0], [220, 220], [320, 320]) })
+  assert.equal(calls.length, 0, 'dragging a locked box changes nothing')
+})
+
+test('Ctrl+Z inside a description field does not undo the layout', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.1, y: 0.1, width: 0.4, height: 0.3, desc: 'old', palette: [] }]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+  await act(async () => { gesture(dom, frames()[0], [100, 100]) })
+
+  const field = [...dom.window.document.querySelectorAll('#root textarea')]
+    .find((node) => (node.getAttribute('aria-label') ?? '').includes('框内是什么'))
+  assert.ok(field !== undefined)
+  const before = calls.length
+  const event = new dom.window.KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true })
+  field.dispatchEvent(event)
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)) })
+
+  assert.equal(calls.length, before, 'the editor left the keystroke to the field')
+  assert.equal(event.defaultPrevented, false, 'and did not swallow the native text undo')
+})
+
+test('adding a box becomes one undo step', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'a', palette: [] }]
+  const added = { type: 'obj', x: 0.5, y: 0.5, width: 0.2, height: 0.2, desc: '', palette: [] }
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes), {
+    onAdd: () => ({ index: 1, boxes: [...boxes, added], characters: '' }),
+  })
+
+  const add = [...dom.window.document.querySelectorAll('#root button')]
+    .find((node) => node.getAttribute('aria-label') === '加框')
+  assert.ok(add !== undefined)
+  await act(async () => { add.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+
+  await act(async () => {
+    dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }))
+  })
+  assert.equal(calls.length, 1, 'the undo reached the host')
+  assert.equal(calls.at(-1).boxes.length, 1, 'and it went back to the list before the addition')
+})
+
+test('the twenty-fifth box is refused with a message', async (t) => {
+  const boxes = Array.from({ length: 24 }, (_, index) => ({
+    type: 'obj', x: 0.05 + (index % 6) * 0.15, y: 0.05 + Math.floor(index / 6) * 0.2,
+    width: 0.1, height: 0.1, desc: `box ${index}`, palette: [],
+  }))
+  let adds = 0
+  const { dom, act } = await mountEditor(t, editorParams(boxes), {
+    onAdd: () => { adds += 1; return undefined },
+  })
+
+  const add = [...dom.window.document.querySelectorAll('#root button')]
+    .find((node) => node.getAttribute('aria-label') === '加框')
+  await act(async () => { add.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+
+  assert.equal(adds, 0, 'nothing is added past the limit')
+  assert.match(dom.window.document.body.textContent, /最多 24 个框/)
+})
+
+test('the inspector aspect toggle reaches the canvas handles', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.2, y: 0.2, width: 0.4, height: 0.2, desc: 'a', palette: [] }]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+  await act(async () => { gesture(dom, frames()[0], [120, 120]) })
+  assert.equal(frames()[0].style.height, '20%')
+
+  const toggle = [...dom.window.document.querySelectorAll('#root button')]
+    .find((node) => node.getAttribute('aria-label') === '锁定宽高比')
+  assert.ok(toggle !== undefined)
+  await act(async () => { toggle.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+
+  const se = [...dom.window.document.querySelectorAll('#root span')]
+    .find((node) => node.style.cursor === 'nwse-resize' && node.style.left === '100%' && node.style.top === '100%')
+  assert.ok(se !== undefined)
+  await act(async () => { gesture(dom, se, [240, 160], [280, 200]) })
+
+  const box = calls.at(-1).boxes[0]
+  assert.ok(Math.abs(box.width / box.height - 2) < 1e-6, `ratio held at 2, got ${(box.width / box.height).toFixed(3)}`)
+  assert.ok(Math.abs(box.width - 0.6) < 1e-6, `width followed the longer axis, got ${box.width}`)
+})
+
+test('the right button does not drag a box or draw one', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.2, y: 0.2, width: 0.3, height: 0.3, desc: 'a', palette: [] }]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+  const right = (type, init) => new dom.window.MouseEvent(type, { bubbles: true, cancelable: true, ...init })
+
+  await act(async () => {
+    frames()[0].dispatchEvent(right('pointerdown', { clientX: 220, clientY: 220, button: 2 }))
+    dom.window.dispatchEvent(right('pointermove', { clientX: 320, clientY: 320 }))
+    dom.window.dispatchEvent(right('pointerup', { clientX: 320, clientY: 320, button: 2 }))
+  })
+  assert.equal(calls.length, 0, 'a right drag moves nothing')
+
+  const area = [...dom.window.document.querySelectorAll('#root div')].find((node) => node.style.cursor === 'crosshair')
+  await act(async () => {
+    area.dispatchEvent(right('pointerdown', { clientX: 20, clientY: 20, button: 2 }))
+    dom.window.dispatchEvent(right('pointerup', { clientX: 120, clientY: 120, button: 2 }))
+  })
+  assert.equal(calls.length, 0, 'a right drag draws nothing')
+})

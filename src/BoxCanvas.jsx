@@ -11,6 +11,7 @@ import {
   resizeByHandle,
   selectionBounds,
   snapBox,
+  snapResized,
 } from './box-math.js'
 import { selectionFill } from './theme.js'
 
@@ -69,6 +70,7 @@ export function BoxCanvas({
   interactive = true,
   budget: budgetProp,
   snap = true,
+  lockAspect = false,
 }) {
   const wrapRef = useRef(null)
   const areaRef = useRef(null)
@@ -81,6 +83,12 @@ export function BoxCanvas({
   const [available, setAvailable] = useState(0)
   const [marquee, setMarquee] = useState(null)
   const [drawing, setDrawing] = useState(null)
+  // Mirrors of the transient shapes, so the window listeners below can stay
+  // registered for the whole drag instead of being torn down every frame.
+  const drawingRef = useRef(null)
+  const marqueeRef = useRef(null)
+  const lockAspectRef = useRef(lockAspect)
+  lockAspectRef.current = lockAspect
 
   const selection = Array.isArray(selected)
     ? selected.filter((index) => Number.isInteger(index) && index >= 0 && index < boxes.length)
@@ -120,11 +128,14 @@ export function BoxCanvas({
 
       if (drag.kind === 'draw') {
         const box = boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        drawingRef.current = box
         setDrawing(box)
         return
       }
       if (drag.kind === 'marquee') {
-        setMarquee(boxFromCorners(drag.from.x, drag.from.y, point.x, point.y))
+        const box = boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        marqueeRef.current = box
+        setMarquee(box)
         return
       }
 
@@ -148,9 +159,20 @@ export function BoxCanvas({
         return
       }
       if (drag.kind === 'resize') {
-        const resized = resizeByHandle(drag.start, drag.handle, dx, dy, { lockAspect: event.shiftKey })
+        const locked = event.shiftKey || lockAspectRef.current
+        const resized = resizeByHandle(drag.start, drag.handle, dx, dy, { lockAspect: locked })
         const next = [...drag.boxes]
         next[drag.index] = { ...drag.boxes[drag.index], ...resized }
+        // A locked resize keeps its ratio, so the box may not be nudged sideways
+        // to line up with a neighbour; a free one snaps the edge being dragged.
+        if (snap && !locked) {
+          const others = drag.boxes.filter((_, index) => index !== drag.index)
+          const result = snapResized(next[drag.index], drag.handle, others)
+          next[drag.index] = result.box
+          setGuides(result.guides)
+        } else {
+          setGuides([])
+        }
         draftRef.current = next
         setDraft(next)
       }
@@ -162,7 +184,8 @@ export function BoxCanvas({
       const point = pointOf(event)
 
       if (drag !== null && drag.kind === 'draw') {
-        const box = point === undefined ? drawing : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        const box = point === undefined ? drawingRef.current : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        drawingRef.current = null
         setDrawing(null)
         // Below a couple of percent the gesture reads as a click, and a click on
         // empty space clears the selection instead of leaving a speck of a box.
@@ -176,7 +199,8 @@ export function BoxCanvas({
       }
 
       if (drag !== null && drag.kind === 'marquee') {
-        const region = point === undefined ? marquee : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        const region = point === undefined ? marqueeRef.current : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y)
+        marqueeRef.current = null
         setMarquee(null)
         if (region !== null) {
           const hits = boxes
@@ -202,13 +226,27 @@ export function BoxCanvas({
       setGuides([])
     }
 
+    /** A cancelled pointer (OS gesture, window switch) must not leave a drag open. */
+    function onCancel() {
+      dragRef.current = null
+      draftRef.current = null
+      drawingRef.current = null
+      marqueeRef.current = null
+      setDraft(null)
+      setDrawing(null)
+      setMarquee(null)
+      setGuides([])
+    }
+
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
     }
-  }, [boxes, drawing, marquee, onSelect, onChange, onCreate, pointOf, snap])
+  }, [boxes, onSelect, onChange, onCreate, pointOf, snap])
 
   function beginDrag(event, kind, payload) {
     event.stopPropagation()
@@ -220,29 +258,35 @@ export function BoxCanvas({
 
   function onBoxPointerDown(event, index) {
     if (!interactive) return
-    // A locked box still selects — it just refuses to be dragged or resized.
+    // Only the primary button drags; a right-click keeps its context menu.
+    if (event.button !== undefined && event.button !== 0) return
     const locked = boxes[index]?.locked === true
     const additive = event.shiftKey || event.metaKey || event.ctrlKey
     const nextSelection = additive
       ? (selection.includes(index) ? selection.filter((item) => item !== index) : [...selection, index])
       : (selection.includes(index) ? selection : [index])
     onSelect(nextSelection)
-    if (locked) {
-      event.stopPropagation()
-      return
-    }
-    if (additive) {
-      // Toggling membership is a click, not the start of a canvas gesture:
-      // without this the frame would begin drawing a box underneath the click.
+    // A locked box still selects — it just refuses to be moved.
+    if (locked || additive) {
+      // Neither is the start of a canvas gesture: without this the frame would
+      // begin drawing a box underneath the click.
       event.stopPropagation()
       event.preventDefault()
       return
     }
-    beginDrag(event, 'move', { boxes, indices: nextSelection.length === 0 ? [index] : nextSelection })
+    // Locked companions stay put even when the rest of the group moves.
+    const movable = nextSelection.filter((item) => boxes[item]?.locked !== true)
+    if (movable.length === 0) {
+      event.stopPropagation()
+      return
+    }
+    beginDrag(event, 'move', { boxes, indices: movable })
   }
 
   function onHandlePointerDown(event, index, handle) {
     if (!interactive) return
+    if (boxes[index]?.locked === true) return
+    if (event.button !== undefined && event.button !== 0) return
     beginDrag(event, 'resize', { boxes, index, start: boxes[index], handle })
   }
 
@@ -251,7 +295,10 @@ export function BoxCanvas({
     if (event.button !== undefined && event.button !== 0) return
     const marqueeMode = event.shiftKey
     beginDrag(event, marqueeMode ? 'marquee' : 'draw', {})
-    if (marqueeMode) setMarquee({ x: 0, y: 0, width: 0, height: 0 })
+    if (marqueeMode) {
+      marqueeRef.current = { x: 0, y: 0, width: 0, height: 0 }
+      setMarquee({ x: 0, y: 0, width: 0, height: 0 })
+    }
   }
 
   const ratio = parseRatio(size)
@@ -365,7 +412,9 @@ export function BoxCanvas({
 
               {/* Handles belong to the single selected box: a multi-selection is
                   moved as a group and resized from the inspector instead. */}
-              {interactive && active && selection.length === 1 ? (
+              {/* A locked box has no handles: it cannot be resized, so showing
+                  grips that do nothing would be a lie. */}
+              {interactive && active && selection.length === 1 && box.locked !== true ? (
                 HANDLES.map((handle) => (
                   <span
                     key={handle}

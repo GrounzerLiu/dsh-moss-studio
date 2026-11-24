@@ -13,11 +13,11 @@ import { ConfirmDialog } from './ConfirmDialog.jsx'
 import { SettingsDialog } from './SettingsDialog.jsx'
 import { DEFAULT_UI, loadUiPrefs, saveUiPrefs } from './ui-prefs.js'
 import { SIZE_PRESETS, formatSize, sizeProblem } from './size.js'
+import { MAX_BOXES, boxesProblem, defaultBox } from './box-math.js'
 import { gigabytes, usedPercent } from './format.js'
 import { ImageViewer } from './ImageViewer.jsx'
 import { ScopeStyles } from './ScopeStyles.jsx'
 import { selectionFill } from './theme.js'
-import { defaultBox } from './box-math.js'
 
 const POLL_MS = 1500
 const PHASE_KEY = { probe: 'phase.probe', submit: 'phase.submit', wait: 'phase.wait', download: 'phase.download' }
@@ -561,21 +561,17 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     if (next !== paramsRef.current?.size) update({ size: next })
   }, [update])
 
-  const updateBox = useCallback((index, patch) => {
-    const boxes = (paramsRef.current?.boxes ?? []).map((box, position) => (position === index ? { ...box, ...patch } : box))
-    update({ boxes })
-  }, [update])
-
   /**
-   * Add a box and hand its index back: the editor selects what it just created,
-   * and a drag-drawn box arrives with its geometry already set.
+   * Append a box and hand the editor the result: it needs the new list and its
+   * index so the addition becomes one undo step like every other edit.
    */
   const addBox = useCallback((geometry) => {
-    const boxes = [...(paramsRef.current?.boxes ?? [])]
+    const current = paramsRef.current ?? {}
+    const boxes = [...(current.boxes ?? [])]
     boxes.push(geometry === undefined ? defaultBox() : { ...defaultBox(), ...geometry })
     update({ boxes })
     setShowCanvas(true)
-    return boxes.length - 1
+    return { index: boxes.length - 1, boxes, characters: current.characterBoxes ?? '' }
   }, [update])
 
   /**
@@ -639,6 +635,16 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
   const runGenerate = useCallback(async () => {
     if (busy) return
+    const problem = boxesProblem(paramsRef.current?.boxes)
+    if (problem !== undefined) {
+      // Say it here, in the user's language, instead of letting the workflow
+      // reject the prompt with an English node error after a long wait.
+      setError(problem.reason === 'count'
+        ? t('error.tooManyBoxes', { max: MAX_BOXES })
+        : t(problem.reason === 'text' ? 'error.emptyText' : 'error.emptyDesc', { index: problem.index + 1 }))
+      setNotice('')
+      return
+    }
     setBusy(true)
     setError('')
     setNotice(t('notice.generationSubmitted'))

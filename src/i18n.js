@@ -217,8 +217,18 @@ export const ZH = {
   "editor.unlock": "解锁",
   "editor.hide": "隐藏（不送进工作流）",
   "editor.show": "显示",
-  "editor.hiddenBadge": "已隐藏",
-  "editor.lockedBadge": "已锁定",
+  "editor.limit": "最多 {max} 个框，先删掉一个再画",
+  "editor.lockSelected": "锁定选中的框",
+  "editor.unlockSelected": "解锁选中的框",
+  "editor.hideSelected": "隐藏选中的框（不送进工作流）",
+  "editor.showSelected": "显示选中的框",
+  "editor.markPeople": "把选中的框标记为人物",
+  "error.emptyDesc": "第 {index} 个框还没有描述，填上它再生成",
+  "error.emptyText": "第 {index} 个框是文字框，还没有写内容",
+  "error.tooManyBoxes": "框的数量超过 {max} 个，先删掉一些",
+  "editor.incomplete": "{count} 个框还没写完",
+  "editor.needsDesc": "这个框还没有描述，生成前要填上",
+  "editor.needsText": "这个文字框还没有内容",
 }
 
 /** English copy. */
@@ -422,8 +432,18 @@ export const EN = {
   "editor.unlock": "Unlock",
   "editor.hide": "Hide (leave it out of the request)",
   "editor.show": "Show",
-  "editor.hiddenBadge": "Hidden",
-  "editor.lockedBadge": "Locked",
+  "editor.limit": "At most {max} boxes; delete one before drawing another",
+  "editor.lockSelected": "Lock the selected boxes",
+  "editor.unlockSelected": "Unlock the selected boxes",
+  "editor.hideSelected": "Hide the selected boxes (leave them out of the request)",
+  "editor.showSelected": "Show the selected boxes",
+  "editor.markPeople": "Mark the selected boxes as people",
+  "error.emptyDesc": "Box {index} has no description yet; fill it in before generating",
+  "error.emptyText": "Box {index} is a text box with no text yet",
+  "error.tooManyBoxes": "More than {max} boxes; delete some first",
+  "editor.incomplete": "{count} boxes still need text",
+  "editor.needsDesc": "This box needs a description before generating",
+  "editor.needsText": "This text box needs its text",
 }
 
 function fill(template, params) {

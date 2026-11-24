@@ -8,6 +8,13 @@
 
 export const MIN_SIZE = 0.02
 
+/**
+ * The workflow node refuses more than this, so the editor stops at the same
+ * number instead of letting a layout be built that cannot be generated.
+ * Kept in step with `lib/workflow.js` by a test.
+ */
+export const MAX_BOXES = 24
+
 /** The eight resize directions, clockwise from the top-left corner. */
 export const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 
@@ -85,31 +92,119 @@ export function resizeByHandle(start, handle, dx, dy, options = {}) {
   if (movingTop) top = clamp(start.y + dy, 0, bottom - MIN_SIZE)
   if (movingBottom) bottom = clamp(start.y + start.height + dy, top + MIN_SIZE, 1)
 
-  if (options.lockAspect === true && (movingLeft || movingRight) && (movingTop || movingBottom)) {
-    const ratio = start.width / start.height
-    let width = right - left
-    let height = bottom - top
-    // Grow along the axis that moved further, then derive the other side.
-    if (Math.abs(width / ratio - height) < Math.abs(height * ratio - width)) {
-      height = width / ratio
-    } else {
-      width = height * ratio
-    }
-    width = clamp(width, MIN_SIZE, 1)
-    height = clamp(height, MIN_SIZE, 1)
-    if (movingLeft) left = right - width
-    else right = left + width
-    if (movingTop) top = bottom - height
-    else bottom = top + height
-    // A clamp at the frame edge can push the derived side out; pull the moved
-    // edges back inside and keep the ratio by shrinking the far side.
-    if (left < 0) { left = 0; right = Math.min(1, left + width) }
-    if (top < 0) { top = 0; bottom = Math.min(1, top + height) }
-    if (right > 1) { right = 1; left = Math.max(0, right - (right - left)) }
-    if (bottom > 1) { bottom = 1; top = Math.max(0, bottom - (bottom - top)) }
+  if (options.lockAspect !== true) {
+    return { x: left, y: top, width: Math.max(MIN_SIZE, right - left), height: Math.max(MIN_SIZE, bottom - top) }
   }
 
-  return { x: left, y: top, width: Math.max(MIN_SIZE, right - left), height: Math.max(MIN_SIZE, bottom - top) }
+  const ratio = start.width / start.height
+  const horizontal = movingLeft || movingRight
+  const vertical = movingTop || movingBottom
+
+  // Compare relative changes: |Δw|/w and |Δh|/h are the same kind of quantity.
+  // The old comparison mixed pixels with ratios, which let a 4:1 box weight its
+  // width side four times too heavily.
+  const relW = (right - left - start.width) / start.width
+  const relH = (bottom - top - start.height) / start.height
+  const driver = horizontal && vertical
+    ? (Math.abs(relW) >= Math.abs(relH) ? 'width' : 'height')
+    : horizontal ? 'width' : 'height'
+
+  // Room left on each axis by the edges that did not move, plus how much a
+  // centred (edge-only) drag may grow around the box's own centre.
+  const widthRoom = movingLeft ? right : movingRight ? 1 - left : 1
+  const heightRoom = movingTop ? bottom : movingBottom ? 1 - top : 1
+  const centre = (value, span) => 2 * Math.min(value + span / 2, 1 - (value + span / 2))
+  const maxWidth = Math.min(widthRoom, horizontal ? 1 : centre(start.x, start.width))
+  const maxHeight = Math.min(heightRoom, vertical ? 1 : centre(start.y, start.height))
+
+  // Keeping the ratio means width = height * ratio, so the tighter axis bounds
+  // both; solve for width, derive height from it, and never leave the frame.
+  const ceiling = Math.max(1e-6, Math.min(maxWidth, maxHeight * ratio))
+  const floor = Math.min(MIN_SIZE * Math.max(1, ratio), ceiling)
+  const wanted = driver === 'width' ? right - left : (bottom - top) * ratio
+  const width = clamp(wanted, floor, ceiling)
+  const height = width / ratio
+
+  let x
+  if (movingLeft) x = right - width
+  else if (movingRight) x = left
+  else x = start.x + start.width / 2 - width / 2
+  let y
+  if (movingTop) y = bottom - height
+  else if (movingBottom) y = top
+  else y = start.y + start.height / 2 - height / 2
+
+  return {
+    x: clamp(x, 0, 1 - width),
+    y: clamp(y, 0, 1 - height),
+    width,
+    height,
+  }
+}
+
+/**
+ * Snap the single edge a resize handle is dragging, leaving the opposite edge
+ * where it is.
+ *
+ * Snapping a whole box while resizing (what `snapBox` does) would shift the box
+ * instead of its edge; aligning the moving edge is what the eye is looking for.
+ *
+ * @param {object} box
+ * @param {string} handle
+ * @param {object[]} others
+ * @param {{ threshold?: number }} [options]
+ */
+export function snapResized(box, handle, others, options = {}) {
+  const threshold = options.threshold ?? 0.008
+  const xs = [0, 0.5, 1]
+  const ys = [0, 0.5, 1]
+  for (const other of others) {
+    xs.push(other.x, other.x + other.width / 2, other.x + other.width)
+    ys.push(other.y, other.y + other.height / 2, other.y + other.height)
+  }
+  const nearest = (value, targets) => {
+    let best
+    for (const target of targets) {
+      const delta = target - value
+      if (Math.abs(delta) > threshold) continue
+      if (best === undefined || Math.abs(delta) < Math.abs(best.delta)) best = { delta, target }
+    }
+    return best
+  }
+
+  let { x, y, width, height } = box
+  const guides = []
+  if (handle.includes('e')) {
+    const snap = nearest(x + width, xs)
+    if (snap !== undefined) {
+      width = clamp(width + snap.delta, MIN_SIZE, 1 - x)
+      guides.push({ axis: 'x', at: snap.target })
+    }
+  } else if (handle.includes('w')) {
+    const snap = nearest(x, xs)
+    if (snap !== undefined) {
+      const right = x + width
+      x = clamp(x + snap.delta, 0, right - MIN_SIZE)
+      width = right - x
+      guides.push({ axis: 'x', at: snap.target })
+    }
+  }
+  if (handle.includes('s')) {
+    const snap = nearest(y + height, ys)
+    if (snap !== undefined) {
+      height = clamp(height + snap.delta, MIN_SIZE, 1 - y)
+      guides.push({ axis: 'y', at: snap.target })
+    }
+  } else if (handle.includes('n')) {
+    const snap = nearest(y, ys)
+    if (snap !== undefined) {
+      const bottom = y + height
+      y = clamp(y + snap.delta, 0, bottom - MIN_SIZE)
+      height = bottom - y
+      guides.push({ axis: 'y', at: snap.target })
+    }
+  }
+  return { box: { ...box, x, y, width, height }, guides }
 }
 
 /** Resize from the lower-right corner; kept as the shorthand callers used before
@@ -246,6 +341,11 @@ export function duplicateBoxes(boxes, indices, offset = 0.02) {
       ...box,
       x: clamp(box.x + offset, 0, 1 - box.width),
       y: clamp(box.y + offset, 0, 1 - box.height),
+      // A copy is a box you are about to adjust, so it starts unlocked and
+      // visible; inheriting those flags made duplicating a finished box produce
+      // a copy that could not be moved.
+      locked: false,
+      hidden: false,
     })
   })
   const added = copies.map((_, position) => boxes.length + position)
@@ -264,6 +364,41 @@ export function boxFromCorners(ax, ay, bx, by) {
     width: Math.max(MIN_SIZE, right - left),
     height: Math.max(MIN_SIZE, bottom - top),
   }
+}
+
+/**
+ * What still has to be filled in before this box can be generated.
+ *
+ * The workflow needs a description for an object box and text for a text box;
+ * without one it refuses the whole request. Checking here lets the editor say so
+ * while the user is drawing instead of after a failed generation.
+ *
+ * @param {object} box
+ * @returns {'desc'|'text'|undefined}
+ */
+export function boxProblem(box) {
+  if (box === null || typeof box !== 'object') return 'desc'
+  if (box.type === 'text') return (box.text ?? '').trim() === '' ? 'text' : undefined
+  return (box.desc ?? '').trim() === '' ? 'desc' : undefined
+}
+
+/**
+ * The first thing that stops this draft from generating, if any.
+ *
+ * Generating is the expensive step, so the checks belong in front of it: a box
+ * with no description or a list past the node's limit is rejected here, where
+ * the message can be shown in the user's language.
+ *
+ * @param {object[]} boxes
+ * @param {number} [max]
+ * @returns {{ reason: 'desc'|'text'|'count', index?: number } | undefined}
+ */
+export function boxesProblem(boxes, max = MAX_BOXES) {
+  const list = Array.isArray(boxes) ? boxes : []
+  const index = list.findIndex((box) => boxProblem(box) !== undefined)
+  if (index >= 0) return { reason: boxProblem(list[index]), index }
+  if (list.length > max) return { reason: 'count' }
+  return undefined
 }
 
 /** A box drawn from the centre outwards, sized so a square stays square. */

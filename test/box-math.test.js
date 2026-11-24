@@ -3,9 +3,12 @@ import assert from 'node:assert/strict'
 
 import {
   HANDLES,
+  MAX_BOXES,
   MIN_SIZE,
   alignBoxes,
   boxFromCorners,
+  boxProblem,
+  boxesProblem,
   defaultBox,
   distributeBoxes,
   duplicateBoxes,
@@ -18,8 +21,10 @@ import {
   resizeByHandle,
   selectionBounds,
   snapBox,
+  snapResized,
   updateBoxGeometry,
 } from '../src/box-math.js'
+import { normalizeBoxes } from '../lib/workflow.js'
 
 const box = { x: 0.2, y: 0.2, width: 0.4, height: 0.4, type: 'obj', desc: 'x' }
 
@@ -249,4 +254,130 @@ test('drawing from two corners works in any direction', () => {
   assert.ok(Math.abs(forward.width - 0.4) < 1e-9 && Math.abs(forward.height - 0.3) < 1e-9)
   const tiny = boxFromCorners(0.5, 0.5, 0.5, 0.5)
   assert.ok(tiny.width >= MIN_SIZE && tiny.height >= MIN_SIZE, 'a click still yields a usable box')
+})
+
+// --- aspect lock invariants ------------------------------------------------
+
+/** Deterministic pseudo-random source, so a failure is reproducible. */
+function lcg(seed) {
+  let state = seed >>> 0
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0
+    return state / 0x100000000
+  }
+}
+
+test('a locked resize keeps the ratio, the frame and the minimum size', () => {
+  const random = lcg(20261124)
+  let worstRatio = 0
+  let worstOutside = 0
+  for (let round = 0; round < 1500; round += 1) {
+    const width = 0.05 + random() * 0.7
+    const height = 0.05 + random() * 0.7
+    const start = {
+      x: random() * (1 - width),
+      y: random() * (1 - height),
+      width,
+      height,
+    }
+    const ratio = width / height
+    for (const handle of HANDLES) {
+      const dx = (random() - 0.5) * 1.2
+      const dy = (random() - 0.5) * 1.2
+      const box = resizeByHandle(start, handle, dx, dy, { lockAspect: true })
+      worstRatio = Math.max(worstRatio, Math.abs(box.width / box.height - ratio))
+      worstOutside = Math.max(
+        worstOutside,
+        -box.x, -box.y,
+        box.x + box.width - 1,
+        box.y + box.height - 1,
+      )
+      assert.ok(box.width >= MIN_SIZE - 1e-9 && box.height >= MIN_SIZE - 1e-9, `${handle} keeps a usable size`)
+    }
+  }
+  assert.ok(worstRatio < 1e-9, `ratio drift was ${worstRatio}`)
+  assert.ok(worstOutside < 1e-9, `left the frame by ${worstOutside}`)
+})
+
+test('the edge handles lock the aspect too, growing around the centre', () => {
+  const start = rect(0.2, 0.2, 0.4, 0.2)
+  const east = resizeByHandle(start, 'e', 0.1, 0, { lockAspect: true })
+  assert.ok(Math.abs(east.width / east.height - 2) < 1e-9, 'east keeps 2:1')
+  assert.ok(Math.abs(east.width - 0.5) < 1e-9, 'east follows the pointer')
+  // The vertical centre stays put when only a horizontal edge moves.
+  assert.ok(Math.abs(east.y + east.height / 2 - 0.3) < 1e-9)
+  const south = resizeByHandle(start, 's', 0, 0.1, { lockAspect: true })
+  assert.ok(Math.abs(south.width / south.height - 2) < 1e-9, 'south keeps 2:1')
+  assert.ok(Math.abs(south.x + south.width / 2 - 0.4) < 1e-9, 'horizontal centre stays put')
+})
+
+test('a corner drag past the frame edge shrinks along the tighter axis', () => {
+  // A wide box dragged far to the right: height room limits the growth.
+  const start = rect(0.5, 0.8, 0.4, 0.1)
+  const box = resizeByHandle(start, 'se', 0.6, 0.6, { lockAspect: true })
+  assert.ok(box.x + box.width <= 1 + 1e-9)
+  assert.ok(box.y + box.height <= 1 + 1e-9)
+  assert.ok(Math.abs(box.width / box.height - 4) < 1e-9)
+})
+
+test('the review case no longer collapses to a square', () => {
+  const start = rect(0.726, 0.839, 0.057, 0.152)
+  const box = resizeByHandle(start, 'nw', -0.323, 0.278, { lockAspect: true })
+  assert.ok(Math.abs(box.width / box.height - 0.057 / 0.152) < 1e-6, '5.7:15.2 is preserved')
+})
+
+test('snapResized moves only the edge being dragged', () => {
+  const neighbour = rect(0.5, 0.2, 0.2, 0.2)
+  // Right edge 0.504 is 0.004 from the neighbour's left edge at 0.5.
+  const east = snapResized(rect(0.1, 0.2, 0.404, 0.2), 'e', [neighbour])
+  assert.ok(Math.abs(east.box.x + east.box.width - 0.5) < 1e-9, 'right edge lands on 0.5')
+  assert.equal(east.box.x, 0.1, 'left edge does not move')
+  assert.deepEqual(east.guides, [{ axis: 'x', at: 0.5 }])
+
+  const west = snapResized(rect(0.504, 0.2, 0.2, 0.2), 'w', [neighbour])
+  assert.ok(Math.abs(west.box.x - 0.5) < 1e-9, 'left edge lands on 0.5')
+  assert.ok(Math.abs(west.box.x + west.box.width - 0.704) < 1e-9, 'right edge stays')
+
+  const none = snapResized(rect(0.1, 0.1, 0.1, 0.1), 'e', [neighbour])
+  assert.deepEqual(none.guides, [])
+})
+
+// --- pre-flight ------------------------------------------------------------
+
+test('boxProblem reports what a box still needs', () => {
+  assert.equal(boxProblem({ type: 'obj', desc: 'a red ball' }), undefined)
+  assert.equal(boxProblem({ type: 'obj', desc: '   ' }), 'desc')
+  assert.equal(boxProblem({ type: 'obj' }), 'desc')
+  assert.equal(boxProblem({ type: 'text', text: 'hello' }), undefined)
+  assert.equal(boxProblem({ type: 'text', text: '  ' }), 'text')
+  assert.equal(boxProblem({ type: 'text', text: '', desc: 'ignored' }), 'text')
+  assert.equal(boxProblem(null), 'desc')
+})
+
+test('the draft is checked before a generation is submitted', () => {
+  const ok = [{ type: 'obj', desc: 'a table' }, { type: 'text', text: 'a caption' }]
+  assert.equal(boxesProblem(ok), undefined)
+  assert.deepEqual(boxesProblem([...ok, { type: 'obj', desc: ' ' }]), { reason: 'desc', index: 2 })
+  assert.deepEqual(boxesProblem([{ type: 'text', text: '' }]), { reason: 'text', index: 0 })
+  const many = Array.from({ length: 25 }, () => ({ type: 'obj', desc: 'x' }))
+  assert.deepEqual(boxesProblem(many), { reason: 'count' })
+})
+
+test('the editor and the workflow agree on the box limit', () => {
+  const make = (count) => Array.from({ length: count }, () => ({ ...rect(0.1, 0.1, 0.1, 0.1), desc: 'a thing' }))
+  const size = { width: 512, height: 512 }
+  assert.equal(MAX_BOXES, 24)
+  assert.equal(normalizeBoxes(make(MAX_BOXES), size).length, MAX_BOXES, 'the editor cap is exactly what the workflow accepts')
+  assert.throws(() => normalizeBoxes(make(MAX_BOXES + 1), size), /at most 24 boxes/)
+})
+
+test('duplicating resets the editing flags', () => {
+  const boxes = [rect(0.1, 0.1, 0.2, 0.2)]
+  boxes[0].locked = true
+  boxes[0].hidden = true
+  const { boxes: next, added } = duplicateBoxes(boxes, [0])
+  assert.deepEqual(added, [1])
+  assert.equal(next[1].locked, false, 'the copy can be moved')
+  assert.equal(next[1].hidden, false, 'the copy is visible')
+  assert.equal(next[0].locked, true, 'the original keeps its state')
 })
