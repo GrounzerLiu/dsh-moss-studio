@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+Compatibility release for DSH 0.2.3-alpha.2.
+
+- Right-Sidebar tab bodies no longer duplicate `sessionId` through `inject`:
+  the slot supplies it as a built-in prop, and the body also reads
+  `useTabInfo().tab.sessionId` for hosts that only expose it there. A tab with
+  no session still renders against the shared draft.
+- `@deepseek-ai/schemastery` raised to `3.20.0-alpha.1` to match the release's
+  own copy; the config schema still resolves `comfyUrl` as a volatile ref.
+- Left sidebar launcher, main panel, guide entry, websocket-free routes, tools
+  and image attachments were re-checked against the new contracts and needed
+  no changes.
+
 ## 0.3.0
 
 - The panel UI is translated. Chinese text doubles as the translation key, so a

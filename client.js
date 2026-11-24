@@ -7891,6 +7891,15 @@ function createPlugin() {
       )
     );
   }
+  function TabBody(props) {
+    let fromTab;
+    try {
+      fromTab = props?.useTabInfo?.()?.tab?.sessionId;
+    } catch {
+    }
+    const sessionId = typeof props?.sessionId === "string" && props.sessionId !== "" ? props.sessionId : typeof fromTab === "string" && fromTab !== "" ? fromTab : "global";
+    return import_react14.default.createElement(StudioPanel, { sessionId });
+  }
   const ROOT_SESSION = "root";
   function StudioMainPanel() {
     function Main() {
@@ -7945,12 +7954,8 @@ function createPlugin() {
         }]
       }));
       injectInto("sidebar.right.pane.tab", "moss-studio: panel body", () => ctx.slots.register(
-        {
-          name: "sidebar.right.pane.tab",
-          key: TAB_ID,
-          inject: (sessionId) => ({ sessionId })
-        },
-        StudioPanel
+        { name: "sidebar.right.pane.tab", key: TAB_ID },
+        TabBody
       ));
       injectInto("sidebar.panellist", "moss-studio: sidebar icon", () => ctx.slots.register(
         { name: "sidebar.panellist", id: PANEL_ID, order: 40, label: () => "Moss studio" },

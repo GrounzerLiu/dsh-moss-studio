@@ -91,6 +91,24 @@ export function createPlugin() {
   }
 
   /**
+   * Right-Sidebar tab body.
+   *
+   * The slot supplies `sessionId` as a built-in prop for session-scoped seats;
+   * `useTabInfo` is the 0.2.3 replacement for the flat owner props, so read both
+   * and fall back to the shared draft rather than failing to render.
+   */
+  function TabBody(props) {
+    let fromTab
+    try {
+      fromTab = props?.useTabInfo?.()?.tab?.sessionId
+    } catch { /* the hook throws outside a tab context */ }
+    const sessionId = typeof props?.sessionId === 'string' && props.sessionId !== ''
+      ? props.sessionId
+      : typeof fromTab === 'string' && fromTab !== '' ? fromTab : 'global'
+    return React.createElement(StudioPanel, { sessionId })
+  }
+
+  /**
    * The full-page studio.
    *
    * The `main` slot is root-scoped and carries no session, while drafts are
@@ -169,12 +187,8 @@ export function createPlugin() {
       }))
 
       injectInto('sidebar.right.pane.tab', 'moss-studio: panel body', () => ctx.slots.register(
-        {
-          name: 'sidebar.right.pane.tab',
-          key: TAB_ID,
-          inject: (sessionId) => ({ sessionId }),
-        },
-        StudioPanel,
+        { name: 'sidebar.right.pane.tab', key: TAB_ID },
+        TabBody,
       ))
 
       // Icon first: the sidebar row and the landing page both read it, and it must

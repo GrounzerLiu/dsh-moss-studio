@@ -195,3 +195,11 @@ records/<id>/image.png
 - 面板所有按钮、标题、占位符、提示、错误提示、时间格式都已走 `t()`；`PHASE_LABEL` 在渲染时翻译，避免模块加载时被固定成中文。
 - `test/i18n.test.js` 会扫描 `src/` 里所有 `t('…')` 调用，断言每个中文键在英文表里都有条目——漏翻会直接让测试失败。
 - 尚未翻译：宿主侧 `lib/*.js` 返回的校验文案（`请填写 ComfyUI 地址` 等）、工具描述、`cordis.patch.yml` 注释。
+
+## 兼容性（DSH 0.2.3-alpha.2）
+
+- 右侧栏正文的插槽契约变化：`{sidebar, panel, tab}` 收进 `useTabInfo()`，不再作为平铺 owner props；`sessionId` 仍由 slot 的 built-in props 提供（`ui-session` 的 `BUILTIN_SOURCE.props` 包含它）。本插件改为不重复注入，并在正文里按 `props.sessionId` → `useTabInfo().tab.sessionId` → `global` 兜底。
+- `sidebar.panellist` / `sidebar.panel.icon` / `main` / `sidebar.right.tab.guide` 的注册形状未变；`ctx.sidebarRightTabs.register` 的字段与旧版一致。
+- `ctx.tools.register` 仍要求 `output: { schema, render }`；本插件四个工具早已带 `render`，且 schema 只使用受支持的 type/properties/required/items/enum 等关键字。
+- `ctx.webServer.register({ kind: 'prefix', path, handler })` 与 `attachments.saveImage` 签名未变。
+- 依赖从 `@deepseek-ai/schemastery ^3.19.0` 升到 `3.20.0-alpha.1`，与宿主内置版本一致。

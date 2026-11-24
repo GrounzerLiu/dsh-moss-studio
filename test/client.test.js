@@ -86,7 +86,9 @@ test('the bundle registers the tab, the main panel, and its sidebar launcher', (
 
   const body = calls.registrations.find((entry) => entry.definition.name === 'sidebar.right.pane.tab')
   assert.equal(body.definition.key, 'dsh-moss-studio')
-  assert.deepEqual(body.definition.inject('sess-1'), { sessionId: 'sess-1' })
+  // 0.2.3 supplies sessionId as a built-in prop, so the registration must not
+  // duplicate it through inject(); the body reads the prop directly.
+  assert.equal(body.definition.inject, undefined)
 
   const main = calls.registrations.find((entry) => entry.definition.name === 'main')
   assert.equal(main.definition.key, 'moss-studio')
@@ -169,4 +171,16 @@ test('a box draws its caption inside the frame', () => {
     onCancel: () => {},
   }))
   assert.match(html, /红圈在左侧/)
+})
+
+test('the tab body reads the session from props or the tab record', () => {
+  const plugin = loadPlugin()
+  const { ctx, calls } = fakeContext()
+  plugin.apply(ctx)
+  const body = calls.registrations.find((entry) => entry.definition.name === 'sidebar.right.pane.tab')
+  const render = (props) => body.component(props)
+
+  assert.equal(render({ sessionId: 'sess-1' }).props.sessionId, 'sess-1')
+  assert.equal(render({ useTabInfo: () => ({ tab: { sessionId: 'sess-2' } }) }).props.sessionId, 'sess-2')
+  assert.equal(render({}).props.sessionId, 'global', 'a body without a session still renders')
 })
