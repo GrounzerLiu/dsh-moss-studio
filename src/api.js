@@ -55,6 +55,13 @@ export async function generate(sessionId, revision, overrides) {
   })
 }
 
+export async function cancelGeneration(sessionId, recordId) {
+  return request('/generate/cancel', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, recordId }),
+  })
+}
+
 export async function deleteRecord(id) {
   return request(`/records/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }

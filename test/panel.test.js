@@ -475,6 +475,70 @@ test('cancelling the editor queues its snapshot after an in-flight save', async 
   assert.equal(server.boxes[0].locked, false)
 })
 
+test('generation waits for its own record even when another session has a newer finished record', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const mine = { id: 'rec-mine', sessionId: 'sess-1', status: 'done', hasImage: true, prompt: 'p', size: '512x512', width: 512, height: 512, seconds: 2 }
+  const other = { id: 'rec-other', sessionId: 'other', status: 'done', hasImage: true, prompt: 'other', size: '1024x1024', width: 1024, height: 1024, seconds: 1 }
+  let records = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse({ ...panelState(server, 1), records })
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/generate') && init.method === 'POST') {
+      records = [other, { ...mine, status: 'running', hasImage: false }]
+      return jsonResponse({ ok: true, started: true, recordId: 'rec-mine' }, 202)
+    }
+    if (target.includes('/records/rec-mine')) return jsonResponse({ ok: true, record: { ...mine, params: server, result: { width: 512, height: 512, seconds: 2 } } })
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  const button = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
+  await act(async () => {
+    button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 1300))
+  })
+  records = [other, mine]
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 1300)) })
+
+  assert.match(container.textContent, /已完成：512×512，2 秒/)
+  assert.doesNotMatch(container.textContent, /已完成：1024×1024，1 秒/)
+  assert.equal(container.querySelector('img[alt="生成结果"]')?.getAttribute('src'), '/plugins/dsh-moss-studio/image/rec-mine')
+})
+
+test('the cancel button sends the active record id and reports cancellation', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  let record = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
+  const cancellations = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse({ ...panelState(server, 1), records: [record] })
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/generate') && init.method === 'POST') return jsonResponse({ ok: true, started: true, recordId: 'rec-mine' }, 202)
+    if (target.endsWith('/generate/cancel') && init.method === 'POST') {
+      cancellations.push(JSON.parse(init.body))
+      record = { ...record, status: 'failed', error: { message: '已取消' } }
+      return jsonResponse({ ok: true, cancelled: true })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  const generateButton = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
+  await act(async () => {
+    generateButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 80))
+  })
+  const cancel = [...container.querySelectorAll('button')].find((node) => node.textContent === '取消生成')
+  assert.ok(cancel !== undefined, 'the active generation exposes a cancel button')
+  await act(async () => {
+    cancel.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 1300))
+  })
+
+  assert.deepEqual(cancellations, [{ sessionId: 'sess-1', recordId: 'rec-mine' }])
+  assert.match(container.textContent, /已取消生成/)
+  assert.equal([...container.querySelectorAll('button')].some((node) => node.textContent === '取消生成'), false)
+})
+
 test('the wide layout puts the result in its own column', async (t) => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:57529/' })
   const saved = {}

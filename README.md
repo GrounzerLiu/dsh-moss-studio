@@ -116,7 +116,8 @@ transactions, and the canvas geometry. No test talks to ComfyUI.
 
 - Live updates use SSE; if the stream cannot connect, the panel falls back to
   1.5-second polling.
-- One generation at a time across sessions.
+- One generation at a time across sessions; the active session can cancel it and
+  the cancellation is forwarded to ComfyUI.
 - Thumbnails are the full images.
 - Panel copy follows the host locale (Chinese and English); host validation
   errors remain in the language in which the host emits them.

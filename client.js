@@ -75,6 +75,7 @@ var ZH = {
   "error.delete": "\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09",
   "error.flag": "\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09",
   "error.generateRequest": "\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "error.cancelGeneration": "\u53D6\u6D88\u751F\u6210\u5931\u8D25\uFF08{status}\uFF09",
   "error.generation": "\u751F\u6210\u5931\u8D25",
   "error.healthRequest": "health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
   "error.read": "\u8BFB\u53D6\u5931\u8D25\uFF1A{error}",
@@ -85,6 +86,7 @@ var ZH = {
   "error.settingsRequest": "\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09",
   "error.stateRequest": "state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
   "generate.currentSeed": "\u7528\u5F53\u524D seed \u751F\u6210",
+  "generate.cancel": "\u53D6\u6D88\u751F\u6210",
   "generate.otherSession": "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210",
   "generate.pending": "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09",
   "generate.queued": "\u961F\u5217\u4E2D \xB7 {id}",
@@ -114,6 +116,8 @@ var ZH = {
   "notice.draftSyncedFromAi": "\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570",
   "notice.flagsNeedNewHost": "\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09",
   "notice.generationBusy": "\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C",
+  "notice.generationCancelled": "\u5DF2\u53D6\u6D88\u751F\u6210",
+  "notice.generationCancelling": "\u6B63\u5728\u53D6\u6D88 ComfyUI \u4EFB\u52A1\u2026",
   "notice.generationDone": "\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2",
   "notice.generationSubmitted": "\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026",
   "notice.generationTimeout": "\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D",
@@ -288,6 +292,7 @@ var EN = {
   "error.delete": "Delete failed ({status})",
   "error.flag": "Could not update the flag ({status})",
   "error.generateRequest": "The generate request failed ({status})",
+  "error.cancelGeneration": "Failed to cancel generation ({status})",
   "error.generation": "Generation failed",
   "error.healthRequest": "health request failed ({status})",
   "error.read": "Failed to load: {error}",
@@ -298,6 +303,7 @@ var EN = {
   "error.settingsRequest": "settings request failed ({status})",
   "error.stateRequest": "state request failed ({status})",
   "generate.currentSeed": "Generate with the current seed",
+  "generate.cancel": "Cancel generation",
   "generate.otherSession": "Another session is generating",
   "generate.pending": "Generating\u2026 ({id})",
   "generate.queued": "Queued \xB7 {id}",
@@ -327,6 +333,8 @@ var EN = {
   "notice.draftSyncedFromAi": "The AI updated the draft; parameters synced",
   "notice.flagsNeedNewHost": "Pinning and archiving need the newer host: restart the app (this process is still the old version)",
   "notice.generationBusy": "A generation is already running",
+  "notice.generationCancelled": "Generation cancelled",
+  "notice.generationCancelling": "Cancelling the ComfyUI job\u2026",
   "notice.generationDone": "Done: {width}\xD7{height} in {seconds}s",
   "notice.generationSubmitted": "Submitted, waiting for ComfyUI\u2026",
   "notice.generationTimeout": "Timed out waiting; the job may still be queued in ComfyUI",
@@ -548,6 +556,12 @@ async function generate(sessionId, revision, overrides) {
   return request("/generate", {
     method: "POST",
     body: JSON.stringify({ sessionId, revision, overrides })
+  });
+}
+async function cancelGeneration(sessionId, recordId) {
+  return request("/generate/cancel", {
+    method: "POST",
+    body: JSON.stringify({ sessionId, recordId })
   });
 }
 async function deleteRecord(id) {
@@ -1515,11 +1529,14 @@ var FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])'
 ].join(",");
 function useDialogFocus(containerRef, options = {}) {
+  const ready = options.ready !== false;
+  const previousRef = (0, import_react5.useRef)(null);
   (0, import_react5.useEffect)(() => {
     const container = containerRef.current;
     if (container === null) return void 0;
-    const previous = typeof document === "undefined" ? null : document.activeElement;
-    const target = options.initialFocus?.current ?? container.querySelector(FOCUSABLE) ?? container;
+    if (previousRef.current === null && typeof document !== "undefined") previousRef.current = document.activeElement;
+    const preferred = options.initialFocus?.current;
+    const target = ready && preferred?.matches?.(FOCUSABLE) === true ? preferred : container.querySelector(FOCUSABLE) ?? container;
     target.focus?.();
     function onKey(event) {
       if (event.key !== "Tab") return;
@@ -1538,9 +1555,11 @@ function useDialogFocus(containerRef, options = {}) {
     container.addEventListener("keydown", onKey);
     return () => {
       container.removeEventListener("keydown", onKey);
-      if (previous !== null && typeof previous.focus === "function") previous.focus();
     };
-  }, [containerRef, options.initialFocus]);
+  }, [containerRef, options.initialFocus, ready]);
+  (0, import_react5.useEffect)(() => () => {
+    if (previousRef.current !== null && typeof previousRef.current.focus === "function") previousRef.current.focus();
+  }, []);
 }
 
 // src/BoxEditor.jsx
@@ -1583,6 +1602,7 @@ var optionStyle = { background: "var(--dsw-alias-bg-overlay, #26282a)", color: "
 var numberInput = { ...input, flex: "0 0 auto", width: 56, textAlign: "right", padding: "3px 5px" };
 var HANDLE_HISTORY = 60;
 var COALESCE_MS = 500;
+var EMPTY_BOXES = [];
 function toSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
 }
@@ -1594,17 +1614,32 @@ function geometryOnly(value) {
   const { x, y, width, height } = value;
   return [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : void 0;
 }
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+function layoutKey(boxes, characters) {
+  return JSON.stringify([stableValue(boxes), characters]);
+}
 function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
-  const boxes = params.boxes ?? [];
-  const characters = (0, import_react6.useMemo)(() => toSet(params.characterBoxes), [params.characterBoxes]);
+  const boxes = params.boxes ?? EMPTY_BOXES;
+  const characterBoxes = params.characterBoxes ?? "";
+  const characters = (0, import_react6.useMemo)(() => toSet(characterBoxes), [characterBoxes]);
+  const incomingLayoutKey = layoutKey(boxes, characterBoxes);
   const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight;
   const budget = Number.isFinite(viewportHeight) ? Math.min(560, Math.max(260, Math.round(viewportHeight * 0.58))) : 520;
   const [selection, setSelection] = (0, import_react6.useState)([]);
   const [lockAspect, setLockAspect] = (0, import_react6.useState)(false);
   const [notice, setNotice] = (0, import_react6.useState)("");
-  const charactersRef = (0, import_react6.useRef)(params.characterBoxes ?? "");
+  const charactersRef = (0, import_react6.useRef)(characterBoxes);
+  const baselineKeyRef = (0, import_react6.useRef)(incomingLayoutKey);
+  const localDirtyRef = (0, import_react6.useRef)(false);
+  const pendingLayoutKeyRef = (0, import_react6.useRef)(null);
   const [history, setHistory] = (0, import_react6.useState)(() => ({
-    stack: [{ boxes, characters: params.characterBoxes ?? "" }],
+    stack: [{ boxes, characters: characterBoxes }],
     index: 0
   }));
   const lastCommitRef = (0, import_react6.useRef)(0);
@@ -1613,6 +1648,25 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     lastCommitRef.current = 0;
     lastCoalesceKeyRef.current = null;
   }, []);
+  (0, import_react6.useEffect)(() => {
+    if (localDirtyRef.current && incomingLayoutKey === pendingLayoutKeyRef.current) {
+      localDirtyRef.current = false;
+      pendingLayoutKeyRef.current = null;
+      baselineKeyRef.current = incomingLayoutKey;
+      charactersRef.current = characterBoxes;
+      return;
+    }
+    if (incomingLayoutKey === baselineKeyRef.current) return;
+    const hadLocalEdits = localDirtyRef.current;
+    baselineKeyRef.current = incomingLayoutKey;
+    localDirtyRef.current = false;
+    pendingLayoutKeyRef.current = null;
+    charactersRef.current = characterBoxes;
+    resetCoalesce();
+    setSelection([]);
+    setHistory({ stack: [{ boxes, characters: characterBoxes }], index: 0 });
+    if (hadLocalEdits) setNotice(t("notice.draftSyncedFromAi"));
+  }, [baselineKeyRef, boxes, characterBoxes, incomingLayoutKey, localDirtyRef, pendingLayoutKeyRef, resetCoalesce]);
   const pushHistory = (0, import_react6.useCallback)((snapshot, coalesce) => {
     setHistory((current) => {
       const stack = current.stack.slice(0, current.index + 1);
@@ -1636,6 +1690,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const applySnapshot = (0, import_react6.useCallback)((snapshot) => {
     resetCoalesce();
     charactersRef.current = snapshot.characters;
+    const key = layoutKey(snapshot.boxes, snapshot.characters);
+    localDirtyRef.current = key !== baselineKeyRef.current;
+    pendingLayoutKeyRef.current = localDirtyRef.current ? key : null;
     onApply(snapshot.boxes, snapshot.characters);
   }, [onApply, resetCoalesce]);
   const commit = (0, import_react6.useCallback)((nextBoxes, options = {}) => {
@@ -1647,6 +1704,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     lastCoalesceKeyRef.current = eligible ? key : null;
     const characters2 = options.characters ?? charactersRef.current;
     charactersRef.current = characters2;
+    const layout = layoutKey(nextBoxes, characters2);
+    localDirtyRef.current = layout !== baselineKeyRef.current;
+    pendingLayoutKeyRef.current = localDirtyRef.current ? layout : null;
     onApply(nextBoxes, characters2);
     pushHistory({ boxes: nextBoxes, characters: characters2 }, coalesce);
   }, [onApply, pushHistory]);
@@ -1696,6 +1756,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     if (result === void 0 || result === null || !Array.isArray(result.boxes)) return;
     const characters2 = result.characters ?? charactersRef.current;
     charactersRef.current = characters2;
+    const key = layoutKey(result.boxes, characters2);
+    localDirtyRef.current = key !== baselineKeyRef.current;
+    pendingLayoutKeyRef.current = localDirtyRef.current ? key : null;
     pushHistory({ boxes: result.boxes, characters: characters2 }, false);
     if (typeof result.index === "number" && result.index >= 0) setSelection([result.index]);
   }, [pushHistory, resetCoalesce]);
@@ -4502,7 +4565,7 @@ function SettingsDialog({ onClose, onSaved }) {
   const titleId = (0, import_react11.useId)();
   const cardRef = (0, import_react11.useRef)(null);
   const urlRef = (0, import_react11.useRef)(null);
-  useDialogFocus(cardRef, { initialFocus: urlRef });
+  useDialogFocus(cardRef, { initialFocus: urlRef, ready: !loading && editable });
   (0, import_react11.useEffect)(() => {
     let alive = true;
     void (async () => {
@@ -8006,6 +8069,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [error, setError] = (0, import_react14.useState)("");
   const [saving, setSaving] = (0, import_react14.useState)(false);
   const [busy, setBusy] = (0, import_react14.useState)(false);
+  const [generationRecordId, setGenerationRecordId] = (0, import_react14.useState)(null);
   const [elapsed, setElapsed] = (0, import_react14.useState)(0);
   const [phase, setPhase] = (0, import_react14.useState)("");
   const [flagLocalOnly, setLocalOnly] = (0, import_react14.useState)(false);
@@ -8130,10 +8194,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         } catch {
         }
         if (payload?.kind === "progress" && typeof payload.phase === "string") {
-          setPhase(payload.phase);
+          if (payload.sessionId === void 0 || payload.sessionId === sessionId) setPhase(payload.phase);
         }
         if (payload?.kind === "error" && typeof payload.message === "string") {
-          setError(payload.message);
+          if (payload.sessionId === void 0 || payload.sessionId === sessionId) setError(payload.message);
         }
         if (pending !== void 0) return;
         pending = setTimeout(() => {
@@ -8368,22 +8432,27 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     if (snapshot === null) return;
     replaceDraft(snapshot, t("notice.layoutReverted"));
   }, [replaceDraft]);
-  const waitForCompletion = (0, import_react14.useCallback)(async () => {
+  const waitForCompletion = (0, import_react14.useCallback)(async (recordId) => {
     const started = Date.now();
     while (Date.now() - started < 6e5) {
       await new Promise((resolve) => setTimeout(resolve, 1200));
       const state = await fetchState(sessionId);
       applyServerState(state);
-      const newest = state.records[0];
-      if (newest !== void 0 && newest.status !== "running") {
-        if (newest.status === "failed") {
-          setError(newest.error?.message ?? t("error.generation"));
-          setNotice("");
+      const record = typeof recordId === "string" ? state.records.find((entry) => entry.id === recordId) : state.records.find((entry) => entry.sessionId === sessionId && entry.status === "running") ?? state.records.find((entry) => entry.sessionId === sessionId);
+      if (record !== void 0 && record.status !== "running") {
+        if (record.status === "failed") {
+          if (record.error?.message === "\u5DF2\u53D6\u6D88") {
+            setError("");
+            setNotice(t("notice.generationCancelled"));
+          } else {
+            setError(record.error?.message ?? t("error.generation"));
+            setNotice("");
+          }
         } else {
           pinnedRef.current = false;
           setImageBroken(false);
-          setActiveRecordId(newest.id);
-          setNotice(t("notice.generationDone", { width: newest.width, height: newest.height, seconds: newest.seconds }));
+          setActiveRecordId(record.id);
+          setNotice(t("notice.generationDone", { width: record.width, height: record.height, seconds: record.seconds }));
         }
         return;
       }
@@ -8421,13 +8490,28 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setError(body?.message ?? t("error.generateRequest", { status }));
         return;
       }
-      await waitForCompletion();
+      setGenerationRecordId(body.recordId ?? null);
+      await waitForCompletion(body.recordId);
     } catch (problem2) {
       setError(problem2 instanceof Error ? problem2.message : String(problem2));
     } finally {
       setBusy(false);
+      setGenerationRecordId(null);
     }
   }, [busy, flushAll, sessionId, waitForCompletion]);
+  const cancelCurrentGeneration = (0, import_react14.useCallback)(async () => {
+    if (!busy || generationRecordId === null) return;
+    try {
+      const { status, body } = await cancelGeneration(sessionId, generationRecordId);
+      if (status !== 200) {
+        setError(body?.message ?? t("error.cancelGeneration", { status }));
+        return;
+      }
+      setNotice(t("notice.generationCancelling"));
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : String(problem));
+    }
+  }, [busy, generationRecordId, sessionId]);
   const retryRecord = (0, import_react14.useCallback)(async (record) => {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
@@ -8443,11 +8527,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setError(body?.message ?? t("error.retry", { status }));
         return;
       }
-      await waitForCompletion();
+      setGenerationRecordId(body.recordId ?? null);
+      await waitForCompletion(body.recordId);
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
     } finally {
       setBusy(false);
+      setGenerationRecordId(null);
     }
   }, [busy, sessionId, waitForCompletion]);
   const generateRandom = (0, import_react14.useCallback)(() => {
@@ -8905,7 +8991,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onChange: (event) => update({ enhance: event.target.checked }),
       label: t("params.enhanceHint")
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), busy && generationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       style: {

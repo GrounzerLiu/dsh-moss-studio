@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.7.3
+
+Second repair batch: external editor state, cross-session generation, remote
+cancellation, dialog focus and index concurrency.
+
+**The editor no longer undoes an external update**
+
+- Controlled echoes of local edits are recognized and keep their undo history.
+- A different layout arriving through props becomes the new baseline. If local
+  edits were still unsynced, they are replaced visibly, selection/history reset,
+  and the panel reports that the latest draft was synced instead of silently
+  letting a later undo restore the old layout.
+
+**Generation belongs to one record and one session**
+
+- `/generate` now returns the created `recordId`; completion polling waits for
+  that exact record instead of the global newest entry.
+- Progress and error events carry `sessionId`, and both the SSE route and client
+  ignore another session's job events.
+- Health reports `busyRecordId` alongside `busySession`.
+
+**Cancellation reaches ComfyUI**
+
+- The panel shows a cancel button for its active record and calls
+  `POST /generate/cancel` with session and record ids.
+- The host aborts only the matching generation. After submission, the engine
+  calls ComfyUI's atomic `/api/jobs/{id}/cancel`; older ComfyUI versions fall
+  back to targeted `/interrupt` rather than a global interrupt.
+- Cancellation marks the record failed with `已取消`, releases the single-job
+  host lock, and the panel reports cancellation without treating it as an error.
+
+**Focus and record index**
+
+- Dialog focus ignores a disabled preferred control and can move to it when it
+  becomes ready. Settings opens on a safe control, then focuses the ComfyUI URL
+  field after loading.
+- The first record-index scan journals create/update/delete mutations and merges
+  them before publishing, so a record created during the scan cannot disappear
+  until restart.
+
+Regression coverage grew from 157 to 171 tests, including a real host activation
+against a fake ComfyUI server to verify remote cancellation and lock release.
+
 ## 0.7.2
 
 First repair batch after the second review.

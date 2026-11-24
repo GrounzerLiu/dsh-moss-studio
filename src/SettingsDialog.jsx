@@ -56,7 +56,7 @@ export function SettingsDialog({ onClose, onSaved }) {
   const titleId = useId()
   const cardRef = useRef(null)
   const urlRef = useRef(null)
-  useDialogFocus(cardRef, { initialFocus: urlRef })
+  useDialogFocus(cardRef, { initialFocus: urlRef, ready: !loading && editable })
 
   useEffect(() => {
     let alive = true

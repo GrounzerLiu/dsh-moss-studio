@@ -188,6 +188,41 @@ test('listRecords pages backwards with a before cursor', async () => {
   })
 })
 
+test('recordIndex merges create, update and delete changes made during its first scan', async () => {
+  await withStore(async (store) => {
+    const updated = await store.createRecord({ sessionId: 's1', params: { prompt: 'before' }, status: 'failed' })
+    const deleted = await store.createRecord({ sessionId: 's1', params: { prompt: 'delete me' }, status: 'failed' })
+    const readJson = store.readJson.bind(store)
+    let release
+    let started
+    const gate = new Promise((resolve) => { release = resolve })
+    const scanning = new Promise((resolve) => { started = resolve })
+    let delayed = false
+    store.readJson = async (...args) => {
+      if (!delayed) {
+        delayed = true
+        started()
+        await gate
+      }
+      return readJson(...args)
+    }
+
+    const building = store.recordIndex()
+    await scanning
+    const created = await store.createRecord({ sessionId: 's1', params: { prompt: 'created during scan' }, status: 'failed' })
+    await store.finishRecord(updated.id, { status: 'done', result: { width: 512, height: 512, seconds: 1 } })
+    await store.deleteRecord(deleted.id)
+    release()
+    const entries = await building
+
+    assert.equal(entries.has(deleted.id), false, 'a deletion during the scan stays deleted')
+    assert.equal(entries.get(created.id)?.prompt, 'created during scan', 'a creation during the scan is added')
+    assert.equal(entries.get(updated.id)?.status, 'done', 'an update during the scan wins over the scanned snapshot')
+    assert.equal(entries.get(updated.id)?.width, 512)
+    assert.equal(entries.size, 2)
+  })
+})
+
 test('pinned records leave the main page and archived ones hide by default', async () => {
   await withStore(async (store) => {
     const first = await store.createRecord({ sessionId: 's1', params: { prompt: 'a' } })

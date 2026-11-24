@@ -211,20 +211,41 @@ export function apply(ctx, rawConfig) {
 
   let running = 0
   let runningSession = null
+  let runningRecordId = null
+  let activeController = null
   const busy = () => running > 0
   /** Which draft holds the pipeline, so another session can explain its wait. */
   const busySession = () => runningSession
+  const busyRecordId = () => runningRecordId
+
+  /** Abort only the generation owned by this session/record. */
+  function cancelGeneration({ sessionId, recordId } = {}) {
+    if (running === 0 || activeController === null) return false
+    if (typeof sessionId === 'string' && sessionId !== runningSession) return false
+    if (typeof recordId === 'string' && recordId !== runningRecordId) return false
+    const error = new Error('已取消')
+    error.name = 'AbortError'
+    activeController.abort(error)
+    return true
+  }
 
   /** Run one generation and persist it as a record. Shared by tools and routes. */
-  async function generate({ sessionId, params, signal, source = 'user' }) {
+  async function generate({ sessionId, params, signal, source = 'user', onCreated }) {
     if (running > 0) throw new Error('上一次生成还在进行，请稍后再试')
     running += 1
     runningSession = sessionId
+    const controller = new AbortController()
+    activeController = controller
+    const forwardAbort = () => controller.abort(signal?.reason ?? new Error('已取消'))
+    if (signal?.aborted === true) forwardAbort()
+    else signal?.addEventListener?.('abort', forwardAbort, { once: true })
     let record
     const startedAt = Date.now()
     try {
       record = await store.createRecord({ sessionId, params })
-      store.emit({ kind: 'progress', recordId: record.id, phase: 'probe', source })
+      runningRecordId = record.id
+      onCreated?.(record)
+      store.emit({ kind: 'progress', recordId: record.id, sessionId, phase: 'probe', source })
 
       const result = await runGeneration({
         baseUrl: live().comfyUrl,
@@ -232,8 +253,8 @@ export function apply(ctx, rawConfig) {
         params,
         timeoutMs: config.timeoutMs,
         pollMs: config.pollMs,
-        signal,
-        onProgress: (progress) => store.emit({ kind: 'progress', recordId: record.id, ...progress, source }),
+        signal: controller.signal,
+        onProgress: (progress) => store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source }),
       })
 
       const attachments = ctx.get('attachments')
@@ -301,8 +322,11 @@ export function apply(ctx, rawConfig) {
       }
       throw error
     } finally {
+      signal?.removeEventListener?.('abort', forwardAbort)
       running -= 1
       runningSession = null
+      runningRecordId = null
+      activeController = null
     }
   }
 
@@ -320,7 +344,7 @@ export function apply(ctx, rawConfig) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ROUTE_PREFIX,
-    handler: studioRoutes({ store, generate, isGenerating: busy, busySession, health, settings: settingsForPanel, saveSettings }),
+    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, health, settings: settingsForPanel, saveSettings }),
   }), 'moss-studio: routes')
 
   ctx.logger?.info?.(`moss-studio: 数据目录 ${config.dataDir}，ComfyUI ${config.comfyUrl}`)

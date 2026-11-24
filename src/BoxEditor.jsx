@@ -58,6 +58,7 @@ const numberInput = { ...input, flex: '0 0 auto', width: 56, textAlign: 'right',
 const HANDLE_HISTORY = 60
 /** Typing edits within this window fold into one undo step. */
 const COALESCE_MS = 500
+const EMPTY_BOXES = []
 
 function toSet(value) {
   return new Set((String(value ?? '').match(/\d+/g) ?? []).map(Number))
@@ -74,6 +75,19 @@ function geometryOnly(value) {
   return [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : undefined
 }
 
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue)
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]))
+  }
+  return value
+}
+
+/** Compare controlled echoes structurally, ignoring object property order. */
+function layoutKey(boxes, characters) {
+  return JSON.stringify([stableValue(boxes), characters])
+}
+
 /**
  * The layout editor is a modal because the panel is too narrow to place boxes
  * comfortably. The panel keeps a read-only preview; every edit happens here and
@@ -88,8 +102,10 @@ function geometryOnly(value) {
  * @param {(geometry?: object) => ({ boxes: object[], index?: number, characters?: string } | void)} props.onAdd
  */
 export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
-  const boxes = params.boxes ?? []
-  const characters = useMemo(() => toSet(params.characterBoxes), [params.characterBoxes])
+  const boxes = params.boxes ?? EMPTY_BOXES
+  const characterBoxes = params.characterBoxes ?? ''
+  const characters = useMemo(() => toSet(characterBoxes), [characterBoxes])
+  const incomingLayoutKey = layoutKey(boxes, characterBoxes)
   const viewportHeight = typeof window === 'undefined' ? 0 : window.innerHeight
   const budget = Number.isFinite(viewportHeight)
     ? Math.min(560, Math.max(260, Math.round(viewportHeight * 0.58)))
@@ -104,9 +120,17 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
    * `charactersAfter`); undoing that deletion without restoring the marks left
    * them pointing at whichever box had taken the freed position.
    */
-  const charactersRef = useRef(params.characterBoxes ?? '')
+  const charactersRef = useRef(characterBoxes)
+  /**
+   * The baseline is the last host-owned layout accepted through props. A local
+   * apply stays dirty until the controlled host echoes that exact snapshot; the
+   * echo must not be mistaken for an external AI/SSE replacement.
+   */
+  const baselineKeyRef = useRef(incomingLayoutKey)
+  const localDirtyRef = useRef(false)
+  const pendingLayoutKeyRef = useRef(null)
   const [history, setHistory] = useState(() => ({
-    stack: [{ boxes, characters: params.characterBoxes ?? '' }],
+    stack: [{ boxes, characters: characterBoxes }],
     index: 0,
   }))
   const lastCommitRef = useRef(0)
@@ -116,6 +140,30 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     lastCommitRef.current = 0
     lastCoalesceKeyRef.current = null
   }, [])
+
+  useEffect(() => {
+    // A controlled host normally echoes a local apply immediately. That echo
+    // acknowledges the edit; it must not replace the undo stack. A different
+    // layout is an external AI/SSE update and becomes the new safe baseline.
+    if (localDirtyRef.current && incomingLayoutKey === pendingLayoutKeyRef.current) {
+      localDirtyRef.current = false
+      pendingLayoutKeyRef.current = null
+      baselineKeyRef.current = incomingLayoutKey
+      charactersRef.current = characterBoxes
+      return
+    }
+    if (incomingLayoutKey === baselineKeyRef.current) return
+
+    const hadLocalEdits = localDirtyRef.current
+    baselineKeyRef.current = incomingLayoutKey
+    localDirtyRef.current = false
+    pendingLayoutKeyRef.current = null
+    charactersRef.current = characterBoxes
+    resetCoalesce()
+    setSelection([])
+    setHistory({ stack: [{ boxes, characters: characterBoxes }], index: 0 })
+    if (hadLocalEdits) setNotice(t('notice.draftSyncedFromAi'))
+  }, [baselineKeyRef, boxes, characterBoxes, incomingLayoutKey, localDirtyRef, pendingLayoutKeyRef, resetCoalesce])
 
   const pushHistory = useCallback((snapshot, coalesce) => {
     setHistory((current) => {
@@ -145,6 +193,9 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const applySnapshot = useCallback((snapshot) => {
     resetCoalesce()
     charactersRef.current = snapshot.characters
+    const key = layoutKey(snapshot.boxes, snapshot.characters)
+    localDirtyRef.current = key !== baselineKeyRef.current
+    pendingLayoutKeyRef.current = localDirtyRef.current ? key : null
     onApply(snapshot.boxes, snapshot.characters)
   }, [onApply, resetCoalesce])
 
@@ -157,6 +208,9 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     lastCoalesceKeyRef.current = eligible ? key : null
     const characters = options.characters ?? charactersRef.current
     charactersRef.current = characters
+    const layout = layoutKey(nextBoxes, characters)
+    localDirtyRef.current = layout !== baselineKeyRef.current
+    pendingLayoutKeyRef.current = localDirtyRef.current ? layout : null
     onApply(nextBoxes, characters)
     pushHistory({ boxes: nextBoxes, characters }, coalesce)
   }, [onApply, pushHistory])
@@ -222,6 +276,9 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     if (result === undefined || result === null || !Array.isArray(result.boxes)) return
     const characters = result.characters ?? charactersRef.current
     charactersRef.current = characters
+    const key = layoutKey(result.boxes, characters)
+    localDirtyRef.current = key !== baselineKeyRef.current
+    pendingLayoutKeyRef.current = localDirtyRef.current ? key : null
     pushHistory({ boxes: result.boxes, characters }, false)
     if (typeof result.index === 'number' && result.index >= 0) setSelection([result.index])
   }, [pushHistory, resetCoalesce])

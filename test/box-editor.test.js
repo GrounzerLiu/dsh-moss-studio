@@ -676,6 +676,60 @@ test('a drag and a following nudge do not coalesce', async (t) => {
   assert.ok(Math.abs(getParams().boxes[0].x - 0.2) < 1e-9, 'the drag remains after undoing the nudge')
 })
 
+test('an external layout update replaces dirty local history instead of leaving an old undo baseline', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'local', palette: [] }]
+  const { dom, act, root, Editor, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+  await act(async () => { selectBox(dom, 0) })
+
+  const setValue = Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value').set
+  await act(async () => {
+    setValue.call(dom.window.document.querySelector('#root textarea'), 'unsynced local edit')
+    dom.window.document.querySelector('#root textarea').dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+  assert.equal(calls.at(-1).boxes[0].desc, 'unsynced local edit')
+
+  const external = [{ type: 'obj', x: 0.7, y: 0.2, width: 0.2, height: 0.2, desc: 'server', palette: [] }]
+  await act(async () => {
+    root.render(React.createElement(Editor, {
+      params: editorParams(external, '1'),
+      onApply: (next, characters) => calls.push({ boxes: next, characters }),
+      onAdd: () => undefined,
+      onClose: () => {},
+      onCancel: () => {},
+    }))
+  })
+  assert.match(dom.window.document.body.textContent, /server/)
+  assert.match(dom.window.document.body.textContent, /已同步为最新参数/)
+
+  const beforeUndo = calls.length
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.equal(calls.length, beforeUndo, 'undo cannot restore the discarded local baseline')
+
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => {
+    setValue.call(dom.window.document.querySelector('#root textarea'), 'new local edit')
+    dom.window.document.querySelector('#root textarea').dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.equal(calls.at(-1).boxes[0].desc, 'server', 'the next undo returns to the external baseline')
+})
+
+test('a controlled echo acknowledges a local edit without resetting undo history', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'before', palette: [] }]
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(boxes))
+  canvasArea(dom)
+  await act(async () => { selectBox(dom, 0) })
+  const setValue = Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value').set
+  await act(async () => {
+    setValue.call(dom.window.document.querySelector('#root textarea'), 'after')
+    dom.window.document.querySelector('#root textarea').dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+  assert.equal(getParams().boxes[0].desc, 'after')
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.equal(getParams().boxes[0].desc, 'before')
+})
+
 test('the aspect-locked inspector respects the ratio-aware minimum', async (t) => {
   const boxes = [{ type: 'obj', x: 0.2, y: 0.2, width: 0.4, height: 0.2, desc: 'a', palette: [] }]
   const { dom, act, getParams } = await mountControlledEditor(t, editorParams(boxes))

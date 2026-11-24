@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { deleteRecord, fetchHealth, fetchRecord, fetchRecords, fetchState, generate, imageUrl, patchRecord, putDraft } from './api.js'
+import { cancelGeneration, deleteRecord, fetchHealth, fetchRecord, fetchRecords, fetchState, generate, imageUrl, patchRecord, putDraft } from './api.js'
 import { BoxCanvas } from './BoxCanvas.jsx'
 import { BoxEditor } from './BoxEditor.jsx'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -244,6 +244,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [generationRecordId, setGenerationRecordId] = useState(null)
   const [elapsed, setElapsed] = useState(0)
   const [phase, setPhase] = useState('')
   const [flagLocalOnly, setLocalOnly] = useState(false)
@@ -397,10 +398,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
           payload = JSON.parse(event.data)
         } catch { /* a heartbeat or a truncated frame */ }
         if (payload?.kind === 'progress' && typeof payload.phase === 'string') {
-          setPhase(payload.phase)
+          if (payload.sessionId === undefined || payload.sessionId === sessionId) setPhase(payload.phase)
         }
         if (payload?.kind === 'error' && typeof payload.message === 'string') {
-          setError(payload.message)
+          if (payload.sessionId === undefined || payload.sessionId === sessionId) setError(payload.message)
         }
         if (pending !== undefined) return
         pending = setTimeout(() => {
@@ -689,23 +690,31 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     replaceDraft(snapshot, t('notice.layoutReverted'))
   }, [replaceDraft])
 
-  /** Wait for the newest record to leave `running`, then report its outcome. */
-  const waitForCompletion = useCallback(async () => {
+  /** Wait for one specific record, never another session's newest job. */
+  const waitForCompletion = useCallback(async (recordId) => {
     const started = Date.now()
     while (Date.now() - started < 600_000) {
       await new Promise((resolve) => setTimeout(resolve, 1200))
       const state = await fetchState(sessionId)
       applyServerState(state)
-      const newest = state.records[0]
-      if (newest !== undefined && newest.status !== 'running') {
-        if (newest.status === 'failed') {
-          setError(newest.error?.message ?? t('error.generation'))
-          setNotice('')
+      const record = typeof recordId === 'string'
+        ? state.records.find((entry) => entry.id === recordId)
+        : state.records.find((entry) => entry.sessionId === sessionId && entry.status === 'running')
+          ?? state.records.find((entry) => entry.sessionId === sessionId)
+      if (record !== undefined && record.status !== 'running') {
+        if (record.status === 'failed') {
+          if (record.error?.message === '已取消') {
+            setError('')
+            setNotice(t('notice.generationCancelled'))
+          } else {
+            setError(record.error?.message ?? t('error.generation'))
+            setNotice('')
+          }
         } else {
           pinnedRef.current = false
           setImageBroken(false)
-          setActiveRecordId(newest.id)
-          setNotice(t('notice.generationDone', { width: newest.width, height: newest.height, seconds: newest.seconds }))
+          setActiveRecordId(record.id)
+          setNotice(t('notice.generationDone', { width: record.width, height: record.height, seconds: record.seconds }))
         }
         return
       }
@@ -750,13 +759,29 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setError(body?.message ?? t('error.generateRequest', { status }))
         return
       }
-      await waitForCompletion()
+      setGenerationRecordId(body.recordId ?? null)
+      await waitForCompletion(body.recordId)
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
     } finally {
       setBusy(false)
+      setGenerationRecordId(null)
     }
   }, [busy, flushAll, sessionId, waitForCompletion])
+
+  const cancelCurrentGeneration = useCallback(async () => {
+    if (!busy || generationRecordId === null) return
+    try {
+      const { status, body } = await cancelGeneration(sessionId, generationRecordId)
+      if (status !== 200) {
+        setError(body?.message ?? t('error.cancelGeneration', { status }))
+        return
+      }
+      setNotice(t('notice.generationCancelling'))
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : String(problem))
+    }
+  }, [busy, generationRecordId, sessionId])
 
   /** Re-run a failed record with the parameters it was created with. */
   const retryRecord = useCallback(async (record) => {
@@ -776,11 +801,13 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setError(body?.message ?? t('error.retry', { status }))
         return
       }
-      await waitForCompletion()
+      setGenerationRecordId(body.recordId ?? null)
+      await waitForCompletion(body.recordId)
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
     } finally {
       setBusy(false)
+      setGenerationRecordId(null)
     }
   }, [busy, sessionId, waitForCompletion])
 
@@ -1380,6 +1407,9 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                 {busy ? `${t('generate.running', { seconds: elapsed })}${phase === '' ? '' : ` · ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t('generate.otherSession') : t('generate.random')}
               </button>
               <button type="button" style={button} disabled={busy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>{t('generate.currentSeed')}</button>
+              {busy && generationRecordId !== null ? (
+                <button type="button" style={button} onClick={() => void cancelCurrentGeneration()}>{t('generate.cancel')}</button>
+              ) : null}
               {running !== undefined && !busy ? <span style={{ fontSize: 11, ...dim }}>{t('generate.queued', { id: running.id.slice(-4) })}</span> : null}
               {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{t('size.invalidNotSaved')}</span> : null}
             </div>

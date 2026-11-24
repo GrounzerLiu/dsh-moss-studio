@@ -60,6 +60,7 @@ async function harness(run, extra = {}) {
   const started = []
   const generate = async (input) => {
     started.push(input)
+    input.onCreated?.({ id: 'rec' })
     return { recordId: 'rec', width: 512, height: 512, seed: 1, seconds: 1, paths: [], images: [] }
   }
   const handler = studioRoutes({ store, generate, isGenerating: () => generating, ...extra })
@@ -138,6 +139,7 @@ test('generate refuses a stale revision and a busy pipeline', async () => {
     setGenerating(false)
     const accepted = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 1 } })
     assert.equal(accepted.out.status, 202)
+    assert.equal(accepted.body.recordId, 'rec', 'the client receives the exact record to wait for')
     await new Promise((resolve) => setTimeout(resolve, 10))
     assert.equal(started.length, 1)
     assert.equal(started[0].params.prompt, 'a')
@@ -349,6 +351,37 @@ test('a session-scoped stream ignores drafts from other sessions', async () => {
 
     await store.putDraft('s1', { prompt: 'mine' }, 0)
     assert.match(res.text(), /"kind":"draft"/)
+  })
+})
+
+test('generate cancellation is scoped to the requested session and record', async () => {
+  const calls = []
+  await harness(async ({ call }) => {
+    const accepted = await call({
+      method: 'POST',
+      url: '/plugins/dsh-moss-studio/generate/cancel',
+      body: { sessionId: 's1', recordId: 'rec-1' },
+    })
+    assert.equal(accepted.out.status, 200)
+    assert.equal(accepted.body.cancelled, true)
+  }, {
+    cancelGeneration: (input) => { calls.push(input); return true },
+  })
+  assert.deepEqual(calls, [{ sessionId: 's1', recordId: 'rec-1' }])
+})
+
+test('a session-scoped stream ignores progress and errors from other sessions', async () => {
+  await harness(async ({ stream, store }) => {
+    const res = await stream({ sessionId: 's1' })
+    store.emit({ kind: 'progress', sessionId: 'other', recordId: 'r-other', phase: 'wait' })
+    store.emit({ kind: 'error', sessionId: 'other', recordId: 'r-other', message: 'other failed' })
+    assert.doesNotMatch(res.text(), /other failed/)
+    assert.doesNotMatch(res.text(), /r-other/)
+
+    store.emit({ kind: 'progress', sessionId: 's1', recordId: 'r-mine', phase: 'wait' })
+    store.emit({ kind: 'error', sessionId: 's1', recordId: 'r-mine', message: 'mine failed' })
+    assert.match(res.text(), /r-mine/)
+    assert.match(res.text(), /mine failed/)
   })
 })
 

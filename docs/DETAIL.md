@@ -130,6 +130,15 @@ records/<id>/image.png
 - 选中态用 `color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent)`，跟随品牌色而不是写死的绿；`CSS.supports` 检测不到 `color-mix` 时退回 `--dsw-alias-bg-layer-2` 中性底。
 - 图标来自 Material Symbols（outlined），路径内联在 `src/icons.jsx`，`fill="currentColor"` 跟随按钮文字色；勾选框同样用图标绘制，但保留真实 `input[type=checkbox]`。
 
+## 0.7.3：第二批复审修复
+
+- 布局编辑器区分「宿主回显本地编辑」与「外部 AI/SSE 更新」：回显只确认基线，不清撤销栈；不同的外部布局会成为新基线，若本地还有未同步编辑，则显示同步提示并重置历史，不能再撤销回旧草稿。
+- `/generate` 返回精确 `recordId`，面板等待这条记录完成，不再跟随全局最新记录；progress/error 事件带 `sessionId`，路由与客户端双重过滤跨会话事件；`/health` 增加 `busyRecordId`。
+- 生成区新增「取消生成」：宿主按 sessionId + recordId 中止对应任务，ComfyUI 使用 `/api/jobs/{id}/cancel`，旧版回退定向 `/interrupt`；记录标为 failed「已取消」并释放宿主锁。
+- 对话框焦点支持 `ready`：首选控件禁用时先聚焦安全控件，设置加载完成后聚焦 ComfyUI 地址框。
+- 记录索引首次扫描期间 journal 增量变更，扫描完成后再合并，避免并发新增/更新/删除丢失。
+- 测试从 157 增至 171 项，含真实宿主激活 + 假 ComfyUI 服务的取消与锁释放验证。
+
 ## 已知限制
 
 - 缩略图直接用原图（已懒加载），记录多了费带宽；未做服务端 256px 缓存。

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 const FOCUSABLE = [
   'a[href]',
@@ -17,14 +17,19 @@ const FOCUSABLE = [
  * moves to the first control on open and returns to the opener on close.
  *
  * @param {import('react').RefObject<HTMLElement | null>} containerRef
- * @param {{ initialFocus?: import('react').RefObject<HTMLElement | null> }} [options]
+ * @param {{ initialFocus?: import('react').RefObject<HTMLElement | null>, ready?: boolean }} [options]
  */
 export function useDialogFocus(containerRef, options = {}) {
+  const ready = options.ready !== false
+  const previousRef = useRef(null)
   useEffect(() => {
     const container = containerRef.current
     if (container === null) return undefined
-    const previous = typeof document === 'undefined' ? null : document.activeElement
-    const target = options.initialFocus?.current ?? container.querySelector(FOCUSABLE) ?? container
+    if (previousRef.current === null && typeof document !== 'undefined') previousRef.current = document.activeElement
+    const preferred = options.initialFocus?.current
+    const target = ready && preferred?.matches?.(FOCUSABLE) === true
+      ? preferred
+      : container.querySelector(FOCUSABLE) ?? container
     target.focus?.()
 
     function onKey(event) {
@@ -46,7 +51,10 @@ export function useDialogFocus(containerRef, options = {}) {
     container.addEventListener('keydown', onKey)
     return () => {
       container.removeEventListener('keydown', onKey)
-      if (previous !== null && typeof previous.focus === 'function') previous.focus()
     }
-  }, [containerRef, options.initialFocus])
+  }, [containerRef, options.initialFocus, ready])
+
+  useEffect(() => () => {
+    if (previousRef.current !== null && typeof previousRef.current.focus === 'function') previousRef.current.focus()
+  }, [])
 }
