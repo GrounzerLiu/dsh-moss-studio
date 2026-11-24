@@ -66,3 +66,45 @@ test('clicking a box selects it instead of clearing the selection', async (t) =>
   })
   assert.deepEqual(picked, [-1], 'clicking the empty frame clears the selection')
 })
+
+test('a preview box lets its click reach the wrapper that opens the editor', async (t) => {
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:57529/' })
+  for (const key of ['window', 'document', 'HTMLElement', 'Node', 'MouseEvent', 'getComputedStyle']) {
+    Object.defineProperty(globalThis, key, { value: key === 'window' ? dom.window : dom.window[key], configurable: true, writable: true })
+  }
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  const { createRoot } = require('react-dom/client')
+  const { act } = require('react-dom/test-utils')
+  const plugin = loadPlugin(dom.window)
+
+  let opened = 0
+  const root = createRoot(dom.window.document.getElementById('root'))
+  t.after(async () => {
+    await act(async () => { root.unmount() })
+    dom.window.close()
+  })
+
+  await act(async () => {
+    root.render(React.createElement(
+      'div',
+      { onClick: () => { opened += 1 } },
+      React.createElement(plugin.components.BoxCanvas, {
+        boxes,
+        size: '512x512',
+        selected: -1,
+        onSelect: () => {},
+        onChange: () => {},
+        interactive: false,
+      }),
+    ))
+  })
+
+  const container = dom.window.document.getElementById('root')
+  const frame = [...container.querySelectorAll('div')].find((node) => node.style.position === 'absolute' && node.style.left !== '')
+  assert.ok(frame !== undefined)
+
+  await act(async () => {
+    frame.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+  })
+  assert.equal(opened, 1, 'clicking a box in the preview opens the editor')
+})

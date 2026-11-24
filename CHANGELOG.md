@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.3
+
+- Fix: the image viewer's previous/next buttons rendered empty because
+  `keyboard_arrow_left` and `keyboard_arrow_right` were never added to the icon
+  map. A test now fails when a referenced icon name is missing.
+- Fix: clicking a box in the layout preview did nothing. The click handler that
+  keeps selection from clearing itself in the editor also stopped the preview's
+  click from reaching the wrapper that opens the editor; it is now editor-only,
+  and preview boxes no longer show a pointer cursor.
+
 ## 0.4.2
 
 - Fix: the host half referenced an undefined `busySession` when building the

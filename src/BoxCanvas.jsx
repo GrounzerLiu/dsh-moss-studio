@@ -103,13 +103,12 @@ export function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact =
           return (
             <div
               key={index}
-              onPointerDown={interactive ? (event) => startDrag(event, index, 'move') : (event) => {
-                event.stopPropagation()
-                onSelect(index)
-              }}
-              // The frame's onClick clears the selection, so a click on a box must
-              // not bubble up to it or selecting would immediately undo itself.
-              onClick={(event) => event.stopPropagation()}
+              onPointerDown={interactive ? (event) => startDrag(event, index, 'move') : undefined}
+              // Inside the editor the frame's onClick clears the selection, so a click
+              // on a box must not bubble or selecting would immediately undo itself.
+              // In the preview there is no selection to protect: the click has to
+              // reach the wrapper that opens the layout editor.
+              onClick={interactive ? (event) => event.stopPropagation() : undefined}
               style={{
                 position: 'absolute',
                 left: `${box.x * 100}%`,
@@ -123,7 +122,7 @@ export function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact =
                   ? selectionFill(16)
                   : 'rgba(160,160,160,0.09)',
                 borderRadius: 4,
-                cursor: interactive ? 'move' : 'pointer',
+                cursor: interactive ? 'move' : 'inherit',
                 boxSizing: 'border-box',
                 minWidth: `${MIN_SIZE * 100}%`,
                 minHeight: `${MIN_SIZE * 100}%`,
