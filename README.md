@@ -34,7 +34,8 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
   canvas to draw a box, eight resize handles, shift-click and shift-drag for
   multi-selection, smart guides that snap edges and centres, align/distribute,
   a numeric X/Y/W/H inspector, duplicate, and undo/redo. A box can be locked
-  (visible but immovable) or hidden (kept in the draft, left out of the request).
+  (visible and sent, but not draggable/resizable on the canvas) or hidden (kept
+  in the draft, left out of the request).
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
@@ -82,7 +83,9 @@ The bundle wraps esbuild's CommonJS output in `window.__ModuleLoader__.load({ id
 node --test test/
 ```
 
-Covers the store (revisions, conflicts, records), the tools, every route, the client registration, a jsdom render of the panel, and the canvas geometry. No test talks to ComfyUI.
+Covers the store (revisions, conflicts, records), the tools and their output
+schemas, every route, client registration, jsdom panel save/generate
+transactions, and the canvas geometry. No test talks to ComfyUI.
 
 ## Install (manual)
 
@@ -111,7 +114,9 @@ Covers the store (revisions, conflicts, records), the tools, every route, the cl
 
 ## Limits
 
-- The panel polls `/state` every 1.5 seconds; it is not push-based yet.
-- One generation at a time.
+- Live updates use SSE; if the stream cannot connect, the panel falls back to
+  1.5-second polling.
+- One generation at a time across sessions.
 - Thumbnails are the full images.
-- Panel copy is hard-coded Chinese.
+- Panel copy follows the host locale (Chinese and English); host validation
+  errors remain in the language in which the host emits them.

@@ -6,6 +6,7 @@ import {
   MAX_BOXES,
   MIN_SIZE,
   alignBoxes,
+  aspectSizePatch,
   boxFromCorners,
   boxProblem,
   boxesProblem,
@@ -233,6 +234,11 @@ test('distribution evens the gaps and leaves other boxes alone', () => {
   assert.deepEqual(distributeBoxes(boxes, [0, 1], 'x'), boxes, 'two boxes have nothing to distribute')
 })
 
+test('distribution leaves overlapping boxes valid instead of creating a negative gap', () => {
+  const boxes = [rect(0, 0.2, 0.1, 0.2), rect(0.1, 0.2, 0.9, 0.2), rect(0.2, 0.2, 0.1, 0.2)]
+  assert.equal(distributeBoxes(boxes, [0, 1, 2], 'x'), boxes, 'no valid non-negative equal gap exists')
+})
+
 test('duplicating offsets the copies so they are visible', () => {
   const boxes = [rect(0.1, 0.1, 0.2, 0.2), rect(0.5, 0.5, 0.2, 0.2)]
   const { boxes: next, added } = duplicateBoxes(boxes, [1])
@@ -254,6 +260,15 @@ test('drawing from two corners works in any direction', () => {
   assert.ok(Math.abs(forward.width - 0.4) < 1e-9 && Math.abs(forward.height - 0.3) < 1e-9)
   const tiny = boxFromCorners(0.5, 0.5, 0.5, 0.5)
   assert.ok(tiny.width >= MIN_SIZE && tiny.height >= MIN_SIZE, 'a click still yields a usable box')
+})
+
+test('minimum-size boxes drawn on the right or bottom edge stay inside the frame', () => {
+  const right = boxFromCorners(1, 0.2, 1, 0.7)
+  assert.ok(Math.abs(right.x - (1 - MIN_SIZE)) < 1e-9)
+  assert.ok(Math.abs(right.x + right.width - 1) < 1e-9)
+  const bottom = boxFromCorners(0.2, 1, 0.7, 1)
+  assert.ok(Math.abs(bottom.y - (1 - MIN_SIZE)) < 1e-9)
+  assert.ok(Math.abs(bottom.y + bottom.height - 1) < 1e-9)
 })
 
 // --- aspect lock invariants ------------------------------------------------
@@ -326,6 +341,17 @@ test('the review case no longer collapses to a square', () => {
   assert.ok(Math.abs(box.width / box.height - 0.057 / 0.152) < 1e-6, '5.7:15.2 is preserved')
 })
 
+test('inspector aspect patches use a ratio-aware feasible interval', () => {
+  const wide = rect(0.2, 0.2, 0.4, 0.2)
+  assert.deepEqual(aspectSizePatch(wide, 'width', 0.01), { width: 0.04, height: 0.02 })
+  assert.deepEqual(aspectSizePatch(wide, 'height', 0.01), { width: 0.04, height: 0.02 })
+  assert.deepEqual(aspectSizePatch(wide, 'height', 1), { width: 1, height: 0.5 })
+
+  const tall = rect(0.2, 0.2, 0.2, 0.4)
+  assert.deepEqual(aspectSizePatch(tall, 'height', 0.01), { width: 0.02, height: 0.04 })
+  assert.deepEqual(aspectSizePatch(tall, 'width', 1), { width: 0.5, height: 1 })
+})
+
 test('snapResized moves only the edge being dragged', () => {
   const neighbour = rect(0.5, 0.2, 0.2, 0.2)
   // Right edge 0.504 is 0.004 from the neighbour's left edge at 0.5.
@@ -361,6 +387,17 @@ test('the draft is checked before a generation is submitted', () => {
   assert.deepEqual(boxesProblem([{ type: 'text', text: '' }]), { reason: 'text', index: 0 })
   const many = Array.from({ length: 25 }, () => ({ type: 'obj', desc: 'x' }))
   assert.deepEqual(boxesProblem(many), { reason: 'count' })
+})
+
+test('preflight ignores hidden box content but keeps the draft cap', () => {
+  const boxes = [
+    { type: 'obj', desc: 'ready' },
+    { type: 'obj', desc: '', hidden: true },
+    { type: 'text', text: '', hidden: true },
+  ]
+  assert.equal(boxesProblem(boxes), undefined)
+  assert.deepEqual(boxesProblem([...boxes, { type: 'obj', desc: '' }]), { reason: 'desc', index: 3 })
+  assert.deepEqual(boxesProblem(Array.from({ length: 25 }, () => ({ type: 'obj', desc: 'x', hidden: true }))), { reason: 'count' })
 })
 
 test('the editor and the workflow agree on the box limit', () => {

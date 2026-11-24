@@ -287,6 +287,14 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [revision, setRevision] = useState(0)
   const dirtyRef = useRef(false)
   const saveTimer = useRef(null)
+  /** All fields changed since the last acknowledged save; debouncing must not drop any of them. */
+  const pendingPatchRef = useRef({})
+  const savingRef = useRef(false)
+  const savePromiseRef = useRef(null)
+  /** A 409 keeps local edits visible but stops autosave from retrying over the server. */
+  const conflictRef = useRef(false)
+  /** Incremented for every local edit so an older save response cannot clear newer dirt. */
+  const localEpochRef = useRef(0)
   const paramsRef = useRef(null)
   /** Parameters as they were when the editor opened, so cancelling can undo the session. */
   const editorSnapshot = useRef(null)
@@ -298,9 +306,15 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   paramsRef.current = params
 
   const applyServerState = useCallback((state) => {
-    revisionRef.current = state.revision
+    // While the user has unsaved edits, the server revision belongs to a draft
+    // we are not showing. Advancing revisionRef here would let the next save
+    // overwrite an AI/tool change without a conflict.
+    if (!dirtyRef.current) {
+      revisionRef.current = state.revision
+      paramsRef.current = state.params
+      setParams(state.params)
+    }
     setRevision(state.revision)
-    if (!dirtyRef.current) setParams(state.params)
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
@@ -495,39 +509,109 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     }
   }, [resizing])
 
-  const flush = useCallback(async (patch) => {
+  /**
+   * Save every field changed since the last acknowledged write.
+   *
+   * Only one request may be in flight. Updates made during it stay in
+   * `pendingPatchRef`; a concurrent flush waits for the current request and then
+   * sends those fields with the revision that request acknowledged.
+   */
+  const flush = useCallback(async () => {
+    if (saveTimer.current !== null) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    if (conflictRef.current) return false
+    if (savingRef.current) {
+      const saved = await savePromiseRef.current
+      if (!saved || conflictRef.current) return false
+      return flush()
+    }
+
+    const patch = pendingPatchRef.current
+    pendingPatchRef.current = {}
+    if (Object.keys(patch).length === 0) return true
+    const epoch = localEpochRef.current
+
+    savingRef.current = true
     setSaving(true)
-    try {
-      const { status, body } = await putDraft(sessionId, patch, revisionRef.current)
-      if (status === 409 && body !== null) {
-        revisionRef.current = body.revision
-        setRevision(body.revision)
-        dirtyRef.current = false
-        setParams(body.params)
-        setNotice(t('notice.draftSyncedFromAi'))
-      } else if (status === 200 && body !== null) {
-        revisionRef.current = body.revision
-        setRevision(body.revision)
-        dirtyRef.current = false
-        setError('')
-      } else {
+    const task = (async () => {
+      try {
+        const { status, body } = await putDraft(sessionId, patch, revisionRef.current)
+        if (status === 409 && body !== null) {
+          revisionRef.current = body.revision
+          setRevision(body.revision)
+          // Keep the user's edits visible, but do not silently retry them over
+          // the server's newer draft. The next explicit edit resolves the
+          // conflict and saves the accumulated local patch on this revision.
+          pendingPatchRef.current = { ...patch, ...pendingPatchRef.current }
+          dirtyRef.current = true
+          conflictRef.current = true
+          setNotice(t('notice.draftChanged'))
+          return false
+        }
+        if (status === 200 && body !== null) {
+          revisionRef.current = body.revision
+          setRevision(body.revision)
+          if (epoch === localEpochRef.current && Object.keys(pendingPatchRef.current).length === 0) {
+            dirtyRef.current = false
+            setError('')
+          }
+          return true
+        }
+        pendingPatchRef.current = { ...patch, ...pendingPatchRef.current }
+        dirtyRef.current = true
         setError(body?.message ?? t('error.save', { status }))
+        return false
+      } catch (problem) {
+        pendingPatchRef.current = { ...patch, ...pendingPatchRef.current }
+        dirtyRef.current = true
+        setError(problem instanceof Error ? problem.message : String(problem))
+        return false
       }
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : String(problem))
+    })()
+    savePromiseRef.current = task
+    try {
+      return await task
     } finally {
+      savingRef.current = false
+      savePromiseRef.current = null
       setSaving(false)
     }
   }, [sessionId])
 
+  /** Drain edits made while an earlier save was in flight before a dependent action. */
+  const flushAll = useCallback(async () => {
+    let saved = await flush()
+    while (saved && Object.keys(pendingPatchRef.current).length > 0) saved = await flush()
+    return saved
+  }, [flush])
+
   const update = useCallback((patch) => {
-    setParams((current) => {
-      const next = { ...current, ...patch }
-      dirtyRef.current = true
-      if (saveTimer.current !== null) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => { void flush(patch) }, SAVE_DELAY_MS)
-      return next
-    })
+    const next = { ...(paramsRef.current ?? {}), ...patch }
+    paramsRef.current = next
+    setParams(next)
+    pendingPatchRef.current = { ...pendingPatchRef.current, ...patch }
+    localEpochRef.current += 1
+    dirtyRef.current = true
+    // A new explicit edit is the user's decision to continue from the latest
+    // server revision after a conflict.
+    conflictRef.current = false
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => { void flush() }, SAVE_DELAY_MS)
+  }, [flush])
+
+  /** Replace the whole local draft and queue one full-parameter save. */
+  const replaceDraft = useCallback((next, message) => {
+    paramsRef.current = next
+    setParams(next)
+    pendingPatchRef.current = { ...next }
+    localEpochRef.current += 1
+    dirtyRef.current = true
+    conflictRef.current = false
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => { void flush() }, SAVE_DELAY_MS)
+    if (message !== undefined) setNotice(message)
   }, [flush])
 
   /**
@@ -602,12 +686,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     const snapshot = editorSnapshot.current
     setEditorOpen(false)
     if (snapshot === null) return
-    dirtyRef.current = true
-    setParams(snapshot)
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => { void flush(snapshot) }, SAVE_DELAY_MS)
-    setNotice(t('notice.layoutReverted'))
-  }, [flush])
+    replaceDraft(snapshot, t('notice.layoutReverted'))
+  }, [replaceDraft])
 
   /** Wait for the newest record to leave `running`, then report its outcome. */
   const waitForCompletion = useCallback(async () => {
@@ -649,6 +729,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     setError('')
     setNotice(t('notice.generationSubmitted'))
     try {
+      // The request body carries only a revision, so the server must see the
+      // latest local fields before it can generate what the panel is showing.
+      const saved = await flushAll()
+      if (!saved) return
       const { status, body } = await generate(sessionId, revisionRef.current)
       if (status === 409 && body !== null) {
         revisionRef.current = body.revision
@@ -672,7 +756,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } finally {
       setBusy(false)
     }
-  }, [busy, sessionId, waitForCompletion])
+  }, [busy, flushAll, sessionId, waitForCompletion])
 
   /** Re-run a failed record with the parameters it was created with. */
   const retryRecord = useCallback(async (record) => {
@@ -736,12 +820,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
   const loadRecord = useCallback(() => {
     if (activeRecord === null) return
-    setParams(activeRecord.params)
-    dirtyRef.current = true
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => { void flush(activeRecord.params) }, SAVE_DELAY_MS)
-    setNotice(t('notice.recordLoaded', { id: activeRecord.id }))
-  }, [activeRecord, flush])
+    replaceDraft(activeRecord.params, t('notice.recordLoaded', { id: activeRecord.id }))
+  }, [activeRecord, replaceDraft])
 
   const removeRecordById = useCallback(async (id) => {
     try {

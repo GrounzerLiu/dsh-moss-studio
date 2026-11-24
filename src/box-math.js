@@ -316,6 +316,10 @@ export function distributeBoxes(boxes, indices, axis) {
   const span = last[startKey] + last[sizeKey] - first[startKey]
   const total = ordered.reduce((sum, entry) => sum + entry.box[sizeKey], 0)
   const gap = (span - total) / (ordered.length - 1)
+  // Overlapping boxes can need a negative gap to fit inside the old bounds.
+  // No arrangement can both preserve those bounds and create non-negative
+  // equal gaps, so leave the user's valid geometry untouched.
+  if (gap < 0) return boxes
 
   let cursor = first[startKey]
   const placed = new Map()
@@ -358,11 +362,13 @@ export function boxFromCorners(ax, ay, bx, by) {
   const top = clamp(Math.min(ay, by), 0, 1)
   const right = clamp(Math.max(ax, bx), 0, 1)
   const bottom = clamp(Math.max(ay, by), 0, 1)
+  const width = Math.max(MIN_SIZE, right - left)
+  const height = Math.max(MIN_SIZE, bottom - top)
   return {
-    x: left,
-    y: top,
-    width: Math.max(MIN_SIZE, right - left),
-    height: Math.max(MIN_SIZE, bottom - top),
+    x: clamp(left, 0, 1 - width),
+    y: clamp(top, 0, 1 - height),
+    width,
+    height,
   }
 }
 
@@ -395,7 +401,7 @@ export function boxProblem(box) {
  */
 export function boxesProblem(boxes, max = MAX_BOXES) {
   const list = Array.isArray(boxes) ? boxes : []
-  const index = list.findIndex((box) => boxProblem(box) !== undefined)
+  const index = list.findIndex((box) => box?.hidden !== true && boxProblem(box) !== undefined)
   if (index >= 0) return { reason: boxProblem(list[index]), index }
   if (list.length > max) return { reason: 'count' }
   return undefined
@@ -436,6 +442,28 @@ export function labelMetrics(widthPx, heightPx) {
   const usable = heightPx - 18
   const lines = Math.max(1, Math.min(6, Math.floor(usable / (fontSize * 1.35))))
   return { show: lines >= 1, fontSize, lines }
+}
+
+/**
+ * Build a width/height patch for one inspector dimension while preserving the
+ * box's aspect ratio. The feasible width interval accounts for both the frame
+ * and MIN_SIZE on either axis, so independent clamping cannot distort it.
+ *
+ * @param {object} box
+ * @param {'width'|'height'} dimension
+ * @param {number} value - requested fraction in 0..1
+ * @returns {{ width?: number, height?: number }}
+ */
+export function aspectSizePatch(box, dimension, value) {
+  if ((dimension !== 'width' && dimension !== 'height') || !Number.isFinite(value)) return {}
+  const ratio = box.width / box.height
+  if (!Number.isFinite(ratio) || !(ratio > 0)) return {}
+  const minWidth = MIN_SIZE * Math.max(1, ratio)
+  const maxWidth = Math.min(1, ratio)
+  if (minWidth > maxWidth) return {}
+  const wantedWidth = dimension === 'height' ? value * ratio : value
+  const width = clamp(wantedWidth, minWidth, maxWidth)
+  return { width, height: width / ratio }
 }
 
 /**

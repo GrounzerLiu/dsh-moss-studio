@@ -35,6 +35,46 @@ function exec(agent) {
   return { signal: new AbortController().signal, agent }
 }
 
+/** Validate the JSON Schema subset used by the tool contracts without a new dependency. */
+function schemaErrors(value, schema, path = '$') {
+  const errors = []
+  const type = schema.type
+  const matches = type === 'object'
+    ? value !== null && typeof value === 'object' && !Array.isArray(value)
+    : type === 'array'
+      ? Array.isArray(value)
+      : type === 'string'
+        ? typeof value === 'string'
+        : type === 'boolean'
+          ? typeof value === 'boolean'
+          : type === 'integer'
+            ? Number.isInteger(value)
+            : type === 'number'
+              ? typeof value === 'number' && Number.isFinite(value)
+              : true
+  if (!matches) return [`${path} must be ${type}`]
+  if (type === 'object') {
+    for (const key of schema.required ?? []) {
+      if (!Object.hasOwn(value, key)) errors.push(`${path}.${key} is required`)
+    }
+    for (const [key, item] of Object.entries(value)) {
+      const child = schema.properties?.[key]
+      if (child === undefined) {
+        if (schema.additionalProperties === false) errors.push(`${path}.${key} is not allowed`)
+        continue
+      }
+      errors.push(...schemaErrors(item, child, `${path}.${key}`))
+    }
+  } else if (type === 'array' && schema.items !== undefined) {
+    value.forEach((item, index) => errors.push(...schemaErrors(item, schema.items, `${path}[${index}]`)))
+  }
+  return errors
+}
+
+function assertOutput(value, schema) {
+  assert.deepEqual(schemaErrors(value, schema), [])
+}
+
 test('state returns the draft and the history', async () => {
   await harness(async ({ store, tools }) => {
     await store.putDraft('s1', { prompt: 'hi' }, 0)
@@ -61,6 +101,21 @@ test('edit merges a patch and reports the new revision', async () => {
   })
 })
 
+test('state and edit outputs satisfy their declared schemas with editing flags', async () => {
+  await harness(async ({ tools }) => {
+    const box = {
+      x: 0.1, y: 0.2, width: 0.3, height: 0.4, type: 'obj', text: '', desc: 'a box', palette: [],
+      locked: true, hidden: true,
+    }
+    const edited = await tools.moss_studio_edit.execute({ sessionId: 's1', patch: { boxes: [box] } }, exec())
+    assertOutput(edited, tools.moss_studio_edit.output.schema)
+    const state = await tools.moss_studio_state.execute({ sessionId: 's1' }, exec())
+    assertOutput(state, tools.moss_studio_state.output.schema)
+    assert.equal(state.params.boxes[0].locked, true)
+    assert.equal(state.params.boxes[0].hidden, true)
+  })
+})
+
 test('a stale revision is reported as a conflict, not an error', async () => {
   await harness(async ({ tools }) => {
     await tools.moss_studio_edit.execute({ sessionId: 's1', patch: { prompt: 'a' } }, exec())
@@ -81,6 +136,7 @@ test('generate uses the draft plus overrides', async () => {
     assert.equal(calls.length, 1)
     assert.equal(calls[0].params.prompt, 'base')
     assert.equal(calls[0].params.steps, 40)
+    assertOutput(value, tools.moss_studio_generate.output.schema)
     const blocks = tools.moss_studio_generate.output.render({}, value)
     assert.match(blocks[0].text, /已出图 512×512/)
   })
@@ -105,15 +161,18 @@ test('history lists, loads a record into the draft, and deletes it', async () =>
     const list = await tools.moss_studio_history.execute({ action: 'list' }, exec())
     assert.equal(list.ok, true)
     assert.equal(list.records.length, 1)
+    assertOutput(list, tools.moss_studio_history.output.schema)
 
     const loaded = await tools.moss_studio_history.execute({ action: 'load', recordId: record.id, sessionId: 's1' }, exec())
     assert.equal(loaded.ok, true)
+    assertOutput(loaded, tools.moss_studio_history.output.schema)
     assert.equal(loaded.record.params.prompt, 'from record')
     const draft = await store.draft('s1')
     assert.equal(draft.params.steps, 9)
 
     const removed = await tools.moss_studio_history.execute({ action: 'delete', recordId: record.id }, exec())
     assert.equal(removed.ok, true)
+    assertOutput(removed, tools.moss_studio_history.output.schema)
     assert.equal((await store.listRecords({ limit: 5 })).length, 0)
   })
 })
@@ -148,15 +207,19 @@ test('history can pin and archive a record', async () => {
     assert.equal(pinned.ok, true)
     assert.equal(pinned.record.pinned, true)
     assert.deepEqual(pinned.pinned.map((row) => row.id), [record.id])
+    assertOutput(pinned, tools.moss_studio_history.output.schema)
 
     const archived = await tools.moss_studio_history.execute({ action: 'archive', recordId: record.id }, exec())
     assert.equal(archived.record.archived, true)
     assert.deepEqual(archived.pinned.map((row) => row.id), [])
+    assertOutput(archived, tools.moss_studio_history.output.schema)
 
     const listed = await tools.moss_studio_history.execute({ action: 'list' }, exec())
     assert.deepEqual(listed.records.map((row) => row.id), [])
+    assertOutput(listed, tools.moss_studio_history.output.schema)
     const withArchived = await tools.moss_studio_history.execute({ action: 'list', includeArchived: true }, exec())
     assert.deepEqual(withArchived.records.map((row) => row.id), [record.id])
+    assertOutput(withArchived, tools.moss_studio_history.output.schema)
   })
 })
 
@@ -165,5 +228,20 @@ test('generate refuses an override outside the parameter ranges', async () => {
     const result = await tools.moss_studio_generate.execute({ overrides: { size: '100x100' } }, exec())
     assert.equal(result.ok, false)
     assert.match(result.note, /multiples of 16|0.25/)
+  })
+})
+
+test('invalid box geometry is rejected before edit persistence or generation', async () => {
+  await harness(async ({ tools, store, calls }) => {
+    const boxes = [{ x: 0.9, y: 0.1, width: 0.2, height: 0.2, type: 'obj', desc: 'thing', palette: [] }]
+    await assert.rejects(
+      tools.moss_studio_edit.execute({ sessionId: 's1', patch: { boxes } }, exec()),
+      /right canvas edge/,
+    )
+    assert.equal((await store.draft('s1')).revision, 0)
+    const generated = await tools.moss_studio_generate.execute({ sessionId: 's1', overrides: { boxes } }, exec())
+    assert.equal(generated.ok, false)
+    assert.match(generated.note, /right canvas edge/)
+    assert.equal(calls.length, 0)
   })
 })

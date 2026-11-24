@@ -258,6 +258,223 @@ test('the panel renders history, parameters and the result image once state arri
   assert.match(download.getAttribute('href'), /\/image\/rec-1/)
 })
 
+async function mountPanel(t, fetchImpl, globals = {}) {
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:57529/' })
+  const saved = {}
+  const keys = ['window', 'document', 'HTMLElement', 'Node', 'MouseEvent', 'KeyboardEvent', 'getComputedStyle', 'fetch', ...Object.keys(globals)]
+  for (const key of new Set(keys)) {
+    saved[key] = Object.getOwnPropertyDescriptor(globalThis, key)
+    const value = Object.hasOwn(globals, key) ? globals[key] : key === 'window' ? dom.window : dom.window[key]
+    Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
+  }
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  dom.window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }
+  globalThis.ResizeObserver = dom.window.ResizeObserver
+  globalThis.fetch = fetchImpl
+
+  let root
+  t.after(async () => {
+    try {
+      const { act } = require('react-dom/test-utils')
+      if (root !== undefined) await act(async () => { root.unmount() })
+    } catch { /* already unmounted */ }
+    for (const [key, descriptor] of Object.entries(saved)) {
+      if (descriptor === undefined) delete globalThis[key]
+      else Object.defineProperty(globalThis, key, descriptor)
+    }
+    dom.window.close()
+  })
+
+  const registrations = loadRegistration(dom.window)
+  const Panel = registrations.find((entry) => entry.definition.name === 'sidebar.right.pane.tab').component
+  const { createRoot } = require('react-dom/client')
+  const { act } = require('react-dom/test-utils')
+  const container = dom.window.document.getElementById('root')
+  root = createRoot(container)
+  await act(async () => {
+    root.render(React.createElement(Panel, { sessionId: 'sess-1' }))
+    await new Promise((resolve) => setTimeout(resolve, 80))
+  })
+  return { dom, container, act }
+}
+
+function panelState(params, revision = 1) {
+  return { ok: true, sessionId: 'sess-1', revision, updatedAt: Date.now(), params, records: [], pinned: [], nextBefore: null }
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+}
+
+async function inputValue(dom, act, element, value) {
+  const setter = element.tagName === 'TEXTAREA'
+    ? Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value').set
+    : Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set
+  await act(async () => {
+    setter.call(element, value)
+    element.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+}
+
+test('debounced saves accumulate edits to different fields', async (t) => {
+  const server = { prompt: 'old', negative: 'bad', boxes: [], size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false }
+  let revision = 1
+  const puts = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, revision))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      const body = JSON.parse(init.body)
+      puts.push(body)
+      Object.assign(server, body.patch)
+      revision += 1
+      return jsonResponse({ ok: true, revision })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'new prompt')
+  const steps = [...container.querySelectorAll('input[type=number]')].find((node) => node.value === '25')
+  await inputValue(dom, act, steps, '30')
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)) })
+
+  assert.equal(puts.length, 1, 'one debounced request carries both edits')
+  assert.equal(puts[0].patch.prompt, 'new prompt')
+  assert.equal(puts[0].patch.steps, 30)
+  assert.equal(server.prompt, 'new prompt')
+  assert.equal(server.steps, 30)
+})
+
+test('current-seed generation waits for the latest draft save', async (t) => {
+  const server = { prompt: 'old', negative: 'bad', boxes: [], size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false }
+  let revision = 1
+  const order = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, revision))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      order.push('save')
+      Object.assign(server, JSON.parse(init.body).patch)
+      revision += 1
+      return jsonResponse({ ok: true, revision })
+    }
+    if (target.endsWith('/generate') && init.method === 'POST') {
+      order.push({ generate: JSON.parse(init.body) })
+      return jsonResponse({ ok: false, message: 'stop after capture' }, 400)
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'latest prompt')
+  const button = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
+  await act(async () => {
+    button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  })
+
+  assert.equal(order[0], 'save', 'the draft is persisted before generation')
+  assert.equal(order[1].generate.revision, 2, 'generation uses the acknowledged revision')
+  assert.equal(server.prompt, 'latest prompt')
+})
+
+test('a server refresh while dirty cannot advance the revision used by autosave', async (t) => {
+  const server = { prompt: 'old', negative: 'bad', boxes: [], size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false }
+  let revision = 1
+  let source
+  let conflicts = 1
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const puts = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, revision))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      const body = JSON.parse(init.body)
+      puts.push(body)
+      if (conflicts > 0) {
+        conflicts -= 1
+        return jsonResponse({ ok: false, revision, params: server, message: 'conflict' }, 409)
+      }
+      Object.assign(server, body.patch)
+      revision = body.revision + 1
+      return jsonResponse({ ok: true, revision })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'local prompt')
+  server.prompt = 'AI prompt'
+  revision = 2
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'draft', sessionId: 'sess-1' }) })
+    await new Promise((resolve) => setTimeout(resolve, 650))
+  })
+
+  assert.equal(puts.length, 1)
+  assert.equal(puts[0].revision, 1, 'autosave still conflicts with the AI revision instead of overwriting it')
+  assert.equal(puts[0].patch.prompt, 'local prompt')
+  assert.equal(container.querySelector('textarea').value, 'local prompt', 'the local edit stays visible after the conflict')
+  assert.equal(server.prompt, 'AI prompt')
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'local prompt resolved')
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)) })
+  assert.equal(puts.length, 2, 'a new explicit edit retries the accumulated patch')
+  assert.equal(puts[1].revision, 2, 'the retry uses the revision returned by the conflict')
+  assert.equal(puts[1].patch.prompt, 'local prompt resolved')
+  assert.equal(server.prompt, 'local prompt resolved')
+})
+
+test('cancelling the editor queues its snapshot after an in-flight save', async (t) => {
+  const server = {
+    prompt: 'p', negative: 'bad', size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false,
+    boxes: [{ x: 0.1, y: 0.1, width: 0.3, height: 0.3, type: 'obj', desc: 'a', palette: [], locked: false, hidden: false }],
+  }
+  let revision = 1
+  let resolveFirst
+  const firstResponse = new Promise((resolve) => { resolveFirst = resolve })
+  const puts = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, revision))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      const body = JSON.parse(init.body)
+      puts.push(body)
+      if (puts.length === 1) return firstResponse
+      Object.assign(server, body.patch)
+      revision = body.revision + 1
+      return jsonResponse({ ok: true, revision })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  const open = [...container.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '编辑布局')
+  await act(async () => { open.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  const lock = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '锁定（避免误拖）')
+  await act(async () => {
+    lock.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 650))
+  })
+  assert.equal(puts.length, 1, 'the layout edit has reached the server')
+
+  const cancel = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '取消')
+  await act(async () => { cancel.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  await act(async () => {
+    resolveFirst(jsonResponse({ ok: true, revision: 2 }))
+    await new Promise((resolve) => setTimeout(resolve, 700))
+  })
+
+  assert.equal(puts.length, 2, 'the cancel snapshot is saved after the older request')
+  assert.equal(puts[1].revision, 2, 'it uses the revision acknowledged by the first save')
+  assert.equal(puts[1].patch.boxes[0].locked, false, 'the cancelled lock change is gone')
+  assert.equal(server.boxes[0].locked, false)
+})
+
 test('the wide layout puts the result in its own column', async (t) => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:57529/' })
   const saved = {}

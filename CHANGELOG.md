@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.7.2
+
+First repair batch after the second review.
+
+**The add-box crash is gone**
+
+- The toolbar button no longer forwards its React `SyntheticEvent` as box
+  geometry. The editor also accepts only a plain, finite `{x,y,width,height}`
+  object from either entry point, so a DOM target can never reach the draft and
+  fail `JSON.stringify` with a React Fiber / `SVGPathElement` circular reference.
+
+**Saving and generating now use the same draft**
+
+- Debounced edits accumulate into one patch instead of dropping earlier fields:
+  changing prompt and steps within 500ms now saves both.
+- Saves are serialized. Cancel/load replaces the whole draft and queues that
+  snapshot after any older request, using the revision it acknowledged.
+- A server refresh while local edits are dirty no longer advances the revision
+  used by autosave, so an old local box list cannot silently overwrite an AI
+  update. A 409 keeps local edits visible and requires a new explicit edit
+  before retrying on the server's revision.
+- Current-seed generation waits for all pending saves; it can no longer submit
+  an old draft and update the panel half a second later.
+
+**Editor boundaries**
+
+- Duplicating respects the 24-box cap, including the last allowed slot.
+- Hidden boxes no longer count as unfinished or block generation with an empty
+  description; they still count toward the draft's 24-box storage/editor cap.
+- Undo coalescing is keyed by box/field/axis, so independent nudges do not
+  collapse into one step, and undo/redo/drag/add reset the merge window.
+- The inspector's aspect lock uses a ratio-aware feasible interval instead of
+  clamping width and height independently.
+- Distributing heavily overlapping boxes leaves the layout unchanged rather
+  than producing negative gaps and off-canvas coordinates.
+- Minimum-size boxes drawn against the right or bottom edge are clamped back
+  inside the frame.
+
+**Host and tool contracts**
+
+- Tool schemas now declare `locked`/`hidden` on boxes and `pinned` on history
+  results, matching the values actually returned. The host validates tool
+  output against these schemas.
+- Box geometry is validated before persistence or generation: every coordinate
+  and size is in 0..1, width/height are positive, and the rectangle stays inside
+  the canvas.
+
+Regression coverage grew from 135 to 157 tests, including real panel save/generate
+transactions, actual tool-output schema validation, and the editor/geometry
+cases above.
+
 ## 0.7.1
 
 A review of 0.7.0 turned up one class of bug (state that undo did not carry) and
@@ -265,7 +316,7 @@ First public release. Everything below is in this version.
 
 ### Known limitations
 
-- UI copy is Chinese only; `locale/*.json` carries display metadata for the plugin page.
+- UI copy follows the host locale (Chinese and English); `locale/*.json` carries display metadata for the plugin page.
 - One generation at a time across all sessions; the panel says which session holds the pipeline.
 - Thumbnails use the original image.
 - The workflow template is fixed to the nodes its injector knows; changing it requires editing `cordis.patch.yml` and restarting.

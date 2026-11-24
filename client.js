@@ -796,6 +796,7 @@ function distributeBoxes(boxes, indices, axis) {
   const span = last[startKey] + last[sizeKey] - first[startKey];
   const total = ordered.reduce((sum, entry) => sum + entry.box[sizeKey], 0);
   const gap = (span - total) / (ordered.length - 1);
+  if (gap < 0) return boxes;
   let cursor = first[startKey];
   const placed = /* @__PURE__ */ new Map();
   for (const entry of ordered) {
@@ -828,11 +829,13 @@ function boxFromCorners(ax, ay, bx, by) {
   const top = clamp(Math.min(ay, by), 0, 1);
   const right = clamp(Math.max(ax, bx), 0, 1);
   const bottom = clamp(Math.max(ay, by), 0, 1);
+  const width = Math.max(MIN_SIZE, right - left);
+  const height = Math.max(MIN_SIZE, bottom - top);
   return {
-    x: left,
-    y: top,
-    width: Math.max(MIN_SIZE, right - left),
-    height: Math.max(MIN_SIZE, bottom - top)
+    x: clamp(left, 0, 1 - width),
+    y: clamp(top, 0, 1 - height),
+    width,
+    height
   };
 }
 function boxProblem(box) {
@@ -842,7 +845,7 @@ function boxProblem(box) {
 }
 function boxesProblem(boxes, max = MAX_BOXES) {
   const list = Array.isArray(boxes) ? boxes : [];
-  const index = list.findIndex((box) => boxProblem(box) !== void 0);
+  const index = list.findIndex((box) => box?.hidden !== true && boxProblem(box) !== void 0);
   if (index >= 0) return { reason: boxProblem(list[index]), index };
   if (list.length > max) return { reason: "count" };
   return void 0;
@@ -863,6 +866,17 @@ function labelMetrics(widthPx, heightPx) {
   const usable = heightPx - 18;
   const lines = Math.max(1, Math.min(6, Math.floor(usable / (fontSize * 1.35))));
   return { show: lines >= 1, fontSize, lines };
+}
+function aspectSizePatch(box, dimension, value) {
+  if (dimension !== "width" && dimension !== "height" || !Number.isFinite(value)) return {};
+  const ratio = box.width / box.height;
+  if (!Number.isFinite(ratio) || !(ratio > 0)) return {};
+  const minWidth = MIN_SIZE * Math.max(1, ratio);
+  const maxWidth = Math.min(1, ratio);
+  if (minWidth > maxWidth) return {};
+  const wantedWidth = dimension === "height" ? value * ratio : value;
+  const width = clamp(wantedWidth, minWidth, maxWidth);
+  return { width, height: width / ratio };
 }
 function updateBoxGeometry(box, patch) {
   const width = clamp(Number.isFinite(patch.width) ? patch.width : box.width, MIN_SIZE, 1);
@@ -1575,10 +1589,16 @@ function toSet(value) {
 function toText(set) {
   return [...set].sort((a, b) => a - b).join(",");
 }
+function geometryOnly(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return void 0;
+  const { x, y, width, height } = value;
+  return [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : void 0;
+}
 function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const boxes = params.boxes ?? [];
   const characters = (0, import_react6.useMemo)(() => toSet(params.characterBoxes), [params.characterBoxes]);
-  const budget = typeof window === "undefined" ? 520 : Math.min(560, Math.max(260, Math.round(window.innerHeight * 0.58)));
+  const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight;
+  const budget = Number.isFinite(viewportHeight) ? Math.min(560, Math.max(260, Math.round(viewportHeight * 0.58))) : 520;
   const [selection, setSelection] = (0, import_react6.useState)([]);
   const [lockAspect, setLockAspect] = (0, import_react6.useState)(false);
   const [notice, setNotice] = (0, import_react6.useState)("");
@@ -1588,6 +1608,11 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     index: 0
   }));
   const lastCommitRef = (0, import_react6.useRef)(0);
+  const lastCoalesceKeyRef = (0, import_react6.useRef)(null);
+  const resetCoalesce = (0, import_react6.useCallback)(() => {
+    lastCommitRef.current = 0;
+    lastCoalesceKeyRef.current = null;
+  }, []);
   const pushHistory = (0, import_react6.useCallback)((snapshot, coalesce) => {
     setHistory((current) => {
       const stack = current.stack.slice(0, current.index + 1);
@@ -1609,13 +1634,17 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     return toText(kept);
   }, []);
   const applySnapshot = (0, import_react6.useCallback)((snapshot) => {
+    resetCoalesce();
     charactersRef.current = snapshot.characters;
     onApply(snapshot.boxes, snapshot.characters);
-  }, [onApply]);
+  }, [onApply, resetCoalesce]);
   const commit = (0, import_react6.useCallback)((nextBoxes, options = {}) => {
     const now = Date.now();
-    const coalesce = options.coalesce === true && now - lastCommitRef.current < COALESCE_MS;
+    const key = options.coalesceKey;
+    const eligible = options.coalesce === true && typeof key === "string" && key !== "";
+    const coalesce = eligible && now - lastCommitRef.current < COALESCE_MS && lastCoalesceKeyRef.current === key;
     lastCommitRef.current = now;
+    lastCoalesceKeyRef.current = eligible ? key : null;
     const characters2 = options.characters ?? charactersRef.current;
     charactersRef.current = characters2;
     onApply(nextBoxes, characters2);
@@ -1638,7 +1667,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const allLocked = selection.length > 0 && selection.every((index) => boxes[index]?.locked === true);
   const allHidden = selection.length > 0 && selection.every((index) => boxes[index]?.hidden === true);
   const movable = selection.filter((index) => boxes[index]?.locked !== true);
-  const incomplete = boxes.filter((box) => boxProblem(box) !== void 0).length;
+  const incomplete = boxes.filter((box) => box.hidden !== true && boxProblem(box) !== void 0).length;
   (0, import_react6.useEffect)(() => {
     setSelection((current) => current.filter((index) => index < boxes.length));
   }, [boxes.length]);
@@ -1650,30 +1679,41 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     setSelection([]);
   }, [boxes, charactersAfter, commit]);
   const duplicate = (0, import_react6.useCallback)(() => {
-    if (selection.length === 0) return;
-    const result = duplicateBoxes(boxes, selection);
+    const indices = [...new Set(selection.filter((index) => Number.isInteger(index) && index >= 0 && index < boxes.length))];
+    if (indices.length === 0) return;
+    if (boxes.length + indices.length > MAX_BOXES) {
+      setNotice(t("editor.limit", { max: MAX_BOXES }));
+      return;
+    }
+    setNotice("");
+    const result = duplicateBoxes(boxes, indices);
     commit(result.boxes);
     setSelection(result.added);
   }, [boxes, commit, selection]);
   const selectAll = (0, import_react6.useCallback)(() => setSelection(boxes.map((_, index) => index)), [boxes]);
   const record = (0, import_react6.useCallback)((result) => {
+    resetCoalesce();
     if (result === void 0 || result === null || !Array.isArray(result.boxes)) return;
     const characters2 = result.characters ?? charactersRef.current;
     charactersRef.current = characters2;
     pushHistory({ boxes: result.boxes, characters: characters2 }, false);
     if (typeof result.index === "number" && result.index >= 0) setSelection([result.index]);
-  }, [pushHistory]);
+  }, [pushHistory, resetCoalesce]);
   const addAt = (0, import_react6.useCallback)((geometry) => {
     if (boxes.length >= MAX_BOXES) {
       setNotice(t("editor.limit", { max: MAX_BOXES }));
       return;
     }
     setNotice("");
-    record(onAdd?.(geometry));
+    record(onAdd?.(geometryOnly(geometry)));
   }, [boxes.length, onAdd, record]);
   const nudge = (0, import_react6.useCallback)((dx, dy) => {
     if (movable.length === 0) return;
-    commit(moveBoxes(boxes, movable, dx, dy), { coalesce: true });
+    const axis = dx === 0 ? "y" : "x";
+    commit(moveBoxes(boxes, movable, dx, dy), {
+      coalesce: true,
+      coalesceKey: `nudge:${movable.join(",")}:${axis}`
+    });
   }, [boxes, commit, movable]);
   const move = (0, import_react6.useCallback)((mode) => {
     if (movable.length === 0) return;
@@ -1683,9 +1723,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     if (movable.length < 3) return;
     commit(distributeBoxes(boxes, movable, axis));
   }, [boxes, commit, movable]);
-  const patchBox = (0, import_react6.useCallback)((index, patch, coalesce = false) => {
+  const patchBox = (0, import_react6.useCallback)((index, patch, options = {}) => {
     const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : { ...box, locked: box.locked === true, hidden: box.hidden === true });
-    commit(next, { coalesce });
+    commit(next, options.coalesceKey === void 0 ? options : { ...options, coalesce: true });
   }, [boxes, commit]);
   const setFlagFor = (0, import_react6.useCallback)((key, value) => {
     commit(boxes.map((box, index) => selection.includes(index) ? { ...box, [key]: value } : box));
@@ -1817,7 +1857,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("editor.title", { count: boxes.length, size: params.size })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canUndo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canUndo, title: t("editor.undo"), "aria-label": t("editor.undo"), onClick: undo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "undo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canRedo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canRedo, title: t("editor.redo"), "aria-label": t("editor.redo"), onClick: redo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "redo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.addBoxTitle"), "aria-label": t("editor.addBox"), onClick: addAt }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("action.done"), "aria-label": t("action.done"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("action.cancel"), title: t("editor.cancelTitle") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("editor.title", { count: boxes.length, size: params.size })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canUndo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canUndo, title: t("editor.undo"), "aria-label": t("editor.undo"), onClick: undo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "undo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canRedo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canRedo, title: t("editor.redo"), "aria-label": t("editor.redo"), onClick: redo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "redo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.addBoxTitle"), "aria-label": t("editor.addBox"), onClick: () => addAt() }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("action.done"), "aria-label": t("action.done"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("action.cancel"), title: t("editor.cancelTitle") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
       notice !== "" ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { padding: "4px 12px", fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, notice) : null,
       /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react6.default.createElement(
         BoxCanvas,
@@ -1891,17 +1931,8 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           onChange: (event) => {
             const next = event.target.value === "" ? 0 : Number(event.target.value);
             if (!Number.isFinite(next)) return;
-            if (field === "width" || field === "height") {
-              if (lockAspect) {
-                const ratio = primary3.width / primary3.height;
-                const scaled = field === "width" ? { width: next / 100, height: next / 100 / ratio } : { height: next / 100, width: next / 100 * ratio };
-                patchBox(primaryIndex, scaled, true);
-              } else {
-                patchBox(primaryIndex, { [field]: next / 100 }, true);
-              }
-            } else {
-              patchBox(primaryIndex, { [field]: next / 100 }, true);
-            }
+            const patch = lockAspect && (field === "width" || field === "height") ? aspectSizePatch(primary3, field, next / 100) : { [field]: next / 100 };
+            patchBox(primaryIndex, patch, { coalesceKey: `box:${primaryIndex}:${field}` });
           },
           style: numberInput
         }
@@ -1995,11 +2026,10 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             "textarea",
             {
               value: box.type === "text" ? box.text ?? "" : box.desc ?? "",
-              onChange: (event) => patchBox(
-                index,
-                box.type === "text" ? { text: event.target.value } : { desc: event.target.value },
-                true
-              ),
+              onChange: (event) => {
+                const field = box.type === "text" ? "text" : "desc";
+                patchBox(index, { [field]: event.target.value }, { coalesceKey: `box:${index}:${field}` });
+              },
               placeholder: box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
               "aria-label": box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
               rows: 3,
@@ -8013,15 +8043,23 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [revision, setRevision] = (0, import_react14.useState)(0);
   const dirtyRef = (0, import_react14.useRef)(false);
   const saveTimer = (0, import_react14.useRef)(null);
+  const pendingPatchRef = (0, import_react14.useRef)({});
+  const savingRef = (0, import_react14.useRef)(false);
+  const savePromiseRef = (0, import_react14.useRef)(null);
+  const conflictRef = (0, import_react14.useRef)(false);
+  const localEpochRef = (0, import_react14.useRef)(0);
   const paramsRef = (0, import_react14.useRef)(null);
   const editorSnapshot = (0, import_react14.useRef)(null);
   const pinnedRef = (0, import_react14.useRef)(false);
   const [imageBroken, setImageBroken] = (0, import_react14.useState)(false);
   paramsRef.current = params;
   const applyServerState = (0, import_react14.useCallback)((state) => {
-    revisionRef.current = state.revision;
+    if (!dirtyRef.current) {
+      revisionRef.current = state.revision;
+      paramsRef.current = state.params;
+      setParams(state.params);
+    }
     setRevision(state.revision);
-    if (!dirtyRef.current) setParams(state.params);
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
@@ -8190,40 +8228,94 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [resizing]);
-  const flush = (0, import_react14.useCallback)(async (patch) => {
+  const flush = (0, import_react14.useCallback)(async () => {
+    if (saveTimer.current !== null) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (conflictRef.current) return false;
+    if (savingRef.current) {
+      const saved = await savePromiseRef.current;
+      if (!saved || conflictRef.current) return false;
+      return flush();
+    }
+    const patch = pendingPatchRef.current;
+    pendingPatchRef.current = {};
+    if (Object.keys(patch).length === 0) return true;
+    const epoch = localEpochRef.current;
+    savingRef.current = true;
     setSaving(true);
-    try {
-      const { status, body } = await putDraft(sessionId, patch, revisionRef.current);
-      if (status === 409 && body !== null) {
-        revisionRef.current = body.revision;
-        setRevision(body.revision);
-        dirtyRef.current = false;
-        setParams(body.params);
-        setNotice(t("notice.draftSyncedFromAi"));
-      } else if (status === 200 && body !== null) {
-        revisionRef.current = body.revision;
-        setRevision(body.revision);
-        dirtyRef.current = false;
-        setError("");
-      } else {
+    const task = (async () => {
+      try {
+        const { status, body } = await putDraft(sessionId, patch, revisionRef.current);
+        if (status === 409 && body !== null) {
+          revisionRef.current = body.revision;
+          setRevision(body.revision);
+          pendingPatchRef.current = { ...patch, ...pendingPatchRef.current };
+          dirtyRef.current = true;
+          conflictRef.current = true;
+          setNotice(t("notice.draftChanged"));
+          return false;
+        }
+        if (status === 200 && body !== null) {
+          revisionRef.current = body.revision;
+          setRevision(body.revision);
+          if (epoch === localEpochRef.current && Object.keys(pendingPatchRef.current).length === 0) {
+            dirtyRef.current = false;
+            setError("");
+          }
+          return true;
+        }
+        pendingPatchRef.current = { ...patch, ...pendingPatchRef.current };
+        dirtyRef.current = true;
         setError(body?.message ?? t("error.save", { status }));
+        return false;
+      } catch (problem) {
+        pendingPatchRef.current = { ...patch, ...pendingPatchRef.current };
+        dirtyRef.current = true;
+        setError(problem instanceof Error ? problem.message : String(problem));
+        return false;
       }
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : String(problem));
+    })();
+    savePromiseRef.current = task;
+    try {
+      return await task;
     } finally {
+      savingRef.current = false;
+      savePromiseRef.current = null;
       setSaving(false);
     }
   }, [sessionId]);
+  const flushAll = (0, import_react14.useCallback)(async () => {
+    let saved = await flush();
+    while (saved && Object.keys(pendingPatchRef.current).length > 0) saved = await flush();
+    return saved;
+  }, [flush]);
   const update = (0, import_react14.useCallback)((patch) => {
-    setParams((current) => {
-      const next = { ...current, ...patch };
-      dirtyRef.current = true;
-      if (saveTimer.current !== null) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        void flush(patch);
-      }, SAVE_DELAY_MS);
-      return next;
-    });
+    const next = { ...paramsRef.current ?? {}, ...patch };
+    paramsRef.current = next;
+    setParams(next);
+    pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
+    localEpochRef.current += 1;
+    dirtyRef.current = true;
+    conflictRef.current = false;
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void flush();
+    }, SAVE_DELAY_MS);
+  }, [flush]);
+  const replaceDraft = (0, import_react14.useCallback)((next, message) => {
+    paramsRef.current = next;
+    setParams(next);
+    pendingPatchRef.current = { ...next };
+    localEpochRef.current += 1;
+    dirtyRef.current = true;
+    conflictRef.current = false;
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void flush();
+    }, SAVE_DELAY_MS);
+    if (message !== void 0) setNotice(message);
   }, [flush]);
   const [widthText, setWidthText] = (0, import_react14.useState)("1024");
   const [heightText, setHeightText] = (0, import_react14.useState)("1024");
@@ -8274,14 +8366,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const snapshot = editorSnapshot.current;
     setEditorOpen(false);
     if (snapshot === null) return;
-    dirtyRef.current = true;
-    setParams(snapshot);
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void flush(snapshot);
-    }, SAVE_DELAY_MS);
-    setNotice(t("notice.layoutReverted"));
-  }, [flush]);
+    replaceDraft(snapshot, t("notice.layoutReverted"));
+  }, [replaceDraft]);
   const waitForCompletion = (0, import_react14.useCallback)(async () => {
     const started = Date.now();
     while (Date.now() - started < 6e5) {
@@ -8316,6 +8402,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setError("");
     setNotice(t("notice.generationSubmitted"));
     try {
+      const saved = await flushAll();
+      if (!saved) return;
       const { status, body } = await generate(sessionId, revisionRef.current);
       if (status === 409 && body !== null) {
         revisionRef.current = body.revision;
@@ -8339,7 +8427,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } finally {
       setBusy(false);
     }
-  }, [busy, sessionId, waitForCompletion]);
+  }, [busy, flushAll, sessionId, waitForCompletion]);
   const retryRecord = (0, import_react14.useCallback)(async (record) => {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
@@ -8397,14 +8485,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   }, [activeRecordId]);
   const loadRecord = (0, import_react14.useCallback)(() => {
     if (activeRecord === null) return;
-    setParams(activeRecord.params);
-    dirtyRef.current = true;
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void flush(activeRecord.params);
-    }, SAVE_DELAY_MS);
-    setNotice(t("notice.recordLoaded", { id: activeRecord.id }));
-  }, [activeRecord, flush]);
+    replaceDraft(activeRecord.params, t("notice.recordLoaded", { id: activeRecord.id }));
+  }, [activeRecord, replaceDraft]);
   const removeRecordById = (0, import_react14.useCallback)(async (id) => {
     try {
       const { status, body } = await deleteRecord(id);

@@ -6,6 +6,7 @@ import { IconCheckbox } from './IconCheckbox.jsx'
 import {
   MAX_BOXES,
   alignBoxes,
+  aspectSizePatch,
   boxProblem,
   distributeBoxes,
   duplicateBoxes,
@@ -66,6 +67,13 @@ function toText(set) {
   return [...set].sort((a, b) => a - b).join(',')
 }
 
+/** Strip anything that is not a complete geometry object before it reaches the host. */
+function geometryOnly(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const { x, y, width, height } = value
+  return [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : undefined
+}
+
 /**
  * The layout editor is a modal because the panel is too narrow to place boxes
  * comfortably. The panel keeps a read-only preview; every edit happens here and
@@ -77,12 +85,15 @@ function toText(set) {
  *
  * @param {object} props
  * @param {(boxes: object[], characters?: string) => void} props.onApply
- * @param {(geometry?: object) => number} props.onAdd - returns the new index
+ * @param {(geometry?: object) => ({ boxes: object[], index?: number, characters?: string } | void)} props.onAdd
  */
 export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const boxes = params.boxes ?? []
   const characters = useMemo(() => toSet(params.characterBoxes), [params.characterBoxes])
-  const budget = typeof window === 'undefined' ? 520 : Math.min(560, Math.max(260, Math.round(window.innerHeight * 0.58)))
+  const viewportHeight = typeof window === 'undefined' ? 0 : window.innerHeight
+  const budget = Number.isFinite(viewportHeight)
+    ? Math.min(560, Math.max(260, Math.round(viewportHeight * 0.58)))
+    : 520
 
   const [selection, setSelection] = useState([])
   const [lockAspect, setLockAspect] = useState(false)
@@ -99,6 +110,12 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     index: 0,
   }))
   const lastCommitRef = useRef(0)
+  const lastCoalesceKeyRef = useRef(null)
+
+  const resetCoalesce = useCallback(() => {
+    lastCommitRef.current = 0
+    lastCoalesceKeyRef.current = null
+  }, [])
 
   const pushHistory = useCallback((snapshot, coalesce) => {
     setHistory((current) => {
@@ -126,14 +143,18 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   }, [])
 
   const applySnapshot = useCallback((snapshot) => {
+    resetCoalesce()
     charactersRef.current = snapshot.characters
     onApply(snapshot.boxes, snapshot.characters)
-  }, [onApply])
+  }, [onApply, resetCoalesce])
 
   const commit = useCallback((nextBoxes, options = {}) => {
     const now = Date.now()
-    const coalesce = options.coalesce === true && now - lastCommitRef.current < COALESCE_MS
+    const key = options.coalesceKey
+    const eligible = options.coalesce === true && typeof key === 'string' && key !== ''
+    const coalesce = eligible && now - lastCommitRef.current < COALESCE_MS && lastCoalesceKeyRef.current === key
     lastCommitRef.current = now
+    lastCoalesceKeyRef.current = eligible ? key : null
     const characters = options.characters ?? charactersRef.current
     charactersRef.current = characters
     onApply(nextBoxes, characters)
@@ -160,7 +181,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const allHidden = selection.length > 0 && selection.every((index) => boxes[index]?.hidden === true)
   /** Locked boxes keep their place through moves, nudges, alignment and distribution. */
   const movable = selection.filter((index) => boxes[index]?.locked !== true)
-  const incomplete = boxes.filter((box) => boxProblem(box) !== undefined).length
+  const incomplete = boxes.filter((box) => box.hidden !== true && boxProblem(box) !== undefined).length
 
   useEffect(() => {
     // Drop indexes that no longer exist after a deletion or an undo.
@@ -176,8 +197,14 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   }, [boxes, charactersAfter, commit])
 
   const duplicate = useCallback(() => {
-    if (selection.length === 0) return
-    const result = duplicateBoxes(boxes, selection)
+    const indices = [...new Set(selection.filter((index) => Number.isInteger(index) && index >= 0 && index < boxes.length))]
+    if (indices.length === 0) return
+    if (boxes.length + indices.length > MAX_BOXES) {
+      setNotice(t('editor.limit', { max: MAX_BOXES }))
+      return
+    }
+    setNotice('')
+    const result = duplicateBoxes(boxes, indices)
     commit(result.boxes)
     setSelection(result.added)
   }, [boxes, commit, selection])
@@ -191,12 +218,13 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
    * nothing or reverted an unrelated earlier edit.
    */
   const record = useCallback((result) => {
+    resetCoalesce()
     if (result === undefined || result === null || !Array.isArray(result.boxes)) return
     const characters = result.characters ?? charactersRef.current
     charactersRef.current = characters
     pushHistory({ boxes: result.boxes, characters }, false)
     if (typeof result.index === 'number' && result.index >= 0) setSelection([result.index])
-  }, [pushHistory])
+  }, [pushHistory, resetCoalesce])
 
   const addAt = useCallback((geometry) => {
     if (boxes.length >= MAX_BOXES) {
@@ -204,12 +232,16 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
       return
     }
     setNotice('')
-    record(onAdd?.(geometry))
+    record(onAdd?.(geometryOnly(geometry)))
   }, [boxes.length, onAdd, record])
 
   const nudge = useCallback((dx, dy) => {
     if (movable.length === 0) return
-    commit(moveBoxes(boxes, movable, dx, dy), { coalesce: true })
+    const axis = dx === 0 ? 'y' : 'x'
+    commit(moveBoxes(boxes, movable, dx, dy), {
+      coalesce: true,
+      coalesceKey: `nudge:${movable.join(',')}:${axis}`,
+    })
   }, [boxes, commit, movable])
 
   const move = useCallback((mode) => {
@@ -229,14 +261,14 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
    * the box first: passing a `desc` straight to it silently dropped the text,
    * which made the description field look read-only.
    */
-  const patchBox = useCallback((index, patch, coalesce = false) => {
+  const patchBox = useCallback((index, patch, options = {}) => {
     const next = boxes.map((box, position) => (
       position === index
         ? updateBoxGeometry({ ...box, ...patch }, patch)
         // Normalise the editing flags so every box carries both explicitly.
         : { ...box, locked: box.locked === true, hidden: box.hidden === true },
     ))
-    commit(next, { coalesce })
+    commit(next, options.coalesceKey === undefined ? options : { ...options, coalesce: true })
   }, [boxes, commit])
 
   /** Set a flag on every selected box, so the multi-selection controls act on all of them. */
@@ -391,7 +423,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             <button type="button" style={canRedo ? iconOnly : { ...iconOnly, ...disabledLook }} disabled={!canRedo} title={t('editor.redo')} aria-label={t('editor.redo')} onClick={redo}>
               <Icon name="redo" />
             </button>
-            <button type="button" style={iconOnly} title={t('editor.addBoxTitle')} aria-label={t('editor.addBox')} onClick={addAt}>
+            <button type="button" style={iconOnly} title={t('editor.addBoxTitle')} aria-label={t('editor.addBox')} onClick={() => addAt()}>
               <Icon name="add_box" />
             </button>
             <button type="button" style={iconOnly} title={t('action.done')} aria-label={t('action.done')} onClick={onClose}>
@@ -521,19 +553,10 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                         onChange={(event) => {
                           const next = event.target.value === '' ? 0 : Number(event.target.value)
                           if (!Number.isFinite(next)) return
-                          if (field === 'width' || field === 'height') {
-                            if (lockAspect) {
-                              const ratio = primary.width / primary.height
-                              const scaled = field === 'width'
-                                ? { width: next / 100, height: (next / 100) / ratio }
-                                : { height: next / 100, width: (next / 100) * ratio }
-                              patchBox(primaryIndex, scaled, true)
-                            } else {
-                              patchBox(primaryIndex, { [field]: next / 100 }, true)
-                            }
-                          } else {
-                            patchBox(primaryIndex, { [field]: next / 100 }, true)
-                          }
+                          const patch = lockAspect && (field === 'width' || field === 'height')
+                            ? aspectSizePatch(primary, field, next / 100)
+                            : { [field]: next / 100 }
+                          patchBox(primaryIndex, patch, { coalesceKey: `box:${primaryIndex}:${field}` })
                         }}
                         style={numberInput}
                       />
@@ -650,13 +673,10 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   // kind of box as the prompt: multi-line, drag the corner taller.
                   <textarea
                     value={box.type === 'text' ? (box.text ?? '') : (box.desc ?? '')}
-                    onChange={(event) => patchBox(
-                      index,
-                      box.type === 'text'
-                        ? { text: event.target.value }
-                        : { desc: event.target.value },
-                      true,
-                    )}
+                    onChange={(event) => {
+                      const field = box.type === 'text' ? 'text' : 'desc'
+                      patchBox(index, { [field]: event.target.value }, { coalesceKey: `box:${index}:${field}` })
+                    }}
                     placeholder={box.type === 'text' ? t('editor.kindTextHint') : t('editor.descPlaceholder')}
                     aria-label={box.type === 'text' ? t('editor.kindTextHint') : t('editor.descPlaceholder')}
                     rows={3}

@@ -34,11 +34,46 @@ test('sanitizeParams fills defaults for a full params object', () => {
 
 test('a box keeps its text and description', () => {
   const params = sanitizeParams({
-    boxes: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4, type: 'text', text: 'MOSS', desc: 'top line', palette: ['#fff', 7] }],
+    boxes: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4, type: 'text', text: 'MOSS', desc: 'top line', palette: ['#fff', 7], locked: true, hidden: true }],
   })
   assert.equal(params.boxes[0].type, 'text')
   assert.equal(params.boxes[0].text, 'MOSS')
   assert.deepEqual(params.boxes[0].palette, ['#fff'])
+  assert.equal(params.boxes[0].locked, true)
+  assert.equal(params.boxes[0].hidden, true)
+})
+
+test('sanitizeParams rejects box geometry outside the unit square', () => {
+  const box = { x: 0.1, y: 0.1, width: 0.2, height: 0.2, type: 'obj', desc: 'thing', palette: [] }
+  const invalid = [
+    [{ ...box, x: -0.01 }, /x must be between 0 and 1/],
+    [{ ...box, x: 1.01 }, /x must be between 0 and 1/],
+    [{ ...box, y: -0.01 }, /y must be between 0 and 1/],
+    [{ ...box, y: 1.01 }, /y must be between 0 and 1/],
+    [{ ...box, width: 0 }, /width must be greater than 0/],
+    [{ ...box, width: -0.1 }, /width must be between 0 and 1/],
+    [{ ...box, width: 1.01 }, /width must be between 0 and 1/],
+    [{ ...box, height: 0 }, /height must be greater than 0/],
+    [{ ...box, height: -0.1 }, /height must be between 0 and 1/],
+    [{ ...box, height: 1.01 }, /height must be between 0 and 1/],
+    [{ ...box, x: 0.9, width: 0.2 }, /right canvas edge/],
+    [{ ...box, y: 0.9, height: 0.2 }, /bottom canvas edge/],
+  ]
+  for (const [value, message] of invalid) {
+    assert.throws(() => sanitizeParams({ boxes: [value] }, { partial: true }), message)
+  }
+  assert.doesNotThrow(() => sanitizeParams({ boxes: [{ ...box, x: 0, y: 0, width: 1, height: 1 }] }, { partial: true }))
+  assert.doesNotThrow(() => sanitizeParams({ boxes: [{ ...box, x: 0.8, y: 0.8, width: 0.2, height: 0.2 }] }, { partial: true }))
+})
+
+test('an invalid box patch is rejected before it reaches disk', async () => {
+  await withStore(async (store) => {
+    const boxes = [{ x: 0.9, y: 0.1, width: 0.2, height: 0.2, type: 'obj', desc: 'thing', palette: [] }]
+    await assert.rejects(store.putDraft('s1', { boxes }, 0), /right canvas edge/)
+    const draft = await store.draft('s1')
+    assert.equal(draft.revision, 0)
+    assert.deepEqual(draft.params.boxes, [])
+  })
 })
 
 test('sessionKey is filesystem safe', () => {

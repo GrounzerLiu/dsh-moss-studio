@@ -6,15 +6,28 @@ import { createRequire } from 'node:module'
 
 import React from 'react'
 import { JSDOM } from 'jsdom'
+import { buildSync } from 'esbuild'
 
 const require = createRequire(import.meta.url)
-const bundlePath = fileURLToPath(new URL('../client.js', import.meta.url))
+const clientSource = (() => {
+  const built = buildSync({
+    entryPoints: [fileURLToPath(new URL('../src/client.jsx', import.meta.url))],
+    bundle: true,
+    write: false,
+    format: 'cjs',
+    platform: 'browser',
+    target: ['es2022'],
+    jsx: 'transform',
+    external: ['react', 'react-dom'],
+    logLevel: 'warning',
+  }).outputFiles[0].text
+  return `window.__ModuleLoader__.load({ id: 'test', factory(require) { const module = { exports: {} }; const exports = module.exports; (function(module, exports, require) { ${built}\n })(module, exports, require); return module.exports.createPlugin(); } })`
+})()
 
 function loadPlugin(windowLike) {
-  const source = readFileSync(bundlePath, 'utf8')
   let captured
   windowLike.__ModuleLoader__ = { load(entry) { captured = entry } }
-  new Function('window', 'require', source)(windowLike, require)
+  new Function('window', 'require', clientSource)(windowLike, require)
   return captured.factory(require)
 }
 
@@ -100,6 +113,7 @@ test('dragging on empty canvas draws a box and selects it', async (t) => {
   assert.ok(Math.abs(geometry.y - 0.25) < 1e-9)
   assert.ok(Math.abs(geometry.width - 0.25) < 1e-9)
   assert.ok(Math.abs(geometry.height - 0.375) < 1e-9)
+  assert.deepEqual(Object.keys(geometry).sort(), ['height', 'width', 'x', 'y'], 'the canvas callback carries only geometry')
 })
 
 test('a selected box shows eight resize handles', async (t) => {
@@ -360,6 +374,54 @@ async function mountEditor(t, params, extra = {}) {
   return { dom, act, root, calls, Editor }
 }
 
+async function mountControlledEditor(t, initial) {
+  const { dom, act, root, Editor } = setup(t)
+  const calls = []
+  let current = initial
+  function Host() {
+    const [value, setValue] = React.useState(initial)
+    current = value
+    return React.createElement(Editor, {
+      params: value,
+      onApply: (boxes, characters) => {
+        calls.push({ boxes, characters })
+        setValue((old) => ({ ...old, boxes, characterBoxes: characters ?? old.characterBoxes }))
+      },
+      onAdd: (geometry) => {
+        const boxes = [...current.boxes, { type: 'obj', x: 0.35, y: 0.35, width: 0.3, height: 0.3, desc: '', palette: [], ...geometry }]
+        const characters = current.characterBoxes ?? ''
+        setValue((old) => ({ ...old, boxes }))
+        return { boxes, index: boxes.length - 1, characters }
+      },
+      onClose: () => {},
+      onCancel: () => {},
+    })
+  }
+  await act(async () => { root.render(React.createElement(Host)) })
+  return { dom, act, root, calls, getParams: () => current }
+}
+
+function canvasBoxes(dom) {
+  return [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+}
+
+function selectBox(dom, index) {
+  const frame = canvasBoxes(dom)[index]
+  frame.dispatchEvent(new dom.window.MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 100, clientY: 100, button: 0 }))
+  dom.window.dispatchEvent(new dom.window.MouseEvent('pointerup', { bubbles: true, clientX: 100, clientY: 100, button: 0 }))
+}
+
+function press(dom, key, modifiers = {}) {
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...modifiers }))
+}
+
+function changeNumber(dom, input, value) {
+  const propsKey = Object.keys(input).find((key) => key.startsWith('__reactProps$'))
+  assert.ok(propsKey !== undefined, 'number input has a React change handler')
+  input[propsKey].onChange({ target: { value: String(value) } })
+}
+
 test('undo after deleting a box restores the character marks too', async (t) => {
   const boxes = [
     { type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'a', palette: [] },
@@ -510,4 +572,120 @@ test('the right button does not drag a box or draw one', async (t) => {
     dom.window.dispatchEvent(right('pointerup', { clientX: 120, clientY: 120, button: 2 }))
   })
   assert.equal(calls.length, 0, 'a right drag draws nothing')
+})
+
+test('the add button never forwards its click event as geometry', async (t) => {
+  const seen = []
+  const { dom, act } = await mountEditor(t, editorParams([]), {
+    onAdd: (geometry) => {
+      seen.push(geometry)
+      return { boxes: [{ type: 'obj', x: 0.35, y: 0.35, width: 0.3, height: 0.3, desc: '', palette: [] }], index: 0 }
+    },
+  })
+  const add = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '加框')
+  await act(async () => { add.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  assert.deepEqual(seen, [undefined], 'the host receives no SyntheticEvent')
+})
+
+test('duplicate refuses to exceed the box limit and reports the existing notice', async (t) => {
+  const boxes = Array.from({ length: 24 }, (_, index) => ({
+    type: 'obj', x: 0.05 + (index % 6) * 0.15, y: 0.05 + Math.floor(index / 6) * 0.2,
+    width: 0.1, height: 0.1, desc: `box ${index}`, palette: [],
+  }))
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'd', { ctrlKey: true }) })
+  assert.equal(calls.length, 0, 'no twenty-fifth box is committed')
+  assert.match(dom.window.document.body.textContent, /最多 24 个框/)
+})
+
+test('duplicate still allows the last slot', async (t) => {
+  const boxes = Array.from({ length: 23 }, (_, index) => ({
+    type: 'obj', x: 0.05 + (index % 6) * 0.15, y: 0.05 + Math.floor(index / 6) * 0.2,
+    width: 0.1, height: 0.1, desc: `box ${index}`, palette: [],
+  }))
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'd', { ctrlKey: true }) })
+  assert.equal(calls.at(-1).boxes.length, 24)
+})
+
+test('hidden unfinished boxes do not contribute to the incomplete count', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.2, height: 0.2, desc: 'ready', palette: [] },
+    { type: 'obj', x: 0.5, y: 0.5, width: 0.2, height: 0.2, desc: '', palette: [], hidden: true },
+  ]
+  const { dom } = await mountEditor(t, editorParams(boxes))
+  assert.doesNotMatch(dom.window.document.body.textContent, /个框还没写完/)
+})
+
+test('undo coalescing does not cross box targets', async (t) => {
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(twoBoxes()))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { selectBox(dom, 1) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  const boxes = getParams().boxes
+  assert.ok(Math.abs(boxes[0].x - 0.11) < 1e-9, 'the first box move remains')
+  assert.ok(Math.abs(boxes[1].x - 0.6) < 1e-9, 'only the second box move is undone')
+})
+
+test('undo coalescing does not cross nudge axes', async (t) => {
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(twoBoxes()))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'ArrowUp') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  const box = getParams().boxes[0]
+  assert.ok(Math.abs(box.x - 0.11) < 1e-9, 'the horizontal move remains')
+  assert.ok(Math.abs(box.y - 0.1) < 1e-9, 'only the vertical move is undone')
+})
+
+test('same-target nudges still coalesce', async (t) => {
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(twoBoxes()))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.ok(Math.abs(getParams().boxes[0].x - 0.1) < 1e-9)
+})
+
+test('undo resets the coalescing window', async (t) => {
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(twoBoxes()))
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { selectBox(dom, 1) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  const boxes = getParams().boxes
+  assert.ok(Math.abs(boxes[0].x - 0.11) < 1e-9, 'undo returns to the previous edit, not the baseline')
+  assert.ok(Math.abs(boxes[1].x - 0.6) < 1e-9)
+})
+
+test('a drag and a following nudge do not coalesce', async (t) => {
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(twoBoxes()))
+  canvasArea(dom)
+  await act(async () => { selectBox(dom, 0) })
+  await act(async () => { gesture(dom, canvasBoxes(dom)[0], [80, 80], [120, 80]) })
+  await act(async () => { press(dom, 'ArrowRight') })
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.ok(Math.abs(getParams().boxes[0].x - 0.2) < 1e-9, 'the drag remains after undoing the nudge')
+})
+
+test('the aspect-locked inspector respects the ratio-aware minimum', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.2, y: 0.2, width: 0.4, height: 0.2, desc: 'a', palette: [] }]
+  const { dom, act, getParams } = await mountControlledEditor(t, editorParams(boxes))
+  await act(async () => { selectBox(dom, 0) })
+  const toggle = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '锁定宽高比')
+  await act(async () => { toggle.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  const width = dom.window.document.querySelector('input[aria-label="宽"]')
+  await act(async () => { changeNumber(dom, width, 1) })
+  const box = getParams().boxes[0]
+  assert.ok(Math.abs(box.width - 0.04) < 1e-9)
+  assert.ok(Math.abs(box.height - 0.02) < 1e-9)
+  assert.ok(Math.abs(box.width / box.height - 2) < 1e-9)
 })
