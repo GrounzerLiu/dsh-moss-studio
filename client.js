@@ -1513,7 +1513,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     commit(distributeBoxes(boxes, selection, axis));
   }, [boxes, commit, selection]);
   const patchBox = (0, import_react6.useCallback)((index, patch, coalesce = false) => {
-    const next = boxes.map((box, position) => position === index ? updateBoxGeometry(box, patch) : box);
+    const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : box);
     commit(next, { coalesce });
   }, [boxes, commit]);
   const toggleCharacter = (0, import_react6.useCallback)((index) => {
@@ -1749,6 +1749,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
               rows: 3,
               style: {
                 ...input,
+                // `input` carries flex:1, and a flex item ignores the height the
+                // browser's resize grip writes; opt out so dragging works.
+                flex: "0 0 auto",
                 display: "block",
                 width: "100%",
                 minHeight: 64,

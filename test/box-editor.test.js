@@ -225,3 +225,46 @@ test('shift-click builds a multi-selection that can be aligned', async (t) => {
   const last = applied.at(-1)
   assert.ok(Math.abs(last[0].x - last[1].x) < 1e-9, 'both boxes share the same left edge')
 })
+test('typing into a box description keeps the text, newlines included', async (t) => {
+  const { dom, act, root, Editor } = setup(t)
+  const applied = []
+  const boxes = [{ type: 'obj', x: 0.1, y: 0.1, width: 0.4, height: 0.3, desc: 'old', palette: [] }]
+  await act(async () => {
+    root.render(React.createElement(Editor, {
+      params: { prompt: 'p', negative: 'x', size: '1024x1024', steps: 25, cfg: 2.5, seed: -1, characterBoxes: '', enhance: false, boxes },
+      onApply: (next) => applied.push(next),
+      onAdd: () => 0,
+      onClose: () => {},
+      onCancel: () => {},
+    }))
+  })
+
+  canvasArea(dom)
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+  await act(async () => { gesture(dom, frames()[0], [80, 80]) })
+
+  const field = [...dom.window.document.querySelectorAll('#root textarea')]
+    .find((node) => (node.getAttribute('aria-label') ?? '').includes('框内是什么'))
+  assert.ok(field !== undefined, 'the description field appears once the box is selected')
+
+  // `updateBoxGeometry` used to rebuild the box from its geometry and drop every
+  // other field, so each keystroke was discarded on the way back.
+  const setValue = Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value').set
+  await act(async () => {
+    setValue.call(field, 'a blue circle\nresting on a white wall')
+    field.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+
+  assert.equal(applied.length > 0, true, 'the edit reached the host')
+  assert.equal(applied.at(-1)[0].desc, 'a blue circle\nresting on a white wall')
+})
+
+test('the description field opts out of flex sizing so the resize grip works', () => {
+  const source = readFileSync(new URL('../src/BoxEditor.jsx', import.meta.url), 'utf8')
+  // Inside a column flex container the shared `input` style's flex:1 decides the
+  // height, and the browser's own resize handle is ignored.
+  const block = source.slice(source.indexOf('<textarea'))
+  assert.match(block.slice(0, 1200), /flex: '0 0 auto'/)
+  assert.match(block.slice(0, 1200), /resize: 'vertical'/)
+})

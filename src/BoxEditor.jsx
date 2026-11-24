@@ -186,9 +186,16 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     commit(distributeBoxes(boxes, selection, axis))
   }, [boxes, commit, selection])
 
+  /**
+   * Apply a partial box change.
+   *
+   * `updateBoxGeometry` only clamps the rectangle, so the patch is merged into
+   * the box first: passing a `desc` straight to it silently dropped the text,
+   * which made the description field look read-only.
+   */
   const patchBox = useCallback((index, patch, coalesce = false) => {
     const next = boxes.map((box, position) => (
-      position === index ? updateBoxGeometry(box, patch) : box
+      position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : box
     ))
     commit(next, { coalesce })
   }, [boxes, commit])
@@ -520,6 +527,9 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                     rows={3}
                     style={{
                       ...input,
+                      // `input` carries flex:1, and a flex item ignores the height the
+                      // browser's resize grip writes; opt out so dragging works.
+                      flex: '0 0 auto',
                       display: 'block',
                       width: '100%',
                       minHeight: 64,

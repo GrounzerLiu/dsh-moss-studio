@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.2
+
+- Fix: typing in a box description was discarded. `patchBox` handed the patch to
+  `updateBoxGeometry`, which rebuilds only x/y/width/height, so every keystroke
+  came back as the old text — the field looked read-only and Enter appeared not
+  to work. The patch is now merged into the box before the geometry is clamped.
+- Fix: the description box ignored its resize grip. It inherited `flex: 1` from
+  the shared input style, and in a column flex container that decides the height,
+  so dragging the corner changed nothing. It opts out with `flex: 0 0 auto`.
+- Two regression tests: an input event with a newline must reach the host, and
+  the field must keep both `resize: vertical` and the flex opt-out.
+
 ## 0.6.1
 
 Editing a box's description is the point of the layout editor, so it now has room:
