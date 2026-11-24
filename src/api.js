@@ -3,6 +3,8 @@
  * session that owns the draft.
  */
 
+import { t } from './i18n.js'
+
 const PREFIX = '/plugins/dsh-moss-studio'
 
 async function request(path, init) {
@@ -21,7 +23,7 @@ export async function fetchState(sessionId, limit = 40, archived = false) {
   const query = new URLSearchParams({ sessionId, limit: String(limit) })
   if (archived) query.set('archived', '1')
   const { status, body } = await request(`/state?${query.toString()}`)
-  if (status !== 200 || body === null) throw new Error(body?.message ?? t('state 请求失败（{status}）', { status }))
+  if (status !== 200 || body === null) throw new Error(body?.message || t('state 请求失败（{status}）', { status }))
   return body
 }
 
@@ -35,7 +37,7 @@ export async function fetchRecords(limit = 40, before, archived = false, search)
   if (before !== undefined && before !== null) query.set('before', before)
   if (archived) query.set('archived', '1')
   const { status, body } = await request(`/records?${query.toString()}`)
-  if (status !== 200 || body === null) throw new Error(body?.message ?? t('records 请求失败（{status}）', { status }))
+  if (status !== 200 || body === null) throw new Error(body?.message || t('records 请求失败（{status}）', { status }))
   return { records: body.records ?? [], nextBefore: body.nextBefore ?? null }
 }
 
@@ -63,7 +65,7 @@ export function imageUrl(id) {
 
 export async function fetchRecord(id) {
   const { status, body } = await request(`/records/${encodeURIComponent(id)}`)
-  if (status !== 200 || body === null) throw new Error(body?.message ?? t('记录请求失败（{status}）', { status }))
+  if (status !== 200 || body === null) throw new Error(body?.message || t('记录请求失败（{status}）', { status }))
   return body.record
 }
 /** Pin or archive one record. */
@@ -84,7 +86,7 @@ export async function fetchHealth() {
 /** Panel-visible settings plus the read-only wiring values. */
 export async function fetchSettings() {
   const { status, body } = await request('/settings')
-  if (status !== 200 || body === null) throw new Error(body?.message ?? t('设置读取失败（{status}）', { status }))
+  if (status !== 200 || body === null) throw new Error(body?.message || t('设置读取失败（{status}）', { status }))
   return body
 }
 

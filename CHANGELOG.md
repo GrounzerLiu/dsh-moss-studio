@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1
+
+- Fix: `src/api.js` called `t()` without importing it, so any failed request
+  surfaced as `t is not defined` instead of the real error. A static test now
+  fails when a module translates without importing the translator.
+- Error fallbacks use `||` rather than `??`, so an empty server message no
+  longer produces a blank error line.
+
 ## 0.4.0
 
 Compatibility release for DSH 0.2.3-alpha.2.
