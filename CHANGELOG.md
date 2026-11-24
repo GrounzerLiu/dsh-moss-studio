@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.6.0
+
+The layout editor now follows the interaction model of bounding-box annotators
+rather than a bare "add a box, then drag it" form.
+
+- **Draw to create**: drag anywhere on empty canvas to draw a box; a plain click
+  clears the selection. The canvas gained a faint grid to align against.
+- **Eight resize handles**: corners and edges, each with its own cursor. Shift
+  while dragging a corner keeps the aspect ratio, and the inspector has a lock
+  toggle for the same thing.
+- **Multi-selection**: shift-click toggles a box in the selection, shift-drag
+  marquees everything it touches, and a group moves as one rigid block with a
+  dashed bounding box.
+- **Smart guides**: while moving, edges and centres snap to the other boxes, the
+  frame edges and the canvas centre lines, within 0.8% of the frame; the guide
+  line is drawn so the alignment is visible.
+- **Align and distribute**: six alignment buttons (left / horizontal centre /
+  right / top / vertical centre / bottom) and even spacing on either axis, all
+  relative to the selection's own bounds.
+- **Numeric inspector**: X, Y, width and height as percentages with a step of 1,
+  plus an aspect lock that applies to both the inspector and the handles.
+- **Undo / redo**: a 60-step stack with a toolbar pair; drags are one step and
+  typing coalesces within 500 ms. `Ctrl+Z`, `Ctrl+Shift+Z` and `Ctrl+Y`.
+- **Shortcuts**: `Delete` removes the selection, `Ctrl+D` duplicates it with a
+  small offset, `Ctrl+A` selects all, `Tab` / `Shift+Tab` cycle boxes, arrow keys
+  nudge by 1% (`Shift`: 10%), and `Esc` clears the selection before closing.
+- Character marks follow deletions: removing box 2 renumbers the marks stored as
+  1-based positions instead of leaving them pointing at the wrong boxes.
+- Geometry work moved into `src/box-math.js` as pure functions (`resizeByHandle`,
+  `moveBoxes`, `selectionBounds`, `snapBox`, `alignBoxes`, `distributeBoxes`,
+  `duplicateBoxes`, `boxFromCorners`) with unit tests; five interaction tests
+  drive the editor through synthetic pointer gestures.
+
 ## 0.5.1
 
 - Fix: the result picture was clipped at the bottom of a short panel. Measured

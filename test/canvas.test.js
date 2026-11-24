@@ -10,6 +10,12 @@ import { JSDOM } from 'jsdom'
 const require = createRequire(import.meta.url)
 const bundlePath = fileURLToPath(new URL('../client.js', import.meta.url))
 
+/** Pointer events need explicit coordinates; jsdom has no PointerEvent by default. */
+function pointer(dom, type, init) {
+  const event = new dom.window.MouseEvent(type, { bubbles: true, ...init })
+  return event
+}
+
 function loadPlugin(windowLike) {
   const source = readFileSync(bundlePath, 'utf8')
   let captured
@@ -56,15 +62,24 @@ test('clicking a box selects it instead of clearing the selection', async (t) =>
   const frames = [...container.querySelectorAll('div')].filter((node) => node.style.position === 'absolute' && node.style.left !== '')
   assert.equal(frames.length, 2, 'both boxes render as frames')
 
-  await act(async () => {
-    frames[1].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
-  })
-  assert.deepEqual(picked, [], 'the frame background clears, but a box click does not')
+  const area = container.querySelector('div[style*="position: relative"]')
+  // jsdom has no layout engine, so the canvas needs a frame to convert pixels.
+  area.getBoundingClientRect = () => ({ left: 0, top: 0, right: 400, bottom: 400, width: 400, height: 400, x: 0, y: 0 })
 
+  // Selecting is a pointer gesture now: the canvas distinguishes a click from a
+  // drag so that dragging on empty space can draw a new box.
   await act(async () => {
-    container.querySelector('div[style*="position: relative"]').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    frames[1].dispatchEvent(pointer(dom, 'pointerdown', { clientX: 100, clientY: 100 }))
+    dom.window.dispatchEvent(pointer(dom, 'pointerup', { clientX: 100, clientY: 100 }))
   })
-  assert.deepEqual(picked, [-1], 'clicking the empty frame clears the selection')
+  assert.deepEqual(picked.at(-1), [1], 'pointer-down on a box selects it')
+
+  const before = picked.length
+  await act(async () => {
+    area.dispatchEvent(pointer(dom, 'pointerdown', { clientX: 200, clientY: 200 }))
+    dom.window.dispatchEvent(pointer(dom, 'pointerup', { clientX: 200, clientY: 200 }))
+  })
+  assert.deepEqual(picked.slice(before), [[]], 'a click on empty space clears the selection')
 })
 
 test('a preview box lets its click reach the wrapper that opens the editor', async (t) => {

@@ -238,7 +238,6 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
   const [params, setParams] = useState(null)
   const [records, setRecords] = useState([])
-  const [selectedBox, setSelectedBox] = useState(-1)
   const [activeRecordId, setActiveRecordId] = useState(null)
   const [activeRecord, setActiveRecord] = useState(null)
   const [notice, setNotice] = useState('')
@@ -544,30 +543,30 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     update({ boxes })
   }, [update])
 
-  const addBox = useCallback(() => {
+  /**
+   * Add a box and hand its index back: the editor selects what it just created,
+   * and a drag-drawn box arrives with its geometry already set.
+   */
+  const addBox = useCallback((geometry) => {
     const boxes = [...(paramsRef.current?.boxes ?? [])]
-    boxes.push(defaultBox())
+    boxes.push(geometry === undefined ? defaultBox() : { ...defaultBox(), ...geometry })
     update({ boxes })
-    setSelectedBox(boxes.length - 1)
     setShowCanvas(true)
+    return boxes.length - 1
   }, [update])
 
-  const removeBox = useCallback((index) => {
-    const boxes = (paramsRef.current?.boxes ?? []).filter((_, position) => position !== index)
-    update({ boxes })
-    setSelectedBox(-1)
-  }, [update])
-
-  const toggleCharacter = useCallback((index) => {
-    const set = toCharacterSet(paramsRef.current?.characterBoxes)
-    if (set.has(index + 1)) set.delete(index + 1)
-    else set.add(index + 1)
-    update({ characterBoxes: fromCharacterSet(set) })
+  /**
+   * Replace the box list wholesale from the editor. Character marks are stored
+   * as 1-based box numbers, so they have to follow every insertion and removal.
+   */
+  const applyBoxes = useCallback((nextBoxes, characters) => {
+    const patch = { boxes: nextBoxes }
+    if (characters !== undefined) patch.characterBoxes = characters
+    update(patch)
   }, [update])
 
   const newDraft = useCallback(() => {
     update({ prompt: '', boxes: [], seed: -1, characterBoxes: '', enhance: false })
-    setSelectedBox(-1)
     setNotice(t('notice.newDraft'))
   }, [update])
 
@@ -1365,12 +1364,8 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
       {editorOpen ? (
         <BoxEditor
           params={params}
-          selected={selectedBox}
-          onSelect={setSelectedBox}
-          onChange={(next) => update({ boxes: next })}
+          onApply={applyBoxes}
           onAdd={addBox}
-          onRemove={removeBox}
-          onToggleCharacter={toggleCharacter}
           onClose={closeEditor}
           onCancel={cancelEditor}
         />

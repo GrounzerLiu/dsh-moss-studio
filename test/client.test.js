@@ -165,12 +165,8 @@ test('the layout editor modal renders its controls', () => {
       enhance: false,
       boxes: [{ x: 0.1, y: 0.1, width: 0.3, height: 0.2, type: 'obj', text: '', desc: '红圈', palette: [] }],
     },
-    selected: 0,
-    onSelect: () => {},
-    onChange: () => {},
-    onAdd: () => {},
-    onRemove: () => {},
-    onToggleCharacter: () => {},
+    onApply: () => {},
+    onAdd: () => 0,
     onClose: () => {},
     onCancel: () => {},
   }))
@@ -186,12 +182,8 @@ test('a box draws its caption inside the frame', () => {
   const boxes = [{ x: 0.1, y: 0.1, width: 0.6, height: 0.5, type: 'obj', text: '', desc: '红圈在左侧', palette: [] }]
   const html = renderToString(React.createElement(Editor, {
     params: { prompt: 'p', negative: 'x', size: '1024x1024', steps: 25, cfg: 2.5, seed: -1, characterBoxes: '', enhance: false, boxes },
-    selected: -1,
-    onSelect: () => {},
-    onChange: () => {},
-    onAdd: () => {},
-    onRemove: () => {},
-    onToggleCharacter: () => {},
+    onApply: () => {},
+    onAdd: () => 0,
     onClose: () => {},
     onCancel: () => {},
   }))

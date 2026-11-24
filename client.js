@@ -213,7 +213,29 @@ var ZH = {
   "viewer.prevTitle": "\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09",
   "viewer.zoomAlt": "\u653E\u5927\u67E5\u770B",
   "viewer.zoomIn": "\u653E\u5927",
-  "viewer.zoomOut": "\u7F29\u5C0F"
+  "viewer.zoomOut": "\u7F29\u5C0F",
+  "editor.drawHint": "\u5728\u753B\u5E03\u4E0A\u62D6\u51FA\u4E00\u4E2A\u6846\uFF1B\u6309\u4F4F Shift \u62D6\u62FD\u662F\u6846\u9009",
+  "editor.selectionCount": "\u5DF2\u9009 {count} \u4E2A\u6846",
+  "editor.geometry": "\u4F4D\u7F6E\u4E0E\u5927\u5C0F",
+  "editor.x": "X",
+  "editor.y": "Y",
+  "editor.width": "\u5BBD",
+  "editor.height": "\u9AD8",
+  "editor.kind": "\u7C7B\u578B",
+  "editor.lockAspect": "\u9501\u5B9A\u5BBD\u9AD8\u6BD4",
+  "editor.undo": "\u64A4\u9500",
+  "editor.redo": "\u91CD\u505A",
+  "editor.duplicate": "\u590D\u5236\u6846",
+  "editor.deleteSelected": "\u5220\u9664\u9009\u4E2D\u7684\u6846",
+  "editor.alignLeft": "\u5DE6\u5BF9\u9F50",
+  "editor.alignCenter": "\u6C34\u5E73\u5C45\u4E2D",
+  "editor.alignRight": "\u53F3\u5BF9\u9F50",
+  "editor.alignTop": "\u9876\u5BF9\u9F50",
+  "editor.alignMiddle": "\u5782\u76F4\u5C45\u4E2D",
+  "editor.alignBottom": "\u5E95\u5BF9\u9F50",
+  "editor.distributeX": "\u6C34\u5E73\u7B49\u8DDD\u5206\u5E03",
+  "editor.distributeY": "\u5782\u76F4\u7B49\u8DDD\u5206\u5E03",
+  "editor.noDesc": "\uFF08\u672A\u586B\u5199\u63CF\u8FF0\uFF09"
 };
 var EN = {
   "action.archive": "Archive",
@@ -386,7 +408,29 @@ var EN = {
   "viewer.prevTitle": "Previous (newer)",
   "viewer.zoomAlt": "Zoomed view",
   "viewer.zoomIn": "Zoom in",
-  "viewer.zoomOut": "Zoom out"
+  "viewer.zoomOut": "Zoom out",
+  "editor.drawHint": "Drag on the canvas to draw a box; hold Shift and drag to marquee-select",
+  "editor.selectionCount": "{count} boxes selected",
+  "editor.geometry": "Position and size",
+  "editor.x": "X",
+  "editor.y": "Y",
+  "editor.width": "W",
+  "editor.height": "H",
+  "editor.kind": "Type",
+  "editor.lockAspect": "Lock aspect ratio",
+  "editor.undo": "Undo",
+  "editor.redo": "Redo",
+  "editor.duplicate": "Duplicate box",
+  "editor.deleteSelected": "Delete selected boxes",
+  "editor.alignLeft": "Align left",
+  "editor.alignCenter": "Align horizontal centres",
+  "editor.alignRight": "Align right",
+  "editor.alignTop": "Align top",
+  "editor.alignMiddle": "Align vertical centres",
+  "editor.alignBottom": "Align bottom",
+  "editor.distributeX": "Distribute horizontally",
+  "editor.distributeY": "Distribute vertically",
+  "editor.noDesc": "(no description)"
 };
 function fill(template, params) {
   if (params === void 0 || params === null) return template;
@@ -509,6 +553,7 @@ var import_react = __toESM(require("react"), 1);
 
 // src/box-math.js
 var MIN_SIZE = 0.02;
+var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value));
 }
@@ -517,7 +562,8 @@ function parseRatio(size) {
   if (match === null) return 1;
   const width = Number(match[1]);
   const height = Number(match[2]);
-  return width > 0 && height > 0 ? width / height : 1;
+  if (!(width > 0) || !(height > 0)) return 1;
+  return width / height;
 }
 function moveBox(box, dx, dy) {
   return {
@@ -526,15 +572,180 @@ function moveBox(box, dx, dy) {
     y: clamp(box.y + dy, 0, 1 - box.height)
   };
 }
-function resizeBox(box, dx, dy) {
-  return {
+function moveBoxes(boxes, indices, dx, dy) {
+  const wanted = new Set(indices);
+  const picked = boxes.filter((_, index) => wanted.has(index));
+  if (picked.length === 0) return boxes;
+  const left = Math.min(...picked.map((box) => box.x));
+  const top = Math.min(...picked.map((box) => box.y));
+  const right = Math.max(...picked.map((box) => box.x + box.width));
+  const bottom = Math.max(...picked.map((box) => box.y + box.height));
+  const stepX = clamp(dx, -left, 1 - right);
+  const stepY = clamp(dy, -top, 1 - bottom);
+  return boxes.map((box, index) => wanted.has(index) ? moveBox(box, stepX, stepY) : box);
+}
+function resizeByHandle(start, handle, dx, dy, options = {}) {
+  const movingLeft = handle.includes("w");
+  const movingRight = handle.includes("e");
+  const movingTop = handle.includes("n");
+  const movingBottom = handle.includes("s");
+  let left = start.x;
+  let top = start.y;
+  let right = start.x + start.width;
+  let bottom = start.y + start.height;
+  if (movingLeft) left = clamp(start.x + dx, 0, right - MIN_SIZE);
+  if (movingRight) right = clamp(start.x + start.width + dx, left + MIN_SIZE, 1);
+  if (movingTop) top = clamp(start.y + dy, 0, bottom - MIN_SIZE);
+  if (movingBottom) bottom = clamp(start.y + start.height + dy, top + MIN_SIZE, 1);
+  if (options.lockAspect === true && (movingLeft || movingRight) && (movingTop || movingBottom)) {
+    const ratio = start.width / start.height;
+    let width = right - left;
+    let height = bottom - top;
+    if (Math.abs(width / ratio - height) < Math.abs(height * ratio - width)) {
+      height = width / ratio;
+    } else {
+      width = height * ratio;
+    }
+    width = clamp(width, MIN_SIZE, 1);
+    height = clamp(height, MIN_SIZE, 1);
+    if (movingLeft) left = right - width;
+    else right = left + width;
+    if (movingTop) top = bottom - height;
+    else bottom = top + height;
+    if (left < 0) {
+      left = 0;
+      right = Math.min(1, left + width);
+    }
+    if (top < 0) {
+      top = 0;
+      bottom = Math.min(1, top + height);
+    }
+    if (right > 1) {
+      right = 1;
+      left = Math.max(0, right - (right - left));
+    }
+    if (bottom > 1) {
+      bottom = 1;
+      top = Math.max(0, bottom - (bottom - top));
+    }
+  }
+  return { x: left, y: top, width: Math.max(MIN_SIZE, right - left), height: Math.max(MIN_SIZE, bottom - top) };
+}
+function selectionBounds(boxes, indices) {
+  const picked = boxes.filter((_, index) => indices.includes(index));
+  if (picked.length === 0) return void 0;
+  const left = Math.min(...picked.map((box) => box.x));
+  const top = Math.min(...picked.map((box) => box.y));
+  const right = Math.max(...picked.map((box) => box.x + box.width));
+  const bottom = Math.max(...picked.map((box) => box.y + box.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+function snapBox(box, others, options = {}) {
+  const threshold = options.threshold ?? 8e-3;
+  const axisTargets = { x: [0, 0.5, 1], y: [0, 0.5, 1] };
+  for (const other of others) {
+    axisTargets.x.push(other.x, other.x + other.width / 2, other.x + other.width);
+    axisTargets.y.push(other.y, other.y + other.height / 2, other.y + other.height);
+  }
+  const anchorsX = [box.x, box.x + box.width / 2, box.x + box.width];
+  const anchorsY = [box.y, box.y + box.height / 2, box.y + box.height];
+  const best = (anchors, targets) => {
+    let winner = void 0;
+    for (const anchor of anchors) {
+      for (const target of targets) {
+        const delta = target - anchor;
+        if (Math.abs(delta) > threshold) continue;
+        if (winner === void 0 || Math.abs(delta) < Math.abs(winner.delta)) winner = { delta, at: target };
+      }
+    }
+    return winner;
+  };
+  const snapX = best(anchorsX, axisTargets.x);
+  const snapY = best(anchorsY, axisTargets.y);
+  const next = {
     ...box,
-    width: clamp(box.width + dx, MIN_SIZE, 1 - box.x),
-    height: clamp(box.height + dy, MIN_SIZE, 1 - box.y)
+    x: clamp(box.x + (snapX?.delta ?? 0), 0, 1 - box.width),
+    y: clamp(box.y + (snapY?.delta ?? 0), 0, 1 - box.height)
+  };
+  const guides = [];
+  if (snapX !== void 0) guides.push({ axis: "x", at: snapX.at });
+  if (snapY !== void 0) guides.push({ axis: "y", at: snapY.at });
+  return { box: next, guides };
+}
+function alignBoxes(boxes, indices, mode) {
+  const bounds = selectionBounds(boxes, indices);
+  if (bounds === void 0) return boxes;
+  const wanted = new Set(indices);
+  return boxes.map((box, index) => {
+    if (!wanted.has(index)) return box;
+    switch (mode) {
+      case "left":
+        return { ...box, x: bounds.x };
+      case "centerX":
+        return { ...box, x: bounds.x + (bounds.width - box.width) / 2 };
+      case "right":
+        return { ...box, x: bounds.x + bounds.width - box.width };
+      case "top":
+        return { ...box, y: bounds.y };
+      case "middleY":
+        return { ...box, y: bounds.y + (bounds.height - box.height) / 2 };
+      case "bottom":
+        return { ...box, y: bounds.y + bounds.height - box.height };
+      default:
+        return box;
+    }
+  });
+}
+function distributeBoxes(boxes, indices, axis) {
+  const wanted = new Set(indices);
+  const picked = boxes.map((box, index) => ({ box, index })).filter((entry) => wanted.has(entry.index));
+  if (picked.length < 3) return boxes;
+  const startKey = axis === "x" ? "x" : "y";
+  const sizeKey = axis === "x" ? "width" : "height";
+  const ordered = [...picked].sort((a, b) => a.box[startKey] - b.box[startKey]);
+  const first = ordered[0].box;
+  const last = ordered[ordered.length - 1].box;
+  const span = last[startKey] + last[sizeKey] - first[startKey];
+  const total = ordered.reduce((sum, entry) => sum + entry.box[sizeKey], 0);
+  const gap = (span - total) / (ordered.length - 1);
+  let cursor = first[startKey];
+  const placed = /* @__PURE__ */ new Map();
+  for (const entry of ordered) {
+    placed.set(entry.index, { ...entry.box, [startKey]: cursor });
+    cursor += entry.box[sizeKey] + gap;
+  }
+  return boxes.map((box, index) => placed.get(index) ?? box);
+}
+function duplicateBoxes(boxes, indices, offset = 0.02) {
+  const wanted = new Set(indices);
+  const copies = [];
+  boxes.forEach((box, index) => {
+    if (!wanted.has(index)) return;
+    copies.push({
+      ...box,
+      x: clamp(box.x + offset, 0, 1 - box.width),
+      y: clamp(box.y + offset, 0, 1 - box.height)
+    });
+  });
+  const added = copies.map((_, position) => boxes.length + position);
+  return { boxes: [...boxes, ...copies], added };
+}
+function boxFromCorners(ax, ay, bx, by) {
+  const left = clamp(Math.min(ax, bx), 0, 1);
+  const top = clamp(Math.min(ay, by), 0, 1);
+  const right = clamp(Math.max(ax, bx), 0, 1);
+  const bottom = clamp(Math.max(ay, by), 0, 1);
+  return {
+    x: left,
+    y: top,
+    width: Math.max(MIN_SIZE, right - left),
+    height: Math.max(MIN_SIZE, bottom - top)
   };
 }
 function defaultBox() {
-  return { x: 0.3, y: 0.3, width: 0.4, height: 0.3, type: "obj", text: "", desc: "", palette: [] };
+  const width = 0.3;
+  const height = 0.3;
+  return { type: "obj", x: (1 - width) / 2, y: (1 - height) / 2, width, height, desc: "", palette: [] };
 }
 function frameSize(available, ratio, budget) {
   if (!(available > 0) || !(ratio > 0) || !(budget > 0)) return void 0;
@@ -572,12 +783,49 @@ function selectionFill(percent) {
 // src/BoxCanvas.jsx
 var TALL = 260;
 var COMPACT = 120;
-function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false, interactive = true, budget: budgetProp }) {
+var HANDLE_SIZE = 9;
+var HANDLE_CURSOR = {
+  nw: "nwse-resize",
+  n: "ns-resize",
+  ne: "nesw-resize",
+  e: "ew-resize",
+  se: "nwse-resize",
+  s: "ns-resize",
+  sw: "nesw-resize",
+  w: "ew-resize"
+};
+var HANDLE_POSITION = {
+  nw: { left: 0, top: 0 },
+  n: { left: "50%", top: 0 },
+  ne: { left: "100%", top: 0 },
+  e: { left: "100%", top: "50%" },
+  se: { left: "100%", top: "100%" },
+  s: { left: "50%", top: "100%" },
+  sw: { left: 0, top: "100%" },
+  w: { left: 0, top: "50%" }
+};
+function BoxCanvas({
+  boxes,
+  size,
+  selected,
+  onSelect,
+  onChange,
+  onCreate,
+  compact = false,
+  interactive = true,
+  budget: budgetProp,
+  snap = true
+}) {
   const wrapRef = (0, import_react.useRef)(null);
   const areaRef = (0, import_react.useRef)(null);
   const dragRef = (0, import_react.useRef)(null);
   const [draft, setDraft] = (0, import_react.useState)(null);
+  const draftRef = (0, import_react.useRef)(null);
+  const [guides, setGuides] = (0, import_react.useState)([]);
   const [available, setAvailable] = (0, import_react.useState)(0);
+  const [marquee, setMarquee] = (0, import_react.useState)(null);
+  const [drawing, setDrawing] = (0, import_react.useState)(null);
+  const selection = Array.isArray(selected) ? selected.filter((index) => Number.isInteger(index) && index >= 0 && index < boxes.length) : Number.isInteger(selected) && selected >= 0 ? [selected] : [];
   (0, import_react.useEffect)(() => {
     const element = wrapRef.current;
     if (element === null || typeof ResizeObserver === "undefined") return void 0;
@@ -588,26 +836,91 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
     setAvailable(element.clientWidth);
     return () => observer.disconnect();
   }, []);
+  const pointOf = (0, import_react.useCallback)((event) => {
+    const area = areaRef.current;
+    if (area === null) return void 0;
+    const rect = area.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return void 0;
+    return {
+      x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
+      dx: (event.clientX - rect.left) / rect.width,
+      dy: (event.clientY - rect.top) / rect.height
+    };
+  }, []);
   (0, import_react.useEffect)(() => {
     function onMove(event) {
       const drag = dragRef.current;
-      const area = areaRef.current;
-      if (drag === null || area === null) return;
-      const rect = area.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const dx = (event.clientX - drag.startX) / rect.width;
-      const dy = (event.clientY - drag.startY) / rect.height;
-      setDraft(drag.mode === "move" ? moveBox(drag.box, dx, dy) : resizeBox(drag.box, dx, dy));
+      if (drag === null) return;
+      const point = pointOf(event);
+      if (point === void 0) return;
+      if (drag.kind === "draw") {
+        const box = boxFromCorners(drag.from.x, drag.from.y, point.x, point.y);
+        setDrawing(box);
+        return;
+      }
+      if (drag.kind === "marquee") {
+        setMarquee(boxFromCorners(drag.from.x, drag.from.y, point.x, point.y));
+        return;
+      }
+      const dx = point.dx - drag.from.dx;
+      const dy = point.dy - drag.from.dy;
+      if (drag.kind === "move") {
+        const moved = moveBoxes(drag.boxes, drag.indices, dx, dy);
+        if (snap && drag.indices.length === 1) {
+          const others = drag.boxes.filter((_, index) => index !== drag.indices[0]);
+          const result = snapBox(moved[drag.indices[0]], others);
+          const next = [...moved];
+          next[drag.indices[0]] = result.box;
+          draftRef.current = next;
+          setDraft(next);
+          setGuides(result.guides);
+        } else {
+          draftRef.current = moved;
+          setDraft(moved);
+          setGuides([]);
+        }
+        return;
+      }
+      if (drag.kind === "resize") {
+        const resized = resizeByHandle(drag.start, drag.handle, dx, dy, { lockAspect: event.shiftKey });
+        const next = [...drag.boxes];
+        next[drag.index] = { ...drag.boxes[drag.index], ...resized };
+        draftRef.current = next;
+        setDraft(next);
+      }
     }
-    function onUp() {
+    function onUp(event) {
       const drag = dragRef.current;
       dragRef.current = null;
-      if (drag !== null && draft !== null) {
-        const next = [...boxes];
-        next[drag.index] = draft;
-        onChange(next);
+      const point = pointOf(event);
+      if (drag !== null && drag.kind === "draw") {
+        const box = point === void 0 ? drawing : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y);
+        setDrawing(null);
+        const tiny = box === null || box.width <= MIN_SIZE * 1.5 && box.height <= MIN_SIZE * 1.5;
+        if (tiny) {
+          onSelect([]);
+          return;
+        }
+        onCreate?.(box);
+        return;
       }
+      if (drag !== null && drag.kind === "marquee") {
+        const region = point === void 0 ? marquee : boxFromCorners(drag.from.x, drag.from.y, point.x, point.y);
+        setMarquee(null);
+        if (region !== null) {
+          const hits = boxes.map((box, index) => ({ box, index })).filter(({ box }) => box.x < region.x + region.width && box.x + box.width > region.x && box.y < region.y + region.height && box.y + box.height > region.y).map(({ index }) => index);
+          onSelect(hits);
+        }
+        return;
+      }
+      const settled = draftRef.current;
+      if (drag !== null && (drag.kind === "move" || drag.kind === "resize") && settled !== null) {
+        onChange(settled);
+      }
+      draftRef.current = null;
       setDraft(null);
+      setGuides([]);
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -615,26 +928,51 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [boxes, draft, onChange]);
-  function startDrag(event, index, mode) {
+  }, [boxes, drawing, marquee, onSelect, onChange, onCreate, pointOf, snap]);
+  function beginDrag(event, kind, payload) {
     event.stopPropagation();
     event.preventDefault();
-    onSelect(index);
-    dragRef.current = { index, mode, box: boxes[index], startX: event.clientX, startY: event.clientY };
-    setDraft(boxes[index]);
+    const from = pointOf(event);
+    if (from === void 0) return;
+    dragRef.current = { kind, from, ...payload };
+  }
+  function onBoxPointerDown(event, index) {
+    if (!interactive) return;
+    const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+    const nextSelection = additive ? selection.includes(index) ? selection.filter((item) => item !== index) : [...selection, index] : selection.includes(index) ? selection : [index];
+    onSelect(nextSelection);
+    if (additive) {
+      event.stopPropagation();
+      event.preventDefault();
+      return;
+    }
+    beginDrag(event, "move", { boxes, indices: nextSelection.length === 0 ? [index] : nextSelection });
+  }
+  function onHandlePointerDown(event, index, handle) {
+    if (!interactive) return;
+    beginDrag(event, "resize", { boxes, index, start: boxes[index], handle });
+  }
+  function onAreaPointerDown(event) {
+    if (!interactive) return;
+    if (event.button !== void 0 && event.button !== 0) return;
+    const marqueeMode = event.shiftKey;
+    beginDrag(event, marqueeMode ? "marquee" : "draw", {});
+    if (marqueeMode) setMarquee({ x: 0, y: 0, width: 0, height: 0 });
   }
   const ratio = parseRatio(size);
   const budget = budgetProp ?? (compact ? COMPACT : TALL);
   const frame = frameSize(available, ratio, budget);
   const width = frame?.width;
   const height = frame?.height;
-  const shown = draft === null ? boxes : boxes.map((box, index) => index === dragRef.current?.index ? draft : box);
+  const shown = draft ?? boxes;
+  const bounds = selection.length > 1 ? selectionBounds(shown, selection) : void 0;
   const frameStyle = width !== void 0 ? { width, height, ...compact ? {} : { maxHeight: budget } } : { width: "100%", aspectRatio: String(ratio), maxHeight: budget };
+  const toPercent = (value) => `${value * 100}%`;
   return /* @__PURE__ */ import_react.default.createElement("div", { ref: wrapRef, style: { display: "flex", justifyContent: "center", width: "100%" } }, /* @__PURE__ */ import_react.default.createElement(
     "div",
     {
       ref: areaRef,
-      onClick: () => onSelect(-1),
+      onPointerDown: onAreaPointerDown,
       style: {
         position: "relative",
         ...frameStyle,
@@ -643,25 +981,28 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
         border: "1px solid var(--dsw-alias-border-l2, rgba(127,127,127,0.28))",
         overflow: "hidden",
         touchAction: "none",
-        flexShrink: 0
+        flexShrink: 0,
+        cursor: interactive ? "crosshair" : "inherit",
+        // A faint grid gives the eye something to align against while dragging.
+        backgroundImage: interactive ? "linear-gradient(to right, rgba(127,127,127,0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(127,127,127,0.14) 1px, transparent 1px)" : void 0,
+        backgroundSize: interactive ? "10% 10%" : void 0
       }
     },
     shown.map((box, index) => {
-      const active = index === selected;
+      const active = selection.includes(index);
       const caption = box.type === "text" && (box.text ?? "").trim() !== "" ? box.text : box.desc ?? "";
       const metrics = width !== void 0 && height !== void 0 ? labelMetrics(box.width * width, box.height * height) : { show: false, fontSize: 0, lines: 0 };
       return /* @__PURE__ */ import_react.default.createElement(
         "div",
         {
           key: index,
-          onPointerDown: interactive ? (event) => startDrag(event, index, "move") : void 0,
-          onClick: interactive ? (event) => event.stopPropagation() : void 0,
+          onPointerDown: (event) => onBoxPointerDown(event, index),
           style: {
             position: "absolute",
-            left: `${box.x * 100}%`,
-            top: `${box.y * 100}%`,
-            width: `${box.width * 100}%`,
-            height: `${box.height * 100}%`,
+            left: toPercent(box.x),
+            top: toPercent(box.y),
+            width: toPercent(box.width),
+            height: toPercent(box.height),
             border: `${active ? 2 : 1}px solid ${active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : "rgba(190,190,190,0.75)"}`,
             background: active ? selectionFill(16) : "rgba(160,160,160,0.09)",
             borderRadius: 4,
@@ -682,20 +1023,11 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
               bottom: 4,
               fontSize: metrics.fontSize,
               lineHeight: 1.35,
-              color: "#f4f4f4",
-              background: "rgba(0,0,0,0.42)",
-              borderRadius: 3,
-              padding: "1px 3px",
-              textShadow: "0 1px 2px rgba(0,0,0,0.75)",
               overflow: "hidden",
-              overflowWrap: "anywhere",
-              wordBreak: "break-word",
-              whiteSpace: "normal",
-              display: "-webkit-box",
-              WebkitLineClamp: metrics.lines,
-              WebkitBoxOrient: "vertical",
+              color: "var(--dsw-alias-label-primary, inherit)",
+              opacity: 0.85,
               pointerEvents: "none",
-              userSelect: "none"
+              wordBreak: "break-word"
             }
           },
           caption
@@ -705,39 +1037,122 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
           {
             style: {
               position: "absolute",
-              top: -1,
-              left: -1,
-              padding: "0 4px",
-              fontSize: 10,
-              lineHeight: "14px",
-              borderRadius: "3px 0 3px 0",
-              background: active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : "rgba(190,190,190,0.8)",
-              color: "#101010",
-              fontVariantNumeric: "tabular-nums"
+              top: 1,
+              left: 1,
+              minWidth: 14,
+              padding: "0 3px",
+              fontSize: 9,
+              lineHeight: "13px",
+              textAlign: "center",
+              borderRadius: 3,
+              background: active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : "rgba(40,42,40,0.85)",
+              color: active ? "var(--dsw-alias-label-primary-inverted, #0d120f)" : "#ddd",
+              pointerEvents: "none"
             }
           },
-          index + 1,
-          box.type === "text" ? "T" : ""
+          index + 1
         ),
-        interactive ? /* @__PURE__ */ import_react.default.createElement(
+        interactive && active && selection.length === 1 ? HANDLES.map((handle) => /* @__PURE__ */ import_react.default.createElement(
           "span",
           {
-            onPointerDown: (event) => startDrag(event, index, "resize"),
+            key: handle,
+            onPointerDown: (event) => onHandlePointerDown(event, index, handle),
+            role: "presentation",
             style: {
               position: "absolute",
-              right: -4,
-              bottom: -4,
-              width: 12,
-              height: 12,
-              borderRadius: 3,
-              background: active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : "rgba(190,190,190,0.85)",
-              cursor: "nwse-resize"
+              ...HANDLE_POSITION[handle],
+              width: HANDLE_SIZE,
+              height: HANDLE_SIZE,
+              // Centre every handle on its corner or edge midpoint.
+              marginLeft: -HANDLE_SIZE / 2,
+              marginTop: -HANDLE_SIZE / 2,
+              background: "var(--dsw-alias-bg-overlay, #fff)",
+              border: "1px solid var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))",
+              borderRadius: 2,
+              cursor: HANDLE_CURSOR[handle],
+              boxSizing: "border-box"
             }
           }
-        ) : null
+        )) : null
       );
     }),
-    boxes.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 12, opacity: 0.55 } }, t("preview.empty")) : null
+    bounds !== void 0 ? /* @__PURE__ */ import_react.default.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          left: toPercent(bounds.x),
+          top: toPercent(bounds.y),
+          width: toPercent(bounds.width),
+          height: toPercent(bounds.height),
+          border: "1px dashed var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))",
+          pointerEvents: "none",
+          borderRadius: 2
+        }
+      }
+    ) : null,
+    guides.map((guide, index) => /* @__PURE__ */ import_react.default.createElement(
+      "div",
+      {
+        key: `${guide.axis}-${index}`,
+        style: {
+          position: "absolute",
+          pointerEvents: "none",
+          background: "var(--dsw-alias-state-business-primary, #2f6fed)",
+          ...guide.axis === "x" ? { left: toPercent(guide.at), top: 0, bottom: 0, width: 1 } : { top: toPercent(guide.at), left: 0, right: 0, height: 1 }
+        }
+      }
+    )),
+    drawing !== null ? /* @__PURE__ */ import_react.default.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          left: toPercent(drawing.x),
+          top: toPercent(drawing.y),
+          width: toPercent(drawing.width),
+          height: toPercent(drawing.height),
+          border: "1px dashed var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))",
+          background: selectionFill(10),
+          pointerEvents: "none",
+          borderRadius: 2
+        }
+      }
+    ) : null,
+    marquee !== null ? /* @__PURE__ */ import_react.default.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          left: toPercent(marquee.x),
+          top: toPercent(marquee.y),
+          width: toPercent(marquee.width),
+          height: toPercent(marquee.height),
+          border: "1px solid var(--dsw-alias-state-business-primary, #2f6fed)",
+          background: "rgba(47,111,237,0.12)",
+          pointerEvents: "none"
+        }
+      }
+    ) : null,
+    boxes.length === 0 && !interactive ? /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 12, opacity: 0.55 } }, t("preview.empty")) : null,
+    interactive && boxes.length === 0 && drawing === null ? /* @__PURE__ */ import_react.default.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 11,
+          opacity: 0.5,
+          pointerEvents: "none",
+          padding: 12,
+          textAlign: "center",
+          lineHeight: 1.6
+        }
+      },
+      t("editor.drawHint")
+    ) : null
   ));
 }
 
@@ -747,6 +1162,18 @@ var import_react6 = __toESM(require("react"), 1);
 // src/icons.jsx
 var import_react2 = __toESM(require("react"), 1);
 var PATHS = {
+  "undo": "M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z",
+  "redo": "M396-200q-97 0-166.5-63T160-420q0-94 69.5-157T396-640h252L544-744l56-56 200 200-200 200-56-56 104-104H396q-63 0-109.5 40T240-420q0 60 46.5 100T396-280h284v80H396Z",
+  "aspect_ratio": "M560-280h200v-200h-80v120H560v80ZM200-480h80v-120h120v-80H200v200Zm-40 320q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z",
+  "content_copy": "M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z",
+  "align_horizontal_left": "M80-80v-800h80v800H80Zm160-200v-120h400v120H240Zm0-280v-120h640v120H240Z",
+  "align_horizontal_center": "M440-80v-200H240v-120h200v-160H120v-120h320v-200h80v200h320v120H520v160h200v120H520v200h-80Z",
+  "align_horizontal_right": "M800-80v-800h80v800h-80ZM320-280v-120h400v120H320ZM80-560v-120h640v120H80Z",
+  "align_vertical_top": "M280-80v-640h120v640H280Zm280-240v-400h120v400H560ZM80-800v-80h800v80H80Z",
+  "align_vertical_center": "M280-120v-320H80v-80h200v-320h120v320h160v-200h120v200h200v80H680v200H560v-200H400v320H280Z",
+  "align_vertical_bottom": "M80-80v-80h800v80H80Zm200-160v-640h120v640H280Zm280 0v-400h120v400H560Z",
+  "distribute_horizontal": "M120-760h100v560H120v-560Zm310 0h100v560H430v-560Zm310 0h100v560H740v-560Z",
+  "distribute_vertical": "M200-760h560v100H200v-100Zm0 280h560v100H200v-100Zm0 280h560v100H200v-100Z",
   "close": "m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z",
   "zoom_in": "M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Zm-40-60v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z",
   "zoom_out": "M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400ZM280-540v-80h200v80H280Z",
@@ -795,7 +1222,7 @@ var ICON_NAMES = Object.keys(PATHS);
 
 // src/IconCheckbox.jsx
 var import_react3 = __toESM(require("react"), 1);
-function IconCheckbox({ checked, onChange, label: label3, disabled = false, title, style }) {
+function IconCheckbox({ checked, onChange, label: label2, disabled = false, title, style }) {
   const [focused, setFocused] = (0, import_react3.useState)(false);
   return /* @__PURE__ */ import_react3.default.createElement(
     "label",
@@ -845,7 +1272,7 @@ function IconCheckbox({ checked, onChange, label: label3, disabled = false, titl
       },
       /* @__PURE__ */ import_react3.default.createElement(Icon, { name: checked ? "check_box" : "check_box_outline_blank", size: 16 })
     ),
-    label3 === void 0 ? null : /* @__PURE__ */ import_react3.default.createElement("span", { style: { fontSize: 11 } }, label3)
+    label2 === void 0 ? null : /* @__PURE__ */ import_react3.default.createElement("span", { style: { fontSize: 11 } }, label2)
   );
 }
 
@@ -949,7 +1376,6 @@ function useDialogFocus(containerRef, options = {}) {
 // src/BoxEditor.jsx
 var row = { display: "flex", alignItems: "center", gap: 6 };
 var dim = { color: "var(--dsw-alias-label-secondary, inherit)" };
-var label = { fontSize: 11, opacity: 0.68, minWidth: 44 };
 var input = {
   flex: 1,
   minWidth: 0,
@@ -982,51 +1408,192 @@ var iconOnly = {
   padding: 0
 };
 var iconDanger = { ...iconOnly, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" };
+var disabledLook = { opacity: 0.4, cursor: "default" };
 var optionStyle = { background: "var(--dsw-alias-bg-overlay, #26282a)", color: "var(--dsw-alias-label-primary, inherit)" };
+var numberInput = { ...input, flex: "0 0 auto", width: 56, textAlign: "right", padding: "3px 5px" };
+var HANDLE_HISTORY = 60;
+var COALESCE_MS = 500;
 function toSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
 }
-function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onToggleCharacter, onClose, onCancel }) {
+function toText(set) {
+  return [...set].sort((a, b) => a - b).join(",");
+}
+function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const boxes = params.boxes ?? [];
-  const [size] = (0, import_react6.useState)(() => params.size);
   const characters = (0, import_react6.useMemo)(() => toSet(params.characterBoxes), [params.characterBoxes]);
   const budget = typeof window === "undefined" ? 520 : Math.min(560, Math.max(260, Math.round(window.innerHeight * 0.58)));
-  (0, import_react6.useEffect)(() => {
-    function onKey(event) {
-      if (event.key === "Escape") onCancel?.();
+  const [selection, setSelection] = (0, import_react6.useState)([]);
+  const [lockAspect, setLockAspect] = (0, import_react6.useState)(false);
+  const [history, setHistory] = (0, import_react6.useState)(() => ({ stack: [boxes], index: 0 }));
+  const lastCommitRef = (0, import_react6.useRef)(0);
+  const charactersAfter = (0, import_react6.useCallback)((removed) => {
+    const set = toSet(params.characterBoxes);
+    const kept = /* @__PURE__ */ new Set();
+    for (const value of set) {
+      if (removed.has(value - 1)) continue;
+      let shift = 0;
+      for (const index of removed) if (index < value - 1) shift += 1;
+      kept.add(value - shift);
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+    return toText(kept);
+  }, [params.characterBoxes]);
+  const commit = (0, import_react6.useCallback)((nextBoxes, options = {}) => {
+    const now = Date.now();
+    const coalesce = options.coalesce === true && now - lastCommitRef.current < COALESCE_MS;
+    lastCommitRef.current = now;
+    onApply(nextBoxes, options.characters);
+    setHistory((current) => {
+      const stack = current.stack.slice(0, current.index + 1);
+      if (coalesce) stack[stack.length - 1] = nextBoxes;
+      else stack.push(nextBoxes);
+      while (stack.length > HANDLE_HISTORY) stack.shift();
+      return { stack, index: stack.length - 1 };
+    });
+  }, [onApply]);
+  const undo = (0, import_react6.useCallback)(() => {
+    setHistory((current) => {
+      if (current.index <= 0) return current;
+      const index = current.index - 1;
+      onApply(current.stack[index]);
+      return { ...current, index };
+    });
+  }, [onApply]);
+  const redo = (0, import_react6.useCallback)(() => {
+    setHistory((current) => {
+      if (current.index >= current.stack.length - 1) return current;
+      const index = current.index + 1;
+      onApply(current.stack[index]);
+      return { ...current, index };
+    });
+  }, [onApply]);
+  const selectedBoxes = selection.map((index) => boxes[index]).filter(Boolean);
+  const primaryIndex = selection.length > 0 ? selection[selection.length - 1] : -1;
+  const primary3 = boxes[primaryIndex];
   (0, import_react6.useEffect)(() => {
-    if (selected === void 0 || selected < 0) return void 0;
+    setSelection((current) => current.filter((index) => index < boxes.length));
+  }, [boxes.length]);
+  const remove = (0, import_react6.useCallback)((indices) => {
+    const removed = new Set(indices);
+    if (removed.size === 0) return;
+    const next = boxes.filter((_, index) => !removed.has(index));
+    commit(next, { characters: charactersAfter(removed) });
+    setSelection([]);
+  }, [boxes, charactersAfter, commit]);
+  const duplicate = (0, import_react6.useCallback)(() => {
+    if (selection.length === 0) return;
+    const result = duplicateBoxes(boxes, selection);
+    commit(result.boxes);
+    setSelection(result.added);
+  }, [boxes, commit, selection]);
+  const selectAll = (0, import_react6.useCallback)(() => setSelection(boxes.map((_, index) => index)), [boxes]);
+  const addAt = (0, import_react6.useCallback)(() => {
+    const index = onAdd?.();
+    if (typeof index === "number" && index >= 0) setSelection([index]);
+  }, [onAdd]);
+  const createAt = (0, import_react6.useCallback)((geometry) => {
+    const index = onAdd?.(geometry);
+    if (typeof index === "number" && index >= 0) setSelection([index]);
+  }, [onAdd]);
+  const nudge = (0, import_react6.useCallback)((dx, dy) => {
+    if (selection.length === 0) return;
+    commit(moveBoxes(boxes, selection, dx, dy), { coalesce: true });
+  }, [boxes, commit, selection]);
+  const move = (0, import_react6.useCallback)((mode) => {
+    if (selection.length === 0) return;
+    commit(alignBoxes(boxes, selection, mode));
+  }, [boxes, commit, selection]);
+  const spread = (0, import_react6.useCallback)((axis) => {
+    if (selection.length < 3) return;
+    commit(distributeBoxes(boxes, selection, axis));
+  }, [boxes, commit, selection]);
+  const patchBox = (0, import_react6.useCallback)((index, patch, coalesce = false) => {
+    const next = boxes.map((box, position) => position === index ? updateBoxGeometry(box, patch) : box);
+    commit(next, { coalesce });
+  }, [boxes, commit]);
+  const toggleCharacter = (0, import_react6.useCallback)((index) => {
+    const set = toSet(params.characterBoxes);
+    if (set.has(index + 1)) set.delete(index + 1);
+    else set.add(index + 1);
+    onApply(boxes, toText(set));
+  }, [boxes, onApply, params.characterBoxes]);
+  const cycle = (0, import_react6.useCallback)((direction) => {
+    if (boxes.length === 0) return;
+    const current = primaryIndex;
+    const next = current < 0 ? direction > 0 ? 0 : boxes.length - 1 : (current + direction + boxes.length) % boxes.length;
+    setSelection([next]);
+  }, [boxes.length, primaryIndex]);
+  (0, import_react6.useEffect)(() => {
     function onKey(event) {
-      const delta = event.shiftKey ? 0.1 : 0.01;
-      const moves = {
-        ArrowLeft: [-delta, 0],
-        ArrowRight: [delta, 0],
-        ArrowUp: [0, -delta],
-        ArrowDown: [0, delta]
-      };
-      const move = moves[event.key];
-      if (move === void 0) return void 0;
-      const tag = event.target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return void 0;
-      const box = (params.boxes ?? [])[selected];
-      if (box === void 0) return void 0;
+      const target = event.target;
+      const tag = target?.tagName;
+      const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable === true;
+      const mod = event.ctrlKey || event.metaKey;
+      const key = event.key;
+      if (key === "Escape") {
+        if (selection.length > 0) {
+          event.preventDefault();
+          setSelection([]);
+        } else {
+          onCancel?.();
+        }
+        return;
+      }
+      if (mod && (key === "z" || key === "Z")) {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (mod && (key === "y" || key === "Y")) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (mod && (key === "a" || key === "A") && !typing) {
+        event.preventDefault();
+        selectAll();
+        return;
+      }
+      if (mod && (key === "d" || key === "D")) {
+        event.preventDefault();
+        duplicate();
+        return;
+      }
+      if ((key === "Delete" || key === "Backspace") && !typing) {
+        event.preventDefault();
+        remove(selection);
+        return;
+      }
+      if (key === "Tab" && !typing) {
+        event.preventDefault();
+        cycle(event.shiftKey ? -1 : 1);
+        return;
+      }
+      if (typing) return;
+      const step = event.shiftKey ? 0.1 : 0.01;
+      const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+      const delta = moves[key];
+      if (delta === void 0) return;
       event.preventDefault();
-      onChange((params.boxes ?? []).map((item, position) => position === selected ? moveBox(box, move[0], move[1]) : item));
-      return void 0;
+      nudge(delta[0], delta[1]);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, params.boxes, onChange]);
-  const updateBox = (index, patch) => {
-    onChange(boxes.map((box, position) => position === index ? { ...box, ...patch } : box));
-  };
+  }, [cycle, duplicate, nudge, onCancel, redo, remove, selectAll, selection, undo]);
   const titleId = (0, import_react6.useId)();
   const cardRef = (0, import_react6.useRef)(null);
   useDialogFocus(cardRef);
+  const canUndo = history.index > 0;
+  const canRedo = history.index < history.stack.length - 1;
+  const alignButtons = [
+    ["left", "editor.alignLeft", "align_horizontal_left"],
+    ["centerX", "editor.alignCenter", "align_horizontal_center"],
+    ["right", "editor.alignRight", "align_horizontal_right"],
+    ["top", "editor.alignTop", "align_vertical_top"],
+    ["middleY", "editor.alignMiddle", "align_vertical_center"],
+    ["bottom", "editor.alignBottom", "align_vertical_bottom"]
+  ];
   return /* @__PURE__ */ import_react6.default.createElement(
     "div",
     {
@@ -1066,22 +1633,88 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("editor.title", { count: boxes.length, size })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.addBoxTitle"), "aria-label": t("editor.addBox"), onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("action.done"), "aria-label": t("action.done"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("action.cancel"), title: t("editor.cancelTitle") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("editor.title", { count: boxes.length, size: params.size })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canUndo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canUndo, title: t("editor.undo"), "aria-label": t("editor.undo"), onClick: undo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "undo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: canRedo ? iconOnly : { ...iconOnly, ...disabledLook }, disabled: !canRedo, title: t("editor.redo"), "aria-label": t("editor.redo"), onClick: redo }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "redo" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.addBoxTitle"), "aria-label": t("editor.addBox"), onClick: addAt }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("action.done"), "aria-label": t("action.done"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("action.cancel"), title: t("editor.cancelTitle") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
       /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react6.default.createElement(
         BoxCanvas,
         {
           boxes,
-          size,
+          size: params.size,
           budget,
-          selected,
-          onSelect,
-          onChange
+          selected: selection,
+          onSelect: setSelection,
+          onChange: (next) => commit(next),
+          onCreate: createAt
         }
-      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 300, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, t("editor.empty")) : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 320, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, selection.length > 1 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.selectionCount", { count: selection.length })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, flexWrap: "wrap", gap: 4 } }, alignButtons.map(([mode, key, icon]) => /* @__PURE__ */ import_react6.default.createElement("button", { key: mode, type: "button", style: iconButton, title: t(key), "aria-label": t(key), onClick: () => move(mode) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: icon, size: 14 })))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeX"), "aria-label": t("editor.distributeX"), onClick: () => spread("x") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_horizontal", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeY"), "aria-label": t("editor.distributeY"), onClick: () => spread("y") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_vertical", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteSelected"), "aria-label": t("editor.deleteSelected"), onClick: () => remove(selection) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : null, primary3 !== void 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.geometry")), /* @__PURE__ */ import_react6.default.createElement(
+        "button",
+        {
+          type: "button",
+          style: lockAspect ? { ...iconButton, borderColor: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } : iconButton,
+          title: t("editor.lockAspect"),
+          "aria-label": t("editor.lockAspect"),
+          "aria-pressed": lockAspect,
+          onClick: () => setLockAspect((value) => !value)
+        },
+        /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "aspect_ratio", size: 14 })
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, [
+        ["x", "editor.x", primary3.x * 100],
+        ["y", "editor.y", primary3.y * 100],
+        ["width", "editor.width", primary3.width * 100],
+        ["height", "editor.height", primary3.height * 100]
+      ].map(([field, key, value]) => /* @__PURE__ */ import_react6.default.createElement("label", { key: field, style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...dim, fontSize: 11, width: 14 } }, t(key)), /* @__PURE__ */ import_react6.default.createElement(
+        "input",
+        {
+          type: "number",
+          min: 0,
+          max: 100,
+          step: 1,
+          value: Math.round(value * 10) / 10,
+          "aria-label": t(key),
+          onChange: (event) => {
+            const next = event.target.value === "" ? 0 : Number(event.target.value);
+            if (!Number.isFinite(next)) return;
+            if (field === "width" || field === "height") {
+              if (lockAspect) {
+                const ratio = primary3.width / primary3.height;
+                const scaled = field === "width" ? { width: next / 100, height: next / 100 / ratio } : { height: next / 100, width: next / 100 * ratio };
+                patchBox(primaryIndex, scaled, true);
+              } else {
+                patchBox(primaryIndex, { [field]: next / 100 }, true);
+              }
+            } else {
+              patchBox(primaryIndex, { [field]: next / 100 }, true);
+            }
+          },
+          style: numberInput
+        }
+      )))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement(
+        "select",
+        {
+          value: primary3.type ?? "obj",
+          onChange: (event) => patchBox(primaryIndex, { type: event.target.value }),
+          style: { ...input, flex: "0 0 64px", padding: "2px 2px" },
+          "aria-label": t("editor.kind")
+        },
+        /* @__PURE__ */ import_react6.default.createElement("option", { value: "obj", style: optionStyle }, "obj"),
+        /* @__PURE__ */ import_react6.default.createElement("option", { value: "text", style: optionStyle }, "text")
+      ), /* @__PURE__ */ import_react6.default.createElement(
+        IconCheckbox,
+        {
+          checked: characters.has(primaryIndex + 1),
+          onChange: () => toggleCharacter(primaryIndex),
+          label: t("editor.kindPerson")
+        }
+      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteBoxTitle"), "aria-label": t("editor.deleteBox"), onClick: () => remove([primaryIndex]) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, fontSize: 11, lineHeight: 1.6, padding: 4 } }, t("editor.drawHint")), boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, t("editor.empty")) : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
           key: index,
-          onClick: () => onSelect(index),
+          onClick: (event) => {
+            if (event.shiftKey || event.metaKey || event.ctrlKey) {
+              setSelection((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]);
+            } else {
+              setSelection([index]);
+            }
+          },
           style: {
             display: "flex",
             flexDirection: "column",
@@ -1089,81 +1722,30 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
             padding: 6,
             borderRadius: 8,
             cursor: "pointer",
-            background: index === selected ? selectionFill(14) : "transparent",
-            border: `1px solid ${index === selected ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`
+            background: selection.includes(index) ? selectionFill(14) : "transparent",
+            border: `1px solid ${selection.includes(index) ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`
           }
         },
-        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react6.default.createElement(
-          "select",
-          {
-            value: box.type ?? "obj",
-            onChange: (event) => updateBox(index, { type: event.target.value }),
-            style: { ...input, flex: "0 0 64px", padding: "2px 2px" }
-          },
-          /* @__PURE__ */ import_react6.default.createElement("option", { value: "obj", style: optionStyle }, "obj"),
-          /* @__PURE__ */ import_react6.default.createElement("option", { value: "text", style: optionStyle }, "text")
-        ), box.type === "text" ? null : /* @__PURE__ */ import_react6.default.createElement(
-          IconCheckbox,
-          {
-            checked: characters.has(index + 1),
-            onChange: () => onToggleCharacter(index),
-            label: t("editor.kindPerson")
-          }
-        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement(
-          "button",
-          {
-            type: "button",
-            style: iconDanger,
-            title: t("editor.deleteBoxTitle"),
-            "aria-label": t("editor.deleteBox"),
-            onClick: (event) => {
-              event.stopPropagation();
-              onRemove(index);
-            }
-          },
-          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete" })
-        )),
-        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, t("editor.kindText")), /* @__PURE__ */ import_react6.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...dim, fontSize: 10, whiteSpace: "nowrap" } }, Math.round(box.width * 100), "\xD7", Math.round(box.height * 100))),
+        selection.includes(index) && selection.length === 1 ? /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
             value: box.text ?? "",
-            onChange: (event) => updateBox(index, { text: event.target.value }),
+            onChange: (event) => patchBox(index, { text: event.target.value }, true),
             placeholder: t("editor.kindTextHint"),
+            "aria-label": t("editor.kindTextHint"),
             style: input
           }
-        )) : null,
-        /* @__PURE__ */ import_react6.default.createElement(
-          "textarea",
-          {
-            value: box.desc ?? "",
-            onChange: (event) => updateBox(index, { desc: event.target.value }),
-            placeholder: t("editor.descPlaceholder"),
-            rows: 3,
-            style: { ...input, width: "100%", resize: "vertical", lineHeight: 1.45 }
-          }
-        ),
-        /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } }, [
-          ["X", "x", box.x],
-          ["Y", "y", box.y],
-          [t("editor.widthShort"), "width", box.width],
-          [t("editor.heightShort"), "height", box.height]
-        ].map(([label3, key, value]) => /* @__PURE__ */ import_react6.default.createElement("label", { key, style: { display: "flex", alignItems: "center", gap: 2, minWidth: 0, fontSize: 10, ...dim } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, label3), /* @__PURE__ */ import_react6.default.createElement(
+        ) : /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
-            type: "number",
-            min: 0,
-            max: 100,
-            step: 1,
-            value: Math.round(value * 100),
-            onClick: (event) => event.stopPropagation(),
-            onChange: (event) => {
-              const percent = Number(event.target.value);
-              if (!Number.isFinite(percent)) return;
-              updateBox(index, updateBoxGeometry(box, { [key]: percent / 100 }));
-            },
-            style: { ...input, width: "100%", minWidth: 0, padding: "1px 3px", fontSize: 11, textAlign: "right" }
+            value: box.desc ?? "",
+            onChange: (event) => patchBox(index, { desc: event.target.value }, true),
+            placeholder: t("editor.descPlaceholder"),
+            "aria-label": t("editor.descPlaceholder"),
+            style: input
           }
-        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, "%"))))
+        )) : null
       ))))
     )
   );
@@ -3320,7 +3902,7 @@ function useVirtualizer(options) {
 
 // src/FilterChip.jsx
 var import_react7 = __toESM(require("react"), 1);
-function FilterChip({ selected, label: label3, onClick, title, disabled = false }) {
+function FilterChip({ selected, label: label2, onClick, title, disabled = false }) {
   return /* @__PURE__ */ import_react7.default.createElement(
     "button",
     {
@@ -3348,7 +3930,7 @@ function FilterChip({ selected, label: label3, onClick, title, disabled = false 
       }
     },
     selected ? /* @__PURE__ */ import_react7.default.createElement(Icon, { name: "check", size: 13 }) : null,
-    label3
+    label2
   );
 }
 
@@ -3801,8 +4383,8 @@ function SettingsDialog({ onClose, onSaved }) {
     )
   );
 }
-function ReadOnly({ label: label3, value }) {
-  return /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label3), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
+function ReadOnly({ label: label2, value }) {
+  return /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label2), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
 }
 
 // src/ui-prefs.js
@@ -6926,7 +7508,7 @@ var panel = {
 };
 var row3 = { display: "flex", alignItems: "center", gap: 6 };
 var dim4 = { color: "var(--dsw-alias-label-secondary, inherit)" };
-var label2 = { fontSize: 11, opacity: 0.68, minWidth: 44 };
+var label = { fontSize: 11, opacity: 0.68, minWidth: 44 };
 var input3 = {
   flex: 1,
   minWidth: 0,
@@ -7099,14 +7681,10 @@ function timeOf(value) {
 function toCharacterSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
 }
-function fromCharacterSet(set) {
-  return [...set].sort((a, b) => a - b).join(", ");
-}
 function StudioPanel({ sessionId = "global", wide = false }) {
   useLocaleRevision();
   const [params, setParams] = (0, import_react14.useState)(null);
   const [records, setRecords] = (0, import_react14.useState)([]);
-  const [selectedBox, setSelectedBox] = (0, import_react14.useState)(-1);
   const [activeRecordId, setActiveRecordId] = (0, import_react14.useState)(null);
   const [activeRecord, setActiveRecord] = (0, import_react14.useState)(null);
   const [notice, setNotice] = (0, import_react14.useState)("");
@@ -7371,27 +7949,20 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const boxes2 = (paramsRef.current?.boxes ?? []).map((box, position) => position === index ? { ...box, ...patch } : box);
     update({ boxes: boxes2 });
   }, [update]);
-  const addBox = (0, import_react14.useCallback)(() => {
+  const addBox = (0, import_react14.useCallback)((geometry) => {
     const boxes2 = [...paramsRef.current?.boxes ?? []];
-    boxes2.push(defaultBox());
+    boxes2.push(geometry === void 0 ? defaultBox() : { ...defaultBox(), ...geometry });
     update({ boxes: boxes2 });
-    setSelectedBox(boxes2.length - 1);
     setShowCanvas(true);
+    return boxes2.length - 1;
   }, [update]);
-  const removeBox = (0, import_react14.useCallback)((index) => {
-    const boxes2 = (paramsRef.current?.boxes ?? []).filter((_, position) => position !== index);
-    update({ boxes: boxes2 });
-    setSelectedBox(-1);
-  }, [update]);
-  const toggleCharacter = (0, import_react14.useCallback)((index) => {
-    const set = toCharacterSet(paramsRef.current?.characterBoxes);
-    if (set.has(index + 1)) set.delete(index + 1);
-    else set.add(index + 1);
-    update({ characterBoxes: fromCharacterSet(set) });
+  const applyBoxes = (0, import_react14.useCallback)((nextBoxes, characters) => {
+    const patch = { boxes: nextBoxes };
+    if (characters !== void 0) patch.characterBoxes = characters;
+    update(patch);
   }, [update]);
   const newDraft = (0, import_react14.useCallback)(() => {
     update({ prompt: "", boxes: [], seed: -1, characterBoxes: "", enhance: false });
-    setSelectedBox(-1);
     setNotice(t("notice.newDraft"));
   }, [update]);
   const openEditor = (0, import_react14.useCallback)(() => {
@@ -7818,7 +8389,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
       }
     }
-  ), /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
     "textarea",
     {
       value: params.prompt,
@@ -7827,7 +8398,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       rows: 4,
       style: { ...input3, width: "100%", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...label2, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...label, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react14.default.createElement(
     "button",
     {
       type: "button",
@@ -7868,7 +8439,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         compact: boxes.length === 0
       }
     )
-  ) : null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("size.label")), /* @__PURE__ */ import_react14.default.createElement(
+  ) : null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("size.label")), /* @__PURE__ */ import_react14.default.createElement(
     "input",
     {
       type: "number",
@@ -7908,7 +8479,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     },
     /* @__PURE__ */ import_react14.default.createElement("option", { value: "", style: optionStyle2 }, t("size.presetPlaceholder")),
     SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react14.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
-  )), sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("params.steps")), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("params.negative"))), /* @__PURE__ */ import_react14.default.createElement(
+  )), sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("params.steps")), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, "CFG"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, "seed"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("params.negative"))), /* @__PURE__ */ import_react14.default.createElement(
     "textarea",
     {
       value: params.negative,
@@ -8029,12 +8600,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     BoxEditor,
     {
       params,
-      selected: selectedBox,
-      onSelect: setSelectedBox,
-      onChange: (next) => update({ boxes: next }),
+      onApply: applyBoxes,
       onAdd: addBox,
-      onRemove: removeBox,
-      onToggleCharacter: toggleCharacter,
       onClose: closeEditor,
       onCancel: cancelEditor
     }
@@ -8155,20 +8722,20 @@ function createPlugin() {
     components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog, ResultPane },
     inject: ["locale", "slots", "sidebarRightTabs", "sidebarRight"],
     apply(ctx) {
-      const safe = (label3, run) => {
+      const safe = (label2, run) => {
         try {
-          ctx.effect(run, label3);
+          ctx.effect(run, label2);
         } catch (error) {
-          console.error(`[moss-studio] ${label3} registration failed`, error);
+          console.error(`[moss-studio] ${label2} registration failed`, error);
         }
       };
-      const injectInto = (owner, label3, register) => safe(label3, () => {
+      const injectInto = (owner, label2, register) => safe(label2, () => {
         if (typeof ctx.slots?.inject !== "function") throw new Error("slots.inject unavailable");
         return ctx.slots.inject(owner, () => {
           try {
             return register();
           } catch (error) {
-            console.error(`[moss-studio] ${label3} registration failed`, error);
+            console.error(`[moss-studio] ${label2} registration failed`, error);
             return () => {
             };
           }

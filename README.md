@@ -29,7 +29,11 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 ## What it does
 
 - History with search, pinning and archiving; the list is virtualised and pages backwards.
-- Prompt, negative prompt, boxes (drag/resize on the canvas or type percentages in the editor), size, steps, CFG, seed and the prompt enhancer.
+- Prompt, negative prompt, boxes, size, steps, CFG, seed and the prompt enhancer.
+- Layout editor with the gestures bounding-box annotators use: drag on empty
+  canvas to draw a box, eight resize handles, shift-click and shift-drag for
+  multi-selection, smart guides that snap edges and centres, align/distribute,
+  a numeric X/Y/W/H inspector, duplicate, and undo/redo.
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
