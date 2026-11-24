@@ -27,7 +27,7 @@ const danger = {
  * so the action goes through a modal instead of a second click: the dialog can
  * show what exactly is about to disappear.
  */
-export function ConfirmDialog({ title, message, detail, confirmLabel = t('删除'), onConfirm, onCancel }) {
+export function ConfirmDialog({ title, message, detail, confirmLabel = t('action.delete'), onConfirm, onCancel }) {
   const cardRef = useRef(null)
   const cancelRef = useRef(null)
   useDialogFocus(cardRef, { initialFocus: cancelRef })
@@ -94,7 +94,7 @@ export function ConfirmDialog({ title, message, detail, confirmLabel = t('删除
           ) : null}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '12px 14px' }}>
-          <button type="button" ref={cancelRef} style={button} onClick={onCancel}>取消</button>
+          <button type="button" ref={cancelRef} style={button} onClick={onCancel}>{t('action.cancel')}</button>
           <button type="button" style={danger} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>

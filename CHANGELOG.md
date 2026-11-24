@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0
+
+- i18n moved onto the client locale service: the panel registers a
+  `moss-studio` namespace with `ctx.locale.register(NS, { zh, en })` and
+  translates through `ctx.locale.bind(NS)`, instead of keeping a private table
+  keyed by Chinese text.
+- Keys are semantic identifiers (`action.delete`, `history.empty`,
+  `settings.comfyUrl`, …) grouped by area, so rewording copy no longer risks a
+  silent mapping break, and two meanings of one Chinese string can be
+  translated differently.
+- Switching the language in the app's settings now re-renders the panel
+  immediately. `src/useLocale.js` subscribes with `useSyncExternalStore` once at
+  the panel root; previously the language was read a single time when the plugin
+  activated, so nothing changed until a reload.
+- Fallback ladder is unchanged in spirit: the service's chain (English for an
+  unregistered locale), then the Chinese text, then the key itself.
+- Timestamps follow the active language instead of always using `zh-CN`.
+- 13 multi-line JSX text nodes that the earlier regex pass had missed are
+  translated too, so no Chinese copy remains outside the dictionaries.
+- Tests: key parity, placeholder parity, full coverage, no Chinese keys, and
+  four runtime cases (fallback, registration, subscription, no-service).
+
 ## 0.4.3
 
 - Fix: the image viewer's previous/next buttons rendered empty because

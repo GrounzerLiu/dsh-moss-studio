@@ -38,203 +38,396 @@ __export(client_exports, {
   createPlugin: () => createPlugin
 });
 module.exports = __toCommonJS(client_exports);
-var import_react14 = __toESM(require("react"), 1);
+var import_react15 = __toESM(require("react"), 1);
 
 // src/i18n.js
-var EN = {
-  "(\u65E0\u63D0\u793A\u8BCD)": "(no prompt)",
-  "ComfyUI \u5730\u5740": "ComfyUI address",
-  "ComfyUI \u79BB\u7EBF": "ComfyUI offline",
-  "Moss studio \u9762\u677F\u51FA\u9519": "Moss studio panel failed",
-  "Moss studio \u8BBE\u7F6E": "Moss studio settings",
-  "\u4E0A\u4E00\u5F20": "Previous",
-  "\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09": "Previous (newer)",
-  "\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C": "A generation is already running",
-  "\u4E0B\u4E00\u5F20": "Next",
-  "\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09": "Next (older)",
-  "\u4E0B\u8F7D": "Download",
-  "\u4E0B\u8F7D\u56FE\u7247": "Download image",
-  "\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694": "What to avoid, comma separated",
-  "\u4EBA\u7269": "Person",
-  "\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09": "Below 0.25 MP (512\xD7512)",
-  "\u4FDD\u5B58": "Save",
-  "\u4FDD\u5B58\u4E2D\u2026": "Saving\u2026",
-  "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002": "Applies immediately to the next generation; the value is written to the profile's cordis.patch.yml.",
-  "\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09": "Expand the prompt with the local 9B model (unavailable with boxes)",
-  "\u5173\u95ED": "Close",
-  "\u5173\u95ED\u8BBE\u7F6E": "Close settings",
-  "\u5220\u9664": "Delete",
-  "\u5220\u9664\u6846": "Delete box",
-  "\u5220\u9664\u8BB0\u5F55": "Delete record",
-  "\u5220\u9664\u8FD9\u4E2A\u6846": "Delete this box",
-  "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55": "Delete this record",
-  "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F": "Delete this record?",
-  "\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55": "Delete selected record",
-  "\u5220\u9664\u9009\u4E2D\u8BB0\u5F55": "Delete selected record",
-  "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002": "Reload to retry; parameters are still saved under ~/.dsh/moss-studio.",
-  "\u52A0\u4E00\u4E2A\u6846": "Add a box",
-  "\u52A0\u6846": "Add box",
-  "\u52A0\u8F7D\u4E2D\u2026": "Loading\u2026",
-  "\u52A0\u8F7D\u66F4\u591A": "Load more",
-  "\u5386\u53F2": "History",
-  "\u5386\u53F2\u4FDD\u7559\u6761\u6570": "History retention",
-  "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09": "History retention (0 = unlimited)",
-  "\u53D6\u6D88": "Cancel",
-  "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539": "Cancel and undo this edit",
-  "\u53D6\u6D88\u5F52\u6863": "Unarchive",
-  "\u53D6\u6D88\u7F6E\u9876": "Unpin",
-  "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210": "Another session is generating",
-  "\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55": "Only records from this session",
-  "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210": "Image failed to load; use Download to retry or generate again",
-  "\u5B8C\u6210": "Done",
-  "\u5BBD": "W",
-  "\u5BBD\u5EA6": "Width",
-  "\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A": "Width and height are required",
-  "\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570": "Width and height must be multiples of 16",
-  "\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570": "Width and height must be positive integers",
-  "\u5BF9\u8BDD\u8349\u7A3F": "Conversation draft",
-  "\u5C55\u5F00\u7ED3\u679C\u533A": "Expand result area",
-  "\u5C55\u5F00\u9884\u89C8": "Expand preview",
-  "\u5DE5\u4F5C\u6D41": "Workflow",
-  "\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E": "Saved; the next generation and new drafts use it",
-  "\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026": "Retrying with this record, waiting for the image\u2026",
-  "\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026": "Submitted, waiting for ComfyUI\u2026",
-  "\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539": "Layout changes reverted",
-  "\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F": "New empty draft",
-  "\u5E38\u7528\u5C3A\u5BF8": "Preset size",
-  "\u5F52\u6863": "Archive",
-  "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002": "This profile has no config editor; change cordis.patch.yml and restart instead.",
-  "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F": "Load this record's parameters into the draft",
-  "\u6298\u53E0\u9884\u89C8": "Collapse preview",
-  "\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D": "Drag to resize the history column; double-click to reset",
-  "\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00": "Drag to resize; double-click to collapse or expand",
-  "\u6392\u961F": "queued",
-  "\u63A2\u6D4B": "probing",
-  "\u63D0\u4EA4": "submitting",
-  "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7": "Search prompt or record id",
-  "\u6536\u8D77\u7ED3\u679C": "Collapse result",
-  "\u6536\u8D77\u7ED3\u679C\u533A": "Collapse result area",
-  "\u653E\u5927": "Zoom in",
-  "\u653E\u5927\u67E5\u770B": "Zoomed view",
-  "\u6570\u636E\u76EE\u5F55": "Data directory",
-  "\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC": "Whole-image description; per-box detail goes in each box's desc",
-  "\u65B0\u5EFA\u7A7A\u8349\u7A3F": "New empty draft",
-  "\u65B0\u5EFA\u8349\u7A3F": "New draft",
-  "\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55": "Show records from every session",
-  "\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55": "Show archived records",
-  "\u672A\u547D\u540D\u8BB0\u5F55": "Untitled record",
-  "\u672A\u7ED1\u5B9A\u4F1A\u8BDD": "No session bound",
-  "\u672A\u9009\u4E2D\u8BB0\u5F55": "No record selected",
-  "\u672C\u4F1A\u8BDD": "This session",
-  "\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570": "Local MOSS-Image generation: history, layout boxes, parameters",
-  "\u67E5\u770B\u751F\u6210\u7ED3\u679C": "View the result",
-  "\u6839\u8349\u7A3F": "Root draft",
-  "\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF": "What is in the box: subject, pose, material, lighting",
-  "\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668": "Open the layout editor",
-  "\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664": "Generating; delete it once it finishes",
-  "\u751F\u6210\u5931\u8D25": "Generation failed",
-  "\u751F\u6210\u7ED3\u679C": "Generated result",
-  "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5": "Retry with this record's parameters",
-  "\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D": "Timed out waiting; the job may still be queued in ComfyUI",
-  "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC": "The result appears here",
-  "\u7F16\u8F91\u5E03\u5C40": "Edit layout",
-  "\u7F29\u5C0F": "Zoom out",
-  "\u7F6E\u9876": "Pin",
-  "\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09": "Pinning and archiving need the newer host: restart the app (this process is still the old version)",
-  "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761": "More than 50 pinned; only the newest 50 are shown",
-  "\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210": "The draft changed; review it before generating",
-  "\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570": "The AI updated the draft; parameters synced",
-  "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002": "The record and its image are deleted together. This cannot be undone.",
-  "\u8BBE\u7F6E": "Settings",
-  "\u8D85\u65F6 / \u8F6E\u8BE2": "Timeout / polling",
-  "\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09": "Above 4 MP (about 2048\xD72048)",
-  "\u8F7D\u5165\u53C2\u6570": "Load parameters",
-  "\u8FD8\u6CA1\u6709\u8BB0\u5F55": "No records yet",
-  "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09": "No records in this session (turn off This session to see all)",
-  "\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220": "This record is still generating; delete it after it finishes",
-  "\u8FDE\u63A5\u4E2D": "connecting",
-  "\u9002\u5E94\u7A97\u53E3": "Fit to window",
-  "\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57": "Text rendered verbatim",
-  "\u91CD\u65B0\u68C0\u6D4B": "Check again",
-  "\u91CD\u65B0\u68C0\u6D4B ComfyUI": "Check ComfyUI again",
-  "\u91CD\u8BD5": "Retry",
-  "\u968F\u673A seed \u751F\u6210": "Generate with a random seed",
-  "\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55": "Hide archived records",
-  "\u9AD8": "H",
-  "\u9AD8\u5EA6": "Height",
-  "\u9ED8\u8BA4 CFG": "Default CFG",
-  "\u9ED8\u8BA4\u5C3A\u5BF8": "Default size",
-  "\u9ED8\u8BA4\u6B65\u6570": "Default steps",
-  "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD": "Default negative prompt",
-  "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09": "Defaults for new drafts (existing drafts are untouched)",
-  "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F": "Decided by configuration; change cordis.patch.yml and restart",
-  "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002": "The oldest are removed first; pinned and running records are kept.",
-  "\u8BFB\u53D6\u4E2D\u2026": "Loading\u2026",
-  "\u8BFB\u53D6\u5931\u8D25\uFF1A{error}": "Failed to load: {error}",
-  "\u8349\u7A3F\u4F1A\u8BDD\uFF1A{sessionId}": "Draft session: {sessionId}",
-  "\u6CA1\u6709\u5339\u914D\u300C{query}\u300D\u7684\u8BB0\u5F55": 'No records match "{query}"',
-  "\u751F\u6210\u4E2D {seconds}s": "Generating {seconds}s",
-  "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09": "Generating\u2026 ({id})",
-  "\u961F\u5217\u4E2D \xB7 {id}": "Queued \xB7 {id}",
-  "\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2": "Done: {width}\xD7{height} in {seconds}s",
-  "\u663E\u5B58 {used}/{total} G": "VRAM {used}/{total} G",
-  "\u5185\u5B58 {used}/{total} G": "RAM {used}/{total} G",
-  "\u663E\u5B58 {total} GB \u603B\u91CF\uFF0C\u5185\u5B58 {ram} GB \u603B\u91CF": "VRAM total {total} GB, RAM total {ram} GB",
-  "revision {revision}": "revision {revision}",
-  "\u5386\u53F2 {count}": "History {count}",
-  "\u8FDE\u4E0D\u4E0A ComfyUI": "Cannot reach ComfyUI",
-  "ComfyUI {version}": "ComfyUI {version}",
-  "\u7F16\u8F91\u5E03\u5C40 \xB7 {count} \u4E2A\u6846 \xB7 {size}": "Edit layout \xB7 {count} boxes \xB7 {size}",
-  "\u786E\u8BA4\u5220\u9664\u8BB0\u5F55": "Confirm deleting the record",
-  "\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09": "Save failed ({status})",
-  "\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "The generate request failed ({status})",
-  "\u91CD\u8BD5\u5931\u8D25\uFF08{status}\uFF09": "Retry failed ({status})",
-  "\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09": "Delete failed ({status})",
-  "\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09": "Could not update the flag ({status})",
-  "\u5DF2\u8F7D\u5165 {id} \u7684\u53C2\u6570": "Loaded the parameters of {id}",
-  "state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "state request failed ({status})",
-  "records \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "records request failed ({status})",
-  "\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "record request failed ({status})",
-  "health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09": "health request failed ({status})",
-  "\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09": "settings request failed ({status})",
-  "{seconds} \u79D2 / {ms} \u6BEB\u79D2": "{seconds}s / {ms}ms",
-  "\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B": "Click to check again",
-  "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026": "Reading moss studio state\u2026",
-  "\u63D0\u793A\u8BCD": "Prompt",
-  "\u5C3A\u5BF8": "Size",
-  "\u9884\u8BBE": "Preset",
-  "\u6B65\u6570": "Steps",
-  "\u8D1F\u5411\u63D0\u793A\u8BCD": "Negative prompt",
-  "\u7528\u5F53\u524D seed \u751F\u6210": "Generate with the current seed",
-  "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58": "Invalid size, not saved",
-  "\u7ED3\u679C": "Result",
-  "\u6587\u5B57": "Text",
-  "\u5982 1024x1024": "e.g. 1024x1024"
+var NS = "moss-studio";
+var ZH = {
+  "action.archive": "\u5F52\u6863",
+  "action.cancel": "\u53D6\u6D88",
+  "action.close": "\u5173\u95ED",
+  "action.delete": "\u5220\u9664",
+  "action.deleteRecord": "\u5220\u9664\u8BB0\u5F55",
+  "action.deleteRecordTitle": "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55",
+  "action.done": "\u5B8C\u6210",
+  "action.newDraft": "\u65B0\u5EFA\u8349\u7A3F",
+  "action.newDraftTitle": "\u65B0\u5EFA\u7A7A\u8349\u7A3F",
+  "action.pin": "\u7F6E\u9876",
+  "action.save": "\u4FDD\u5B58",
+  "action.settings": "\u8BBE\u7F6E",
+  "action.unarchive": "\u53D6\u6D88\u5F52\u6863",
+  "action.unpin": "\u53D6\u6D88\u7F6E\u9876",
+  "confirm.deleteTitle": "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F",
+  "confirm.deleteMessage": "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002",
+  "editor.addBox": "\u52A0\u6846",
+  "editor.addBoxTitle": "\u52A0\u4E00\u4E2A\u6846",
+  "editor.cancelTitle": "\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539",
+  "editor.deleteBox": "\u5220\u9664\u6846",
+  "editor.deleteBoxTitle": "\u5220\u9664\u8FD9\u4E2A\u6846",
+  "editor.empty": "\u8FD8\u6CA1\u6709\u6846\u3002\u70B9\u300C\u52A0\u6846\u300D\u653E\u4E00\u4E2A\uFF0C\u7136\u540E\u62D6\u52A8\u79FB\u52A8\u3001\u62C9\u53F3\u4E0B\u89D2\u6539\u5927\u5C0F\u3002",
+  "editor.title": "\u7F16\u8F91\u5E03\u5C40 \xB7 {count} \u4E2A\u6846 \xB7 {size}",
+  "editor.descPlaceholder": "\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF",
+  "editor.heightShort": "\u9AD8",
+  "editor.kindPerson": "\u4EBA\u7269",
+  "editor.kindText": "\u6587\u5B57",
+  "editor.kindTextHint": "\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57",
+  "editor.widthShort": "\u5BBD",
+  "error.delete": "\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09",
+  "error.flag": "\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09",
+  "error.generateRequest": "\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "error.generation": "\u751F\u6210\u5931\u8D25",
+  "error.healthRequest": "health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "error.read": "\u8BFB\u53D6\u5931\u8D25\uFF1A{error}",
+  "error.recordRequest": "\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "error.recordsRequest": "records \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "error.retry": "\u91CD\u8BD5\u5931\u8D25\uFF08{status}\uFF09",
+  "error.save": "\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09",
+  "error.settingsRequest": "\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09",
+  "error.stateRequest": "state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
+  "generate.currentSeed": "\u7528\u5F53\u524D seed \u751F\u6210",
+  "generate.otherSession": "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210",
+  "generate.pending": "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09",
+  "generate.queued": "\u961F\u5217\u4E2D \xB7 {id}",
+  "generate.random": "\u968F\u673A seed \u751F\u6210",
+  "generate.running": "\u751F\u6210\u4E2D {seconds}s",
+  "history.deleteBlockedRunning": "\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220",
+  "history.deleteWhileRunning": "\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664",
+  "history.boxCount": "{count} \u6846",
+  "history.empty": "\u8FD8\u6CA1\u6709\u8BB0\u5F55",
+  "history.emptySession": "\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09",
+  "history.filterSession": "\u672C\u4F1A\u8BDD",
+  "history.hideArchived": "\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55",
+  "history.loadMore": "\u52A0\u8F7D\u66F4\u591A",
+  "history.loading": "\u52A0\u8F7D\u4E2D\u2026",
+  "history.noMatches": "\u6CA1\u6709\u5339\u914D\u300C{query}\u300D\u7684\u8BB0\u5F55",
+  "history.noPrompt": "(\u65E0\u63D0\u793A\u8BCD)",
+  "history.onlyThisSession": "\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55",
+  "history.pinnedTruncated": "\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761",
+  "history.pinnedTitle": "\u7F6E\u9876 {count}",
+  "history.resizeTitle": "\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D",
+  "history.searchPlaceholder": "\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7",
+  "history.showAllSessions": "\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55",
+  "history.showArchived": "\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55",
+  "history.untitled": "\u672A\u547D\u540D\u8BB0\u5F55",
+  "history.title": "\u5386\u53F2 {count}",
+  "notice.draftChanged": "\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210",
+  "notice.draftSyncedFromAi": "\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570",
+  "notice.flagsNeedNewHost": "\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09",
+  "notice.generationBusy": "\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C",
+  "notice.generationDone": "\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2",
+  "notice.generationSubmitted": "\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026",
+  "notice.generationTimeout": "\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D",
+  "notice.layoutReverted": "\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539",
+  "notice.newDraft": "\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F",
+  "notice.recordLoaded": "\u5DF2\u8F7D\u5165 {id} \u7684\u53C2\u6570",
+  "notice.retrySubmitted": "\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026",
+  "panel.description": "\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570",
+  "panel.errorHint": "\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002",
+  "panel.errorTitle": "Moss studio \u9762\u677F\u51FA\u9519",
+  "params.enhanceHint": "\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09",
+  "params.negative": "\u8D1F\u5411\u63D0\u793A\u8BCD",
+  "params.negativePlaceholder": "\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694",
+  "params.steps": "\u6B65\u6570",
+  "phase.download": "\u4E0B\u8F7D",
+  "phase.probe": "\u63A2\u6D4B",
+  "phase.submit": "\u63D0\u4EA4",
+  "phase.wait": "\u6392\u961F",
+  "preview.collapse": "\u6298\u53E0\u9884\u89C8",
+  "preview.boxes": "\u5E03\u5C40\u6846 {count}",
+  "preview.empty": "\u65E0\u6846\uFF1A\u6574\u5E45\u81EA\u7531\u6784\u56FE",
+  "preview.editLayout": "\u7F16\u8F91\u5E03\u5C40",
+  "preview.expand": "\u5C55\u5F00\u9884\u89C8",
+  "preview.openEditor": "\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668",
+  "prompt.label": "\u63D0\u793A\u8BCD",
+  "prompt.placeholder": "\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC",
+  "result.collapse": "\u6536\u8D77\u7ED3\u679C\u533A",
+  "result.collapseShort": "\u6536\u8D77\u7ED3\u679C",
+  "result.delete": "\u5220\u9664\u9009\u4E2D\u8BB0\u5F55",
+  "result.deleteTitle": "\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55",
+  "result.download": "\u4E0B\u8F7D",
+  "result.downloadTitle": "\u4E0B\u8F7D\u56FE\u7247",
+  "result.empty": "\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC",
+  "result.expand": "\u5C55\u5F00\u7ED3\u679C\u533A",
+  "result.imageAlt": "\u751F\u6210\u7ED3\u679C",
+  "result.imageFailed": "\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210",
+  "result.label": "\u7ED3\u679C",
+  "result.load": "\u8F7D\u5165\u53C2\u6570",
+  "result.loadTitle": "\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F",
+  "result.noSelection": "\u672A\u9009\u4E2D\u8BB0\u5F55",
+  "result.resizeTitle": "\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00",
+  "result.retry": "\u91CD\u8BD5",
+  "result.retryTitle": "\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5",
+  "settings.close": "\u5173\u95ED\u8BBE\u7F6E",
+  "settings.comfyUrl": "ComfyUI \u5730\u5740",
+  "settings.comfyUrlHint": "\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002",
+  "settings.comfyUrlReadOnly": "\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002",
+  "settings.dataDir": "\u6570\u636E\u76EE\u5F55",
+  "settings.defaultCfg": "\u9ED8\u8BA4 CFG",
+  "settings.defaultNegative": "\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD",
+  "settings.defaultSize": "\u9ED8\u8BA4\u5C3A\u5BF8",
+  "settings.defaultSizeHint": "\u5982 1024x1024",
+  "settings.defaultSteps": "\u9ED8\u8BA4\u6B65\u6570",
+  "settings.defaults": "\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09",
+  "settings.loading": "\u8BFB\u53D6\u4E2D\u2026",
+  "settings.retention": "\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09",
+  "settings.retentionAria": "\u5386\u53F2\u4FDD\u7559\u6761\u6570",
+  "settings.retentionHint": "\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002",
+  "settings.saved": "\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E",
+  "settings.timeoutValue": "{seconds} \u79D2 / {ms} \u6BEB\u79D2",
+  "settings.timeouts": "\u8D85\u65F6 / \u8F6E\u8BE2",
+  "settings.title": "Moss studio \u8BBE\u7F6E",
+  "settings.wiring": "\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F",
+  "settings.workflow": "\u5DE5\u4F5C\u6D41",
+  "size.errorEmpty": "\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A",
+  "size.errorMultiple": "\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570",
+  "size.errorPositive": "\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570",
+  "size.errorTooLarge": "\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09",
+  "size.errorTooSmall": "\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09",
+  "size.height": "\u9AD8\u5EA6",
+  "size.invalidNotSaved": "\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58",
+  "size.label": "\u5C3A\u5BF8",
+  "size.presetPlaceholder": "\u9884\u8BBE",
+  "size.presets": "\u5E38\u7528\u5C3A\u5BF8",
+  "size.width": "\u5BBD\u5EA6",
+  "status.comfyOffline": "ComfyUI \u79BB\u7EBF",
+  "status.comfyUnreachable": "\u8FDE\u4E0D\u4E0A ComfyUI",
+  "status.comfyVersion": "ComfyUI {version}",
+  "status.connecting": "\u8FDE\u63A5\u4E2D",
+  "status.draftConversation": "\u5BF9\u8BDD\u8349\u7A3F",
+  "status.draftRoot": "\u6839\u8349\u7A3F",
+  "status.draftSession": "\u8349\u7A3F\u4F1A\u8BDD\uFF1A{sessionId}",
+  "status.draftUnbound": "\u672A\u7ED1\u5B9A\u4F1A\u8BDD",
+  "status.loading": "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026",
+  "status.ram": "\u5185\u5B58 {used}/{total} G",
+  "status.vram": "\u663E\u5B58 {used}/{total} G",
+  "status.memoryTitle": "\u663E\u5B58 {total} GB \u603B\u91CF\uFF0C\u5185\u5B58 {ram} GB \u603B\u91CF",
+  "status.recheck": "\u91CD\u65B0\u68C0\u6D4B ComfyUI",
+  "status.recheckHint": "\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B",
+  "status.saving": "\u4FDD\u5B58\u4E2D\u2026",
+  "viewer.fit": "\u9002\u5E94\u7A97\u53E3",
+  "viewer.hint": "\u6EDA\u8F6E\u7F29\u653E \xB7 \u62D6\u52A8\u5E73\u79FB \xB7 \u53CC\u51FB\u5207\u6362 \xB7 Esc \u5173\u95ED",
+  "viewer.imageAlt": "\u67E5\u770B\u751F\u6210\u7ED3\u679C",
+  "viewer.next": "\u4E0B\u4E00\u5F20",
+  "viewer.nextTitle": "\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09",
+  "viewer.prev": "\u4E0A\u4E00\u5F20",
+  "viewer.prevTitle": "\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09",
+  "viewer.zoomAlt": "\u653E\u5927\u67E5\u770B",
+  "viewer.zoomIn": "\u653E\u5927",
+  "viewer.zoomOut": "\u7F29\u5C0F"
 };
-var current = "zh";
-function getLocale() {
-  return current;
+var EN = {
+  "action.archive": "Archive",
+  "action.cancel": "Cancel",
+  "action.close": "Close",
+  "action.delete": "Delete",
+  "action.deleteRecord": "Delete record",
+  "action.deleteRecordTitle": "Delete this record",
+  "action.done": "Done",
+  "action.newDraft": "New draft",
+  "action.newDraftTitle": "New empty draft",
+  "action.pin": "Pin",
+  "action.save": "Save",
+  "action.settings": "Settings",
+  "action.unarchive": "Unarchive",
+  "action.unpin": "Unpin",
+  "confirm.deleteTitle": "Delete this record?",
+  "confirm.deleteMessage": "The record and its image are deleted together. This cannot be undone.",
+  "editor.addBox": "Add box",
+  "editor.addBoxTitle": "Add a box",
+  "editor.cancelTitle": "Cancel and undo this edit",
+  "editor.deleteBox": "Delete box",
+  "editor.deleteBoxTitle": "Delete this box",
+  "editor.empty": "No boxes yet. Add one, drag it to move, drag its corner to resize.",
+  "editor.title": "Edit layout \xB7 {count} boxes \xB7 {size}",
+  "editor.descPlaceholder": "What is in the box: subject, pose, material, lighting",
+  "editor.heightShort": "H",
+  "editor.kindPerson": "Person",
+  "editor.kindText": "Text",
+  "editor.kindTextHint": "Text rendered verbatim",
+  "editor.widthShort": "W",
+  "error.delete": "Delete failed ({status})",
+  "error.flag": "Could not update the flag ({status})",
+  "error.generateRequest": "The generate request failed ({status})",
+  "error.generation": "Generation failed",
+  "error.healthRequest": "health request failed ({status})",
+  "error.read": "Failed to load: {error}",
+  "error.recordRequest": "record request failed ({status})",
+  "error.recordsRequest": "records request failed ({status})",
+  "error.retry": "Retry failed ({status})",
+  "error.save": "Save failed ({status})",
+  "error.settingsRequest": "settings request failed ({status})",
+  "error.stateRequest": "state request failed ({status})",
+  "generate.currentSeed": "Generate with the current seed",
+  "generate.otherSession": "Another session is generating",
+  "generate.pending": "Generating\u2026 ({id})",
+  "generate.queued": "Queued \xB7 {id}",
+  "generate.random": "Generate with a random seed",
+  "generate.running": "Generating {seconds}s",
+  "history.deleteBlockedRunning": "This record is still generating; delete it after it finishes",
+  "history.deleteWhileRunning": "Generating; delete it once it finishes",
+  "history.boxCount": "{count} boxes",
+  "history.empty": "No records yet",
+  "history.emptySession": "No records in this session (turn off This session to see all)",
+  "history.filterSession": "This session",
+  "history.hideArchived": "Hide archived records",
+  "history.loadMore": "Load more",
+  "history.loading": "Loading\u2026",
+  "history.noMatches": 'No records match "{query}"',
+  "history.noPrompt": "(no prompt)",
+  "history.onlyThisSession": "Only records from this session",
+  "history.pinnedTruncated": "More than 50 pinned; only the newest 50 are shown",
+  "history.pinnedTitle": "Pinned {count}",
+  "history.resizeTitle": "Drag to resize the history column; double-click to reset",
+  "history.searchPlaceholder": "Search prompt or record id",
+  "history.showAllSessions": "Show records from every session",
+  "history.showArchived": "Show archived records",
+  "history.untitled": "Untitled record",
+  "history.title": "History {count}",
+  "notice.draftChanged": "The draft changed; review it before generating",
+  "notice.draftSyncedFromAi": "The AI updated the draft; parameters synced",
+  "notice.flagsNeedNewHost": "Pinning and archiving need the newer host: restart the app (this process is still the old version)",
+  "notice.generationBusy": "A generation is already running",
+  "notice.generationDone": "Done: {width}\xD7{height} in {seconds}s",
+  "notice.generationSubmitted": "Submitted, waiting for ComfyUI\u2026",
+  "notice.generationTimeout": "Timed out waiting; the job may still be queued in ComfyUI",
+  "notice.layoutReverted": "Layout changes reverted",
+  "notice.newDraft": "New empty draft",
+  "notice.recordLoaded": "Loaded the parameters of {id}",
+  "notice.retrySubmitted": "Retrying with this record, waiting for the image\u2026",
+  "panel.description": "Local MOSS-Image generation: history, layout boxes, parameters",
+  "panel.errorHint": "Reload to retry; parameters are still saved under ~/.dsh/moss-studio.",
+  "panel.errorTitle": "Moss studio panel failed",
+  "params.enhanceHint": "Expand the prompt with the local 9B model (unavailable with boxes)",
+  "params.negative": "Negative prompt",
+  "params.negativePlaceholder": "What to avoid, comma separated",
+  "params.steps": "Steps",
+  "phase.download": "Downloading",
+  "phase.probe": "Probing",
+  "phase.submit": "Submitting",
+  "phase.wait": "Queued",
+  "preview.collapse": "Collapse preview",
+  "preview.boxes": "{count} boxes",
+  "preview.empty": "No boxes: a free full-frame composition",
+  "preview.editLayout": "Edit layout",
+  "preview.expand": "Expand preview",
+  "preview.openEditor": "Open the layout editor",
+  "prompt.label": "Prompt",
+  "prompt.placeholder": "Whole-image description; per-box detail goes in each box's desc",
+  "result.collapse": "Collapse result area",
+  "result.collapseShort": "Collapse result",
+  "result.delete": "Delete selected record",
+  "result.deleteTitle": "Delete selected record",
+  "result.download": "Download",
+  "result.downloadTitle": "Download image",
+  "result.empty": "The result appears here",
+  "result.expand": "Expand result area",
+  "result.imageAlt": "Generated result",
+  "result.imageFailed": "Image failed to load; use Download to retry or generate again",
+  "result.label": "Result",
+  "result.load": "Load parameters",
+  "result.loadTitle": "Load this record's parameters into the draft",
+  "result.noSelection": "No record selected",
+  "result.resizeTitle": "Drag to resize; double-click to collapse or expand",
+  "result.retry": "Retry",
+  "result.retryTitle": "Retry with this record\u2019s parameters",
+  "settings.close": "Close settings",
+  "settings.comfyUrl": "ComfyUI address",
+  "settings.comfyUrlHint": "Applies immediately to the next generation; the value is written to the profile's cordis.patch.yml.",
+  "settings.comfyUrlReadOnly": "This profile has no config editor; change cordis.patch.yml and restart instead.",
+  "settings.dataDir": "Data directory",
+  "settings.defaultCfg": "Default CFG",
+  "settings.defaultNegative": "Default negative prompt",
+  "settings.defaultSize": "Default size",
+  "settings.defaultSizeHint": "e.g. 1024x1024",
+  "settings.defaultSteps": "Default steps",
+  "settings.defaults": "Defaults for new drafts (existing drafts are untouched)",
+  "settings.loading": "Loading\u2026",
+  "settings.retention": "History retention (0 = unlimited)",
+  "settings.retentionAria": "History retention",
+  "settings.retentionHint": "The oldest are removed first; pinned and running records are kept.",
+  "settings.saved": "Saved; the next generation and new drafts use it",
+  "settings.timeoutValue": "{seconds}s / {ms}ms",
+  "settings.timeouts": "Timeout / polling",
+  "settings.title": "Moss studio settings",
+  "settings.wiring": "Decided by configuration; change cordis.patch.yml and restart",
+  "settings.workflow": "Workflow",
+  "size.errorEmpty": "Width and height are required",
+  "size.errorMultiple": "Width and height must be multiples of 16",
+  "size.errorPositive": "Width and height must be positive integers",
+  "size.errorTooLarge": "Above 4 MP (about 2048\xD72048)",
+  "size.errorTooSmall": "Below 0.25 MP (512\xD7512)",
+  "size.height": "Height",
+  "size.invalidNotSaved": "Invalid size, not saved",
+  "size.label": "Size",
+  "size.presetPlaceholder": "Preset",
+  "size.presets": "Preset size",
+  "size.width": "Width",
+  "status.comfyOffline": "ComfyUI offline",
+  "status.comfyUnreachable": "Cannot reach ComfyUI",
+  "status.comfyVersion": "ComfyUI {version}",
+  "status.connecting": "connecting",
+  "status.draftConversation": "Conversation draft",
+  "status.draftRoot": "Root draft",
+  "status.draftSession": "Draft session: {sessionId}",
+  "status.draftUnbound": "No session bound",
+  "status.loading": "Reading moss studio state\u2026",
+  "status.ram": "RAM {used}/{total} G",
+  "status.vram": "VRAM {used}/{total} G",
+  "status.memoryTitle": "VRAM total {total} GB, RAM total {ram} GB",
+  "status.recheck": "Check ComfyUI again",
+  "status.recheckHint": "Click to check again",
+  "status.saving": "Saving\u2026",
+  "viewer.fit": "Fit to window",
+  "viewer.hint": "Wheel to zoom \xB7 drag to pan \xB7 double-click to toggle \xB7 Esc to close",
+  "viewer.imageAlt": "View the result",
+  "viewer.next": "Next",
+  "viewer.nextTitle": "Next (older)",
+  "viewer.prev": "Previous",
+  "viewer.prevTitle": "Previous (newer)",
+  "viewer.zoomAlt": "Zoomed view",
+  "viewer.zoomIn": "Zoom in",
+  "viewer.zoomOut": "Zoom out"
+};
+function fill(template, params) {
+  if (params === void 0 || params === null) return template;
+  return template.replace(/\{(\w+)\}/g, (match, name) => name in params ? String(params[name]) : match);
 }
-function setLocale(value) {
-  current = String(value ?? "").toLowerCase().startsWith("en") ? "en" : "zh";
-  return current;
+function localTranslate(key, params) {
+  return fill(ZH[key] ?? key, params);
 }
-function detectLocale(tag) {
-  return setLocale(tag);
-}
-function t(text, params) {
-  const source = String(text);
-  let out = current === "en" ? EN[source] ?? source : source;
-  if (params !== void 0) {
-    for (const [key, value] of Object.entries(params)) {
-      out = out.split(`{${key}}`).join(String(value));
-    }
+var translate = localTranslate;
+var service;
+function attachLocale(locale) {
+  if (locale === void 0 || locale === null || typeof locale.register !== "function") {
+    return () => {
+    };
   }
-  return out;
+  const disposeDictionaries = locale.register(NS, { zh: ZH, en: EN });
+  service = locale;
+  translate = typeof locale.bind === "function" ? locale.bind(NS) : localTranslate;
+  return () => {
+    translate = localTranslate;
+    service = void 0;
+    if (typeof disposeDictionaries === "function") disposeDictionaries();
+  };
+}
+function t(key, params) {
+  return translate(key, params);
+}
+function subscribe(listener) {
+  if (typeof service?.subscribe !== "function") return () => {
+  };
+  return service.subscribe(listener);
+}
+function getRevision() {
+  return service?.getSnapshot?.()?.revision ?? 0;
+}
+function currentLocale() {
+  return service?.getSnapshot?.()?.active ?? "zh";
 }
 
 // src/App.jsx
-var import_react13 = __toESM(require("react"), 1);
+var import_react14 = __toESM(require("react"), 1);
 
 // src/api.js
 var PREFIX = "/plugins/dsh-moss-studio";
@@ -253,7 +446,7 @@ async function fetchState(sessionId, limit = 40, archived = false) {
   const query = new URLSearchParams({ sessionId, limit: String(limit) });
   if (archived) query.set("archived", "1");
   const { status, body } = await request(`/state?${query.toString()}`);
-  if (status !== 200 || body === null) throw new Error(body?.message || t("state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
+  if (status !== 200 || body === null) throw new Error(body?.message || t("error.stateRequest", { status }));
   return body;
 }
 async function fetchRecords(limit = 40, before, archived = false, search) {
@@ -262,7 +455,7 @@ async function fetchRecords(limit = 40, before, archived = false, search) {
   if (before !== void 0 && before !== null) query.set("before", before);
   if (archived) query.set("archived", "1");
   const { status, body } = await request(`/records?${query.toString()}`);
-  if (status !== 200 || body === null) throw new Error(body?.message || t("records \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
+  if (status !== 200 || body === null) throw new Error(body?.message || t("error.recordsRequest", { status }));
   return { records: body.records ?? [], nextBefore: body.nextBefore ?? null };
 }
 async function putDraft(sessionId, patch, revision) {
@@ -285,7 +478,7 @@ function imageUrl(id) {
 }
 async function fetchRecord(id) {
   const { status, body } = await request(`/records/${encodeURIComponent(id)}`);
-  if (status !== 200 || body === null) throw new Error(body?.message || t("\u8BB0\u5F55\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
+  if (status !== 200 || body === null) throw new Error(body?.message || t("error.recordRequest", { status }));
   return body.record;
 }
 async function patchRecord(id, flags) {
@@ -296,12 +489,12 @@ async function patchRecord(id, flags) {
 }
 async function fetchHealth() {
   const { status, body } = await request("/health");
-  if (status !== 200 || body === null) return { ok: false, error: t("health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }) };
+  if (status !== 200 || body === null) return { ok: false, error: t("error.healthRequest", { status }) };
   return body;
 }
 async function fetchSettings() {
   const { status, body } = await request("/settings");
-  if (status !== 200 || body === null) throw new Error(body?.message || t("\u8BBE\u7F6E\u8BFB\u53D6\u5931\u8D25\uFF08{status}\uFF09", { status }));
+  if (status !== 200 || body === null) throw new Error(body?.message || t("error.settingsRequest", { status }));
   return body;
 }
 async function saveSettings(patch) {
@@ -544,7 +737,7 @@ function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact = false,
         ) : null
       );
     }),
-    boxes.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 12, opacity: 0.55 } }, "\u65E0\u6846\uFF1A\u6574\u5E45\u81EA\u7531\u6784\u56FE") : null
+    boxes.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 12, opacity: 0.55 } }, t("preview.empty")) : null
   ));
 }
 
@@ -863,7 +1056,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, "\u7F16\u8F91\u5E03\u5C40 \xB7 ", boxes.length, " \u4E2A\u6846 \xB7 ", size), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("\u52A0\u4E00\u4E2A\u6846"), "aria-label": t("\u52A0\u6846"), onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("\u5B8C\u6210"), "aria-label": t("\u5B8C\u6210"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("\u53D6\u6D88"), title: t("\u53D6\u6D88\u5E76\u64A4\u9500\u672C\u6B21\u4FEE\u6539") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
+      /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("editor.title", { count: boxes.length, size })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.addBoxTitle"), "aria-label": t("editor.addBox"), onClick: onAdd }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "add_box" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("action.done"), "aria-label": t("action.done"), onClick: onClose }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "check" })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, onClick: onCancel, "aria-label": t("action.cancel"), title: t("editor.cancelTitle") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "close" })))),
       /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.10))" } }, /* @__PURE__ */ import_react6.default.createElement(
         BoxCanvas,
         {
@@ -874,7 +1067,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           onSelect,
           onChange
         }
-      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 300, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, "\u8FD8\u6CA1\u6709\u6846\u3002\u70B9\u300C\u52A0\u6846\u300D\u653E\u4E00\u4E2A\uFF0C\u7136\u540E\u62D6\u52A8\u79FB\u52A8\u3001\u62C9\u53F3\u4E0B\u89D2\u6539\u5927\u5C0F\u3002") : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 300, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, t("editor.empty")) : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
           key: index,
@@ -904,15 +1097,15 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           {
             checked: characters.has(index + 1),
             onChange: () => onToggleCharacter(index),
-            label: t("\u4EBA\u7269")
+            label: t("editor.kindPerson")
           }
         ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement(
           "button",
           {
             type: "button",
             style: iconDanger,
-            title: t("\u5220\u9664\u8FD9\u4E2A\u6846"),
-            "aria-label": t("\u5220\u9664\u6846"),
+            title: t("editor.deleteBoxTitle"),
+            "aria-label": t("editor.deleteBox"),
             onClick: (event) => {
               event.stopPropagation();
               onRemove(index);
@@ -920,12 +1113,12 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           },
           /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete" })
         )),
-        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, t("\u6587\u5B57")), /* @__PURE__ */ import_react6.default.createElement(
+        box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement("label", { style: row }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...label, minWidth: 28 } }, t("editor.kindText")), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
             value: box.text ?? "",
             onChange: (event) => updateBox(index, { text: event.target.value }),
-            placeholder: t("\u9010\u5B57\u6E32\u67D3\u7684\u6587\u5B57"),
+            placeholder: t("editor.kindTextHint"),
             style: input
           }
         )) : null,
@@ -934,7 +1127,7 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
           {
             value: box.desc ?? "",
             onChange: (event) => updateBox(index, { desc: event.target.value }),
-            placeholder: t("\u6846\u5185\u662F\u4EC0\u4E48\uFF1A\u4E3B\u4F53\u3001\u59FF\u6001\u3001\u6750\u8D28\u3001\u5149\u7EBF"),
+            placeholder: t("editor.descPlaceholder"),
             rows: 3,
             style: { ...input, width: "100%", resize: "vertical", lineHeight: 1.45 }
           }
@@ -942,8 +1135,8 @@ function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemove, onTo
         /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } }, [
           ["X", "x", box.x],
           ["Y", "y", box.y],
-          [t("\u5BBD"), "width", box.width],
-          [t("\u9AD8"), "height", box.height]
+          [t("editor.widthShort"), "width", box.width],
+          [t("editor.heightShort"), "height", box.height]
         ].map(([label3, key, value]) => /* @__PURE__ */ import_react6.default.createElement("label", { key, style: { display: "flex", alignItems: "center", gap: 2, minWidth: 0, fontSize: 10, ...dim } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { flexShrink: 0 } }, label3), /* @__PURE__ */ import_react6.default.createElement(
           "input",
           {
@@ -3149,8 +3342,14 @@ function FilterChip({ selected, label: label3, onClick, title, disabled = false 
   );
 }
 
+// src/useLocale.js
+var import_react8 = require("react");
+function useLocaleRevision() {
+  return (0, import_react8.useSyncExternalStore)(subscribe, getRevision, getRevision);
+}
+
 // src/ResultPane.jsx
-var import_react8 = __toESM(require("react"), 1);
+var import_react9 = __toESM(require("react"), 1);
 
 // src/format.js
 function gigabytes(bytes) {
@@ -3204,29 +3403,29 @@ function ResultPane({
   error
 }) {
   const meta = activeRecord?.result ?? null;
-  const actions = /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: t("\u7528\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u91CD\u8BD5"), "aria-label": t("\u91CD\u8BD5"), onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react8.default.createElement("button", { type: "button", style: iconOnly2, title: t("\u628A\u8FD9\u6761\u8BB0\u5F55\u7684\u53C2\u6570\u8F7D\u5165\u8349\u7A3F"), "aria-label": t("\u8F7D\u5165\u53C2\u6570"), disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react8.default.createElement(
+  const actions = /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.retryTitle"), "aria-label": t("result.retry"), onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.loadTitle"), "aria-label": t("result.load"), disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react9.default.createElement(
     "button",
     {
       type: "button",
       style: iconDanger2,
-      title: t("\u5220\u9664\u9009\u4E2D\u7684\u8BB0\u5F55"),
-      "aria-label": t("\u5220\u9664\u9009\u4E2D\u8BB0\u5F55"),
+      title: t("result.deleteTitle"),
+      "aria-label": t("result.delete"),
       disabled: activeRecordId === null,
       onClick: onRemove
     },
-    /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "delete", size: 14 })
-  ), shownRecordId !== null ? /* @__PURE__ */ import_react8.default.createElement(
+    /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "delete", size: 14 })
+  ), shownRecordId !== null ? /* @__PURE__ */ import_react9.default.createElement(
     "a",
     {
       href: imageUrl(shownRecordId),
       download: downloadName(shownRecordId, activeRecord?.prompt ?? ""),
-      title: t("\u4E0B\u8F7D\u56FE\u7247"),
-      "aria-label": t("\u4E0B\u8F7D"),
+      title: t("result.downloadTitle"),
+      "aria-label": t("result.download"),
       style: { ...iconOnly2, textDecoration: "none" }
     },
-    /* @__PURE__ */ import_react8.default.createElement(Icon, { name: "download", size: 14 })
+    /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "download", size: 14 })
   ) : null);
-  const image = /* @__PURE__ */ import_react8.default.createElement(
+  const image = /* @__PURE__ */ import_react9.default.createElement(
     "div",
     {
       onClick: () => {
@@ -3245,25 +3444,25 @@ function ResultPane({
         cursor: shownHasImage ? "zoom-in" : "default"
       }
     },
-    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react8.default.createElement(
+    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react9.default.createElement(
       "img",
       {
         src: imageUrl(shownRecordId),
-        alt: t("\u751F\u6210\u7ED3\u679C"),
+        alt: t("result.imageAlt"),
         onError: onImageError,
         style: { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain", display: "block" }
       }
-    ) : shownRunning ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, "\u6B63\u5728\u751F\u6210\u2026\uFF08", shownRecordId.slice(-4), "\uFF09") : /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t("\u56FE\u7247\u52A0\u8F7D\u5931\u8D25\uFF0C\u70B9\u300C\u4E0B\u8F7D\u300D\u91CD\u8BD5\u6216\u91CD\u65B0\u751F\u6210") : t("\u7ED3\u679C\u4F1A\u663E\u793A\u5728\u8FD9\u91CC"))
+    ) : shownRunning ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, t("generate.pending", { id: shownRecordId.slice(-4) })) : /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t("result.imageFailed") : t("result.empty"))
   );
-  const metaLine = /* @__PURE__ */ import_react8.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? t("\u672A\u9009\u4E2D\u8BB0\u5F55"), meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
+  const metaLine = /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? t("result.noSelection"), meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
   if (orientation === "column") {
-    return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react8.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
+    return /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react9.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
   }
-  return /* @__PURE__ */ import_react8.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react8.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? t("\u672A\u9009\u4E2D\u8BB0\u5F55")), meta !== null ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react8.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react8.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react8.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
+  return /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react9.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? t("result.noSelection")), meta !== null ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react9.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
 }
 
 // src/ConfirmDialog.jsx
-var import_react9 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 var button3 = {
   padding: "5px 14px",
   fontSize: 12,
@@ -3280,11 +3479,11 @@ var danger = {
   color: "#fff",
   fontWeight: 600
 };
-function ConfirmDialog({ title, message, detail, confirmLabel = t("\u5220\u9664"), onConfirm, onCancel }) {
-  const cardRef = (0, import_react9.useRef)(null);
-  const cancelRef = (0, import_react9.useRef)(null);
+function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete"), onConfirm, onCancel }) {
+  const cardRef = (0, import_react10.useRef)(null);
+  const cancelRef = (0, import_react10.useRef)(null);
   useDialogFocus(cardRef, { initialFocus: cancelRef });
-  (0, import_react9.useEffect)(() => {
+  (0, import_react10.useEffect)(() => {
     cancelRef.current?.focus();
     function onKey(event) {
       if (event.key === "Escape") onCancel();
@@ -3292,7 +3491,7 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("\u5220\u9664"
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
-  return /* @__PURE__ */ import_react9.default.createElement(
+  return /* @__PURE__ */ import_react10.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -3309,8 +3508,8 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("\u5220\u9664"
         if (event.target === event.currentTarget) onCancel();
       }
     },
-    /* @__PURE__ */ import_react9.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react9.default.createElement(
+    /* @__PURE__ */ import_react10.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
         ref: cardRef,
@@ -3328,8 +3527,8 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("\u5220\u9664"
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react9.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react10.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           style: {
@@ -3345,13 +3544,13 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("\u5220\u9664"
         },
         detail
       ) : null),
-      /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", ref: cancelRef, style: button3, onClick: onCancel }, "\u53D6\u6D88"), /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
+      /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", ref: cancelRef, style: button3, onClick: onCancel }, t("action.cancel")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
     )
   );
 }
 
 // src/SettingsDialog.jsx
-var import_react10 = __toESM(require("react"), 1);
+var import_react11 = __toESM(require("react"), 1);
 var row2 = { display: "flex", alignItems: "center", gap: 6 };
 var dim3 = { color: "var(--dsw-alias-label-secondary, inherit)" };
 var input2 = {
@@ -3383,20 +3582,20 @@ var primary = {
   fontWeight: 600
 };
 function SettingsDialog({ onClose, onSaved }) {
-  const [loading, setLoading] = (0, import_react10.useState)(true);
-  const [comfyUrl, setComfyUrl] = (0, import_react10.useState)("");
-  const [retention, setRetention] = (0, import_react10.useState)("0");
-  const [defaults, setDefaults] = (0, import_react10.useState)({ size: "1024x1024", steps: "25", cfg: "2.5", negative: "" });
-  const [editable, setEditable] = (0, import_react10.useState)(false);
-  const [wiring, setWiring] = (0, import_react10.useState)(null);
-  const [saving, setSaving] = (0, import_react10.useState)(false);
-  const [error, setError] = (0, import_react10.useState)("");
-  const [notice, setNotice] = (0, import_react10.useState)("");
-  const titleId = (0, import_react10.useId)();
-  const cardRef = (0, import_react10.useRef)(null);
-  const urlRef = (0, import_react10.useRef)(null);
+  const [loading, setLoading] = (0, import_react11.useState)(true);
+  const [comfyUrl, setComfyUrl] = (0, import_react11.useState)("");
+  const [retention, setRetention] = (0, import_react11.useState)("0");
+  const [defaults, setDefaults] = (0, import_react11.useState)({ size: "1024x1024", steps: "25", cfg: "2.5", negative: "" });
+  const [editable, setEditable] = (0, import_react11.useState)(false);
+  const [wiring, setWiring] = (0, import_react11.useState)(null);
+  const [saving, setSaving] = (0, import_react11.useState)(false);
+  const [error, setError] = (0, import_react11.useState)("");
+  const [notice, setNotice] = (0, import_react11.useState)("");
+  const titleId = (0, import_react11.useId)();
+  const cardRef = (0, import_react11.useRef)(null);
+  const urlRef = (0, import_react11.useRef)(null);
   useDialogFocus(cardRef, { initialFocus: urlRef });
-  (0, import_react10.useEffect)(() => {
+  (0, import_react11.useEffect)(() => {
     let alive = true;
     void (async () => {
       try {
@@ -3423,14 +3622,14 @@ function SettingsDialog({ onClose, onSaved }) {
       alive = false;
     };
   }, []);
-  (0, import_react10.useEffect)(() => {
+  (0, import_react11.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const save = (0, import_react10.useCallback)(async () => {
+  const save = (0, import_react11.useCallback)(async () => {
     setSaving(true);
     setError("");
     setNotice("");
@@ -3448,10 +3647,10 @@ function SettingsDialog({ onClose, onSaved }) {
       if (result.status === 200) {
         const next = result.body?.settings ?? {};
         setComfyUrl(next.comfyUrl ?? comfyUrl);
-        setNotice(t("\u5DF2\u4FDD\u5B58\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u4E0E\u65B0\u8349\u7A3F\u5C31\u7528\u65B0\u8BBE\u7F6E"));
+        setNotice(t("settings.saved"));
         onSaved?.(next.comfyUrl ?? comfyUrl);
       } else {
-        setError(result.body?.message ?? t("\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09", { status: result.status }));
+        setError(result.body?.message ?? t("error.save", { status: result.status }));
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
@@ -3459,7 +3658,7 @@ function SettingsDialog({ onClose, onSaved }) {
       setSaving(false);
     }
   }, [comfyUrl, retention, defaults, onSaved]);
-  return /* @__PURE__ */ import_react10.default.createElement(
+  return /* @__PURE__ */ import_react11.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -3476,8 +3675,8 @@ function SettingsDialog({ onClose, onSaved }) {
         if (event.target === event.currentTarget) onClose();
       }
     },
-    /* @__PURE__ */ import_react10.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react10.default.createElement(
+    /* @__PURE__ */ import_react11.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         ref: cardRef,
@@ -3498,8 +3697,8 @@ function SettingsDialog({ onClose, onSaved }) {
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("Moss studio \u8BBE\u7F6E")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": t("\u5173\u95ED\u8BBE\u7F6E"), title: t("\u5173\u95ED"), onClick: onClose }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "close", size: 16 }))),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...dim3 } }, t("\u8BFB\u53D6\u4E2D\u2026")) : null, /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("ComfyUI \u5730\u5740")), /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react11.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("settings.title")), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": t("settings.close"), title: t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "close", size: 16 }))),
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...dim3 } }, t("settings.loading")) : null, /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.comfyUrl")), /* @__PURE__ */ import_react11.default.createElement(
         "input",
         {
           ref: urlRef,
@@ -3513,10 +3712,10 @@ function SettingsDialog({ onClose, onSaved }) {
           },
           disabled: !editable || saving,
           placeholder: "http://127.0.0.1:8188",
-          "aria-label": t("ComfyUI \u5730\u5740"),
+          "aria-label": t("settings.comfyUrl"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "stretch", height: 30 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? t("\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF0C\u4E0B\u4E00\u6B21\u751F\u6210\u5C31\u7528\u65B0\u5730\u5740\uFF1B\u503C\u4F1A\u5199\u8FDB profile \u7684 cordis.patch.yml\u3002") : t("\u5F53\u524D profile \u6CA1\u6709\u914D\u7F6E\u7F16\u8F91\u5668\uFF0C\u8FD9\u4E00\u9879\u53EA\u80FD\u6539 cordis.patch.yml \u540E\u91CD\u542F\u3002"))), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("\u5386\u53F2\u4FDD\u7559\u6761\u6570\uFF080 = \u4E0D\u9650\u5236\uFF09")), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? t("settings.comfyUrlHint") : t("settings.comfyUrlReadOnly"))), /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retention")), /* @__PURE__ */ import_react11.default.createElement(
         "input",
         {
           type: "number",
@@ -3528,31 +3727,31 @@ function SettingsDialog({ onClose, onSaved }) {
             setNotice("");
           },
           disabled: !editable || saving,
-          "aria-label": t("\u5386\u53F2\u4FDD\u7559\u6761\u6570"),
+          "aria-label": t("settings.retentionAria"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "flex-start", width: 120, height: 28 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("\u8D85\u51FA\u65F6\u5220\u6700\u65E7\u7684\uFF1B\u7F6E\u9876\u4E0E\u6B63\u5728\u751F\u6210\u7684\u8BB0\u5F55\u4E0D\u4F1A\u88AB\u5220\u3002"))), /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("\u65B0\u8349\u7A3F\u9ED8\u8BA4\u503C\uFF08\u4E0D\u5F71\u54CD\u5DF2\u6709\u8349\u7A3F\uFF09")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("\u5C3A\u5BF8")), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retentionHint"))), /* @__PURE__ */ import_react11.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.defaults")), /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("size.label")), /* @__PURE__ */ import_react11.default.createElement(
         "input",
         {
           value: defaults.size,
-          onChange: (event) => setDefaults((current2) => ({ ...current2, size: event.target.value })),
+          onChange: (event) => setDefaults((current) => ({ ...current, size: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": t("\u9ED8\u8BA4\u5C3A\u5BF8"),
+          "aria-label": t("settings.defaultSize"),
           style: { ...input2, flex: "0 0 120px", width: 120 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("\u5982 1024x1024"))), /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("\u6B65\u6570")), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.defaultSizeHint"))), /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("params.steps")), /* @__PURE__ */ import_react11.default.createElement(
         "input",
         {
           type: "number",
           min: 1,
           max: 200,
           value: defaults.steps,
-          onChange: (event) => setDefaults((current2) => ({ ...current2, steps: event.target.value })),
+          onChange: (event) => setDefaults((current) => ({ ...current, steps: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": t("\u9ED8\u8BA4\u6B65\u6570"),
+          "aria-label": t("settings.defaultSteps"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
-      ), /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react10.default.createElement(
+      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react11.default.createElement(
         "input",
         {
           type: "number",
@@ -3560,28 +3759,28 @@ function SettingsDialog({ onClose, onSaved }) {
           max: 30,
           step: 0.1,
           value: defaults.cfg,
-          onChange: (event) => setDefaults((current2) => ({ ...current2, cfg: event.target.value })),
+          onChange: (event) => setDefaults((current) => ({ ...current, cfg: event.target.value })),
           disabled: !editable || saving,
-          "aria-label": t("\u9ED8\u8BA4 CFG"),
+          "aria-label": t("settings.defaultCfg"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
-      )), /* @__PURE__ */ import_react10.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("\u8D1F\u5411\u63D0\u793A\u8BCD")), /* @__PURE__ */ import_react10.default.createElement(
+      )), /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("params.negative")), /* @__PURE__ */ import_react11.default.createElement(
         "textarea",
         {
           value: defaults.negative,
-          onChange: (event) => setDefaults((current2) => ({ ...current2, negative: event.target.value })),
+          onChange: (event) => setDefaults((current) => ({ ...current, negative: event.target.value })),
           disabled: !editable || saving,
           rows: 2,
-          "aria-label": t("\u9ED8\u8BA4\u8D1F\u5411\u63D0\u793A\u8BCD"),
+          "aria-label": t("settings.defaultNegative"),
           style: { ...input2, flex: "0 0 auto", resize: "vertical", fontFamily: "inherit" }
         }
-      ))), wiring !== null ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("\u4EE5\u4E0B\u7531\u914D\u7F6E\u51B3\u5B9A\uFF0C\u9700\u6539 cordis.patch.yml \u5E76\u91CD\u542F")), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t("\u6570\u636E\u76EE\u5F55"), value: wiring.dataDir }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t("\u5DE5\u4F5C\u6D41"), value: wiring.workflowPath }), /* @__PURE__ */ import_react10.default.createElement(ReadOnly, { label: t("\u8D85\u65F6 / \u8F6E\u8BE2"), value: t("{seconds} \u79D2 / {ms} \u6BEB\u79D2", { seconds: Math.round((wiring.timeoutMs ?? 0) / 1e3), ms: wiring.pollMs ?? 0 }) })) : null, notice !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: button4, onClick: onClose }, t("\u5173\u95ED")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? t("\u4FDD\u5B58\u4E2D\u2026") : t("\u4FDD\u5B58")))
+      ))), wiring !== null ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.wiring")), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.dataDir"), value: wiring.dataDir }), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.workflow"), value: wiring.workflowPath }), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.timeouts"), value: t("settings.timeoutValue", { seconds: Math.round((wiring.timeoutMs ?? 0) / 1e3), ms: wiring.pollMs ?? 0 }) })) : null, notice !== "" ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: button4, onClick: onClose }, t("action.close")), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? t("status.saving") : t("action.save")))
     )
   );
 }
 function ReadOnly({ label: label3, value }) {
-  return /* @__PURE__ */ import_react10.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label3), /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
+  return /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label3), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
 }
 
 // src/ui-prefs.js
@@ -3634,23 +3833,23 @@ function formatSize(width, height) {
   return `${width}x${height}`;
 }
 function sizeProblem(width, height, widthText, heightText) {
-  if (String(widthText).trim() === "" || String(heightText).trim() === "") return t("\u5BBD\u9AD8\u4E0D\u80FD\u4E3A\u7A7A");
+  if (String(widthText).trim() === "" || String(heightText).trim() === "") return t("size.errorEmpty");
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
-    return t("\u5BBD\u9AD8\u5FC5\u987B\u662F\u6B63\u6574\u6570");
+    return t("size.errorPositive");
   }
-  if (width % 16 !== 0 || height % 16 !== 0) return t("\u5BBD\u9AD8\u5FC5\u987B\u662F 16 \u7684\u500D\u6570");
+  if (width % 16 !== 0 || height % 16 !== 0) return t("size.errorMultiple");
   const pixels = width * height;
-  if (pixels < MIN_PIXELS) return t("\u4F4E\u4E8E 0.25 MP\uFF08512\xD7512\uFF09");
-  if (pixels > MAX_PIXELS) return t("\u8D85\u8FC7 4 MP\uFF08\u7EA6 2048\xD72048\uFF09");
+  if (pixels < MIN_PIXELS) return t("size.errorTooSmall");
+  if (pixels > MAX_PIXELS) return t("size.errorTooLarge");
   return null;
 }
 
 // src/ImageViewer.jsx
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 var import_react_dom2 = require("react-dom");
 
 // node_modules/react-zoom-pan-pinch/dist/index.esm.js
-var import_react11 = __toESM(require("react"));
+var import_react12 = __toESM(require("react"));
 var import_jsx_runtime = require("react/jsx-runtime");
 var roundNumber = function(num, decimal) {
   return Number(num.toFixed(decimal));
@@ -5088,7 +5287,7 @@ function mergeRefs(refs) {
     });
   };
 }
-var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react11.useLayoutEffect : import_react11.useEffect;
+var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react12.useLayoutEffect : import_react12.useEffect;
 var KEYBOARD_KEYS = {
   panLeft: ["ArrowLeft"],
   panRight: ["ArrowRight"],
@@ -5153,8 +5352,8 @@ var measureSizes = function(wrapperComponent, contentComponent) {
     contentHeight: contentComponent.offsetHeight
   };
 };
-var hasSizeChanged = function(previous, current2) {
-  return !previous || previous.wrapperWidth !== current2.wrapperWidth || previous.wrapperHeight !== current2.wrapperHeight || previous.contentWidth !== current2.contentWidth || previous.contentHeight !== current2.contentHeight;
+var hasSizeChanged = function(previous, current) {
+  return !previous || previous.wrapperWidth !== current.wrapperWidth || previous.wrapperHeight !== current.wrapperHeight || previous.contentWidth !== current.contentWidth || previous.contentHeight !== current.contentHeight;
 };
 var isPointerGestureActive = function(contextInstance) {
   return contextInstance.isPanning || contextInstance.isPinching;
@@ -6358,37 +6557,37 @@ var ZoomPanPinch = (
     return ZoomPanPinch2;
   })()
 );
-var Context = import_react11.default.createContext(null);
+var Context = import_react12.default.createContext(null);
 var getContent = function(children, ctx) {
   if (typeof children === "function") {
     return children(ctx);
   }
   return children;
 };
-var TransformWrapper = import_react11.default.forwardRef(function(props, ref) {
-  var instanceRef = (0, import_react11.useRef)(null);
+var TransformWrapper = import_react12.default.forwardRef(function(props, ref) {
+  var instanceRef = (0, import_react12.useRef)(null);
   if (instanceRef.current === null) {
     instanceRef.current = new ZoomPanPinch(props);
   }
   var instance = instanceRef.current;
   var content = getContent(props.children, getControls(instance));
-  (0, import_react11.useImperativeHandle)(ref, function() {
+  (0, import_react12.useImperativeHandle)(ref, function() {
     return getControls(instance);
   }, [instance]);
-  (0, import_react11.useEffect)(function() {
+  (0, import_react12.useEffect)(function() {
     instance.mount();
     return function() {
       instance.unmount();
     };
   }, [instance]);
-  (0, import_react11.useEffect)(function() {
+  (0, import_react12.useEffect)(function() {
     instance.update(props);
   }, [instance, props]);
   return (0, import_jsx_runtime.jsx)(Context.Provider, __assign({ value: instance }, { children: content }));
 });
-var KeepScale = import_react11.default.forwardRef(function(props, ref) {
-  var localRef = (0, import_react11.useRef)(null);
-  var instance = (0, import_react11.useContext)(Context);
+var KeepScale = import_react12.default.forwardRef(function(props, ref) {
+  var localRef = (0, import_react12.useRef)(null);
+  var instance = (0, import_react12.useContext)(Context);
   useIsomorphicLayoutEffect2(function() {
     var applyInverseScale = function(scale) {
       if (localRef.current) {
@@ -6411,11 +6610,11 @@ var stylesheet = stylesheet$1;
 var TransformComponent = function(_a) {
   var _b;
   var children = _a.children, _c = _a.wrapperClass, wrapperClass = _c === void 0 ? "" : _c, _d = _a.contentClass, contentClass = _d === void 0 ? "" : _d, wrapperStyle = _a.wrapperStyle, contentStyle = _a.contentStyle, _e = _a.wrapperProps, wrapperProps = _e === void 0 ? {} : _e, _f = _a.contentProps, contentProps = _f === void 0 ? {} : _f, _g = _a.infinite, infinite = _g === void 0 ? false : _g, nonce = _a.nonce, _h = _a.disableStyleInjection, disableStyleInjection = _h === void 0 ? false : _h;
-  var instance = (0, import_react11.useContext)(Context);
+  var instance = (0, import_react12.useContext)(Context);
   var init = instance.init, cleanupWindowEvents = instance.cleanupWindowEvents;
-  var wrapperRef = (0, import_react11.useRef)(null);
-  var contentRef = (0, import_react11.useRef)(null);
-  var gridRef = (0, import_react11.useRef)(null);
+  var wrapperRef = (0, import_react12.useRef)(null);
+  var contentRef = (0, import_react12.useRef)(null);
+  var gridRef = (0, import_react12.useRef)(null);
   useIsomorphicLayoutEffect2(function() {
     var wrapper = wrapperRef.current;
     var content = contentRef.current;
@@ -6429,7 +6628,7 @@ var TransformComponent = function(_a) {
       cleanupWindowEvents === null || cleanupWindowEvents === void 0 ? void 0 : cleanupWindowEvents();
     };
   }, []);
-  (0, import_react11.useEffect)(function() {
+  (0, import_react12.useEffect)(function() {
     if (!infinite)
       return;
     var grid = gridRef.current;
@@ -6483,9 +6682,9 @@ function isElementVisible(opts) {
   var overlap = getOverlapArea(viewport, element);
   return overlap / elementArea >= threshold;
 }
-var Virtualize = import_react11.default.forwardRef(function(_a, ref) {
+var Virtualize = import_react12.default.forwardRef(function(_a, ref) {
   var x = _a.x, y = _a.y, width = _a.width, height = _a.height, _b = _a.margin, margin = _b === void 0 ? 0 : _b, _c = _a.threshold, threshold = _c === void 0 ? 0 : _c, _d = _a.placeholder, placeholder = _d === void 0 ? null : _d, onShow = _a.onShow, onHide = _a.onHide, children = _a.children, className = _a.className, style = _a.style;
-  var instance = (0, import_react11.useContext)(Context);
+  var instance = (0, import_react12.useContext)(Context);
   var computeVisible = function() {
     var wrapper = instance.wrapperComponent;
     if (!wrapper)
@@ -6504,10 +6703,10 @@ var Virtualize = import_react11.default.forwardRef(function(_a, ref) {
       threshold
     });
   };
-  var _e = (0, import_react11.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
-  var visibleRef = (0, import_react11.useRef)(false);
-  var onShowRef = (0, import_react11.useRef)(onShow);
-  var onHideRef = (0, import_react11.useRef)(onHide);
+  var _e = (0, import_react12.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
+  var visibleRef = (0, import_react12.useRef)(false);
+  var onShowRef = (0, import_react12.useRef)(onShow);
+  var onHideRef = (0, import_react12.useRef)(onHide);
   onShowRef.current = onShow;
   onHideRef.current = onHide;
   useIsomorphicLayoutEffect2(function() {
@@ -6565,8 +6764,8 @@ var chromeIcon = {
   padding: 0
 };
 function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
-  const [scale, setScale] = (0, import_react12.useState)(1);
-  const zoomRef = (0, import_react12.useRef)(null);
+  const [scale, setScale] = (0, import_react13.useState)(1);
+  const zoomRef = (0, import_react13.useRef)(null);
   const zoomBy = (method) => {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api[method] === "function") api[method](0.2);
@@ -6575,7 +6774,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api.resetTransform === "function") api.resetTransform();
   };
-  (0, import_react12.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft" && prevId !== null && prevId !== void 0) onNavigate?.(prevId);
@@ -6584,16 +6783,16 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onNavigate, prevId, nextId]);
-  const onTransformed = (0, import_react12.useCallback)((ref) => {
+  const onTransformed = (0, import_react13.useCallback)((ref) => {
     const next = ref?.state?.scale;
     if (typeof next === "number") setScale(next);
   }, []);
-  const node = /* @__PURE__ */ import_react12.default.createElement(
+  const node = /* @__PURE__ */ import_react13.default.createElement(
     "div",
     {
       role: "dialog",
       "aria-modal": "true",
-      "aria-label": t("\u67E5\u770B\u751F\u6210\u7ED3\u679C"),
+      "aria-label": t("viewer.imageAlt"),
       onMouseDown: (event) => event.stopPropagation(),
       onClick: (event) => {
         event.stopPropagation();
@@ -6610,7 +6809,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
         isolation: "isolate"
       }
     },
-    /* @__PURE__ */ import_react12.default.createElement(
+    /* @__PURE__ */ import_react13.default.createElement(
       "div",
       {
         style: {
@@ -6625,30 +6824,30 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           overflow: "hidden"
         }
       },
-      /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, "\u6EDA\u8F6E\u7F29\u653E \xB7 \u62D6\u52A8\u5E73\u79FB \xB7 \u53CC\u51FB\u5207\u6362 \xB7 Esc \u5173\u95ED"), /* @__PURE__ */ import_react12.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement(
+      /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t("viewer.hint")), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           type: "button",
           style: { ...chromeIcon, opacity: prevId === null || prevId === void 0 ? 0.4 : 1 },
-          title: t("\u4E0A\u4E00\u5F20\uFF08\u8F83\u65B0\uFF09"),
-          "aria-label": t("\u4E0A\u4E00\u5F20"),
+          title: t("viewer.prevTitle"),
+          "aria-label": t("viewer.prev"),
           disabled: prevId === null || prevId === void 0,
           onClick: () => onNavigate?.(prevId)
         },
-        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
-      ), /* @__PURE__ */ import_react12.default.createElement(
+        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
+      ), /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           type: "button",
           style: { ...chromeIcon, opacity: nextId === null || nextId === void 0 ? 0.4 : 1 },
-          title: t("\u4E0B\u4E00\u5F20\uFF08\u8F83\u65E7\uFF09"),
-          "aria-label": t("\u4E0B\u4E00\u5F20"),
+          title: t("viewer.nextTitle"),
+          "aria-label": t("viewer.next"),
           disabled: nextId === null || nextId === void 0,
           onClick: () => onNavigate?.(nextId)
         },
-        /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
-      )), /* @__PURE__ */ import_react12.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t("\u7F29\u5C0F"), "aria-label": t("\u7F29\u5C0F"), onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t("\u653E\u5927"), "aria-label": t("\u653E\u5927"), onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t("\u9002\u5E94\u7A97\u53E3"), "aria-label": t("\u9002\u5E94\u7A97\u53E3"), onClick: fit }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: chromeIcon, title: t("\u5173\u95ED"), "aria-label": t("\u5173\u95ED"), onClick: onClose }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "close", size: 18 })))),
-      /* @__PURE__ */ import_react12.default.createElement(
+        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
+      )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomOut"), "aria-label": t("viewer.zoomOut"), onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomIn"), "aria-label": t("viewer.zoomIn"), onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.fit"), "aria-label": t("viewer.fit"), onClick: fit }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("action.close"), "aria-label": t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "close", size: 18 })))),
+      /* @__PURE__ */ import_react13.default.createElement(
         TransformWrapper,
         {
           minScale: 0.5,
@@ -6664,17 +6863,17 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           onTransformed,
           ref: zoomRef
         },
-        () => /* @__PURE__ */ import_react12.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react12.default.createElement(
+        () => /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react13.default.createElement(
           TransformComponent,
           {
             wrapperStyle: { width: "100%", height: "100%" },
             contentStyle: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }
           },
-          /* @__PURE__ */ import_react12.default.createElement(
+          /* @__PURE__ */ import_react13.default.createElement(
             "img",
             {
               src: imageUrl(recordId),
-              alt: t("\u653E\u5927\u67E5\u770B"),
+              alt: t("viewer.zoomAlt"),
               draggable: false,
               style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", userSelect: "none" }
             }
@@ -6689,7 +6888,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
 
 // src/App.jsx
 var POLL_MS = 1500;
-var PHASE_LABEL = { probe: "\u63A2\u6D4B", submit: "\u63D0\u4EA4", wait: "\u6392\u961F", download: "\u4E0B\u8F7D" };
+var PHASE_KEY = { probe: "phase.probe", submit: "phase.submit", wait: "phase.wait", download: "phase.download" };
 var SAVE_DELAY_MS = 500;
 var panel = {
   display: "flex",
@@ -6749,15 +6948,15 @@ var rowAction = {
   boxShadow: "0 1px 4px rgba(0,0,0,0.35)"
 };
 function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
-  const [hovered, setHovered] = (0, import_react13.useState)(false);
-  const [focused, setFocused] = (0, import_react13.useState)(false);
+  const [hovered, setHovered] = (0, import_react14.useState)(false);
+  const [focused, setFocused] = (0, import_react14.useState)(false);
   const revealed = hovered || focused;
-  return /* @__PURE__ */ import_react13.default.createElement(
+  return /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       role: "group",
       tabIndex: 0,
-      "aria-label": record.prompt === "" ? t("\u672A\u547D\u540D\u8BB0\u5F55") : record.prompt,
+      "aria-label": record.prompt === "" ? t("history.untitled") : record.prompt,
       onClick: () => onSelect(record.id),
       onMouseEnter: () => setHovered(true),
       onMouseLeave: () => setHovered(false),
@@ -6786,7 +6985,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         opacity: record.archived ? 0.55 : 1
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       "span",
       {
         style: {
@@ -6802,10 +7001,10 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           ...record.hasImage ? {} : dim4
         }
       },
-      record.hasImage ? /* @__PURE__ */ import_react13.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
+      record.hasImage ? /* @__PURE__ */ import_react14.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
     ),
-    /* @__PURE__ */ import_react13.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? t("(\u65E0\u63D0\u793A\u8BCD)") : record.prompt), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", record.boxCount, " \u6846"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? t("history.noPrompt") : record.prompt), /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", t("history.boxCount", { count: record.boxCount })), /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
+    /* @__PURE__ */ import_react14.default.createElement(
       "div",
       {
         style: {
@@ -6819,48 +7018,48 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           transition: "opacity 120ms ease"
         }
       },
-      /* @__PURE__ */ import_react13.default.createElement(
+      /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           type: "button",
           style: { ...rowAction, color: record.pinned ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))" : "inherit" },
-          title: record.pinned ? t("\u53D6\u6D88\u7F6E\u9876") : t("\u7F6E\u9876"),
-          "aria-label": record.pinned ? t("\u53D6\u6D88\u7F6E\u9876") : t("\u7F6E\u9876"),
+          title: record.pinned ? t("action.unpin") : t("action.pin"),
+          "aria-label": record.pinned ? t("action.unpin") : t("action.pin"),
           onClick: (event) => {
             event.stopPropagation();
             onPin?.(record);
           }
         },
-        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
+        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
       ),
-      /* @__PURE__ */ import_react13.default.createElement(
+      /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           type: "button",
           style: { ...rowAction, color: record.archived ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.95))" : "inherit" },
-          title: record.archived ? t("\u53D6\u6D88\u5F52\u6863") : t("\u5F52\u6863"),
-          "aria-label": record.archived ? t("\u53D6\u6D88\u5F52\u6863") : t("\u5F52\u6863"),
+          title: record.archived ? t("action.unarchive") : t("action.archive"),
+          "aria-label": record.archived ? t("action.unarchive") : t("action.archive"),
           onClick: (event) => {
             event.stopPropagation();
             onArchive?.(record);
           }
         },
-        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
+        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
       ),
-      /* @__PURE__ */ import_react13.default.createElement(
+      /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           type: "button",
           disabled: record.status === "running",
           style: { ...rowAction, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", opacity: record.status === "running" ? 0.45 : 1 },
-          title: record.status === "running" ? t("\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664") : t("\u5220\u9664\u8FD9\u6761\u8BB0\u5F55"),
-          "aria-label": t("\u5220\u9664\u8BB0\u5F55"),
+          title: record.status === "running" ? t("history.deleteWhileRunning") : t("action.deleteRecordTitle"),
+          "aria-label": t("action.deleteRecord"),
           onClick: (event) => {
             event.stopPropagation();
             onDelete(record.id);
           }
         },
-        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "delete", size: 14 })
+        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "delete", size: 14 })
       )
     )
   );
@@ -6868,7 +7067,8 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
 var optionStyle2 = { background: "var(--dsw-alias-bg-overlay, #26282a)", color: "var(--dsw-alias-label-primary, inherit)" };
 function timeOf(value) {
   if (typeof value !== "number" || value === 0) return "\u2014";
-  return new Date(value).toLocaleTimeString(getLocale() === "en" ? "en-US" : "zh-CN", { hour: "2-digit", minute: "2-digit" });
+  const tag = currentLocale();
+  return new Date(value).toLocaleTimeString(tag.startsWith("zh") ? "zh-CN" : tag, { hour: "2-digit", minute: "2-digit" });
 }
 function toCharacterSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
@@ -6877,70 +7077,71 @@ function fromCharacterSet(set) {
   return [...set].sort((a, b) => a - b).join(", ");
 }
 function StudioPanel({ sessionId = "global", wide = false }) {
-  const [params, setParams] = (0, import_react13.useState)(null);
-  const [records, setRecords] = (0, import_react13.useState)([]);
-  const [selectedBox, setSelectedBox] = (0, import_react13.useState)(-1);
-  const [activeRecordId, setActiveRecordId] = (0, import_react13.useState)(null);
-  const [activeRecord, setActiveRecord] = (0, import_react13.useState)(null);
-  const [notice, setNotice] = (0, import_react13.useState)("");
-  const [error, setError] = (0, import_react13.useState)("");
-  const [saving, setSaving] = (0, import_react13.useState)(false);
-  const [busy, setBusy] = (0, import_react13.useState)(false);
-  const [elapsed, setElapsed] = (0, import_react13.useState)(0);
-  const [phase, setPhase] = (0, import_react13.useState)("");
-  const [flagLocalOnly, setLocalOnly] = (0, import_react13.useState)(false);
-  const [query, setQuery] = (0, import_react13.useState)("");
-  const [showArchived, setShowArchived] = (0, import_react13.useState)(false);
-  const [comfy, setComfy] = (0, import_react13.useState)(null);
-  const [settingsOpen, setSettingsOpen] = (0, import_react13.useState)(false);
-  const [pendingDelete, setPendingDelete] = (0, import_react13.useState)(null);
-  const [queue, setQueue] = (0, import_react13.useState)({ busy: false, sessionId: null });
-  const [pinnedRecords, setPinnedRecords] = (0, import_react13.useState)([]);
-  const [pinnedTruncated, setPinnedTruncated] = (0, import_react13.useState)(false);
-  const [matches, setMatches] = (0, import_react13.useState)(null);
-  const [older, setOlder] = (0, import_react13.useState)([]);
-  const [nextBefore, setNextBefore] = (0, import_react13.useState)(null);
-  const [loadingMore, setLoadingMore] = (0, import_react13.useState)(false);
-  const historyRef = (0, import_react13.useRef)(null);
-  const [showCanvas, setShowCanvas] = (0, import_react13.useState)(true);
-  const [zoom, setZoom] = (0, import_react13.useState)(false);
-  const openViewer = (0, import_react13.useCallback)(() => setZoom(true), []);
-  const [editorOpen, setEditorOpen] = (0, import_react13.useState)(false);
-  const initialUiRef = (0, import_react13.useRef)(null);
+  useLocaleRevision();
+  const [params, setParams] = (0, import_react14.useState)(null);
+  const [records, setRecords] = (0, import_react14.useState)([]);
+  const [selectedBox, setSelectedBox] = (0, import_react14.useState)(-1);
+  const [activeRecordId, setActiveRecordId] = (0, import_react14.useState)(null);
+  const [activeRecord, setActiveRecord] = (0, import_react14.useState)(null);
+  const [notice, setNotice] = (0, import_react14.useState)("");
+  const [error, setError] = (0, import_react14.useState)("");
+  const [saving, setSaving] = (0, import_react14.useState)(false);
+  const [busy, setBusy] = (0, import_react14.useState)(false);
+  const [elapsed, setElapsed] = (0, import_react14.useState)(0);
+  const [phase, setPhase] = (0, import_react14.useState)("");
+  const [flagLocalOnly, setLocalOnly] = (0, import_react14.useState)(false);
+  const [query, setQuery] = (0, import_react14.useState)("");
+  const [showArchived, setShowArchived] = (0, import_react14.useState)(false);
+  const [comfy, setComfy] = (0, import_react14.useState)(null);
+  const [settingsOpen, setSettingsOpen] = (0, import_react14.useState)(false);
+  const [pendingDelete, setPendingDelete] = (0, import_react14.useState)(null);
+  const [queue, setQueue] = (0, import_react14.useState)({ busy: false, sessionId: null });
+  const [pinnedRecords, setPinnedRecords] = (0, import_react14.useState)([]);
+  const [pinnedTruncated, setPinnedTruncated] = (0, import_react14.useState)(false);
+  const [matches, setMatches] = (0, import_react14.useState)(null);
+  const [older, setOlder] = (0, import_react14.useState)([]);
+  const [nextBefore, setNextBefore] = (0, import_react14.useState)(null);
+  const [loadingMore, setLoadingMore] = (0, import_react14.useState)(false);
+  const historyRef = (0, import_react14.useRef)(null);
+  const [showCanvas, setShowCanvas] = (0, import_react14.useState)(true);
+  const [zoom, setZoom] = (0, import_react14.useState)(false);
+  const openViewer = (0, import_react14.useCallback)(() => setZoom(true), []);
+  const [editorOpen, setEditorOpen] = (0, import_react14.useState)(false);
+  const initialUiRef = (0, import_react14.useRef)(null);
   if (initialUiRef.current === null) initialUiRef.current = loadUiPrefs();
   const initialUi = initialUiRef.current;
-  const [resultHeight, setResultHeight] = (0, import_react13.useState)(initialUi.resultHeight);
-  const [resultCollapsed, setResultCollapsed] = (0, import_react13.useState)(initialUi.resultCollapsed);
-  const [historyWidth, setHistoryWidth] = (0, import_react13.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
-  const [historyResizing, setHistoryResizing] = (0, import_react13.useState)(false);
-  const historyResizeRef = (0, import_react13.useRef)(null);
-  const [resizing, setResizing] = (0, import_react13.useState)(false);
-  const resizeRef = (0, import_react13.useRef)(null);
-  const revisionRef = (0, import_react13.useRef)(0);
-  const [revision, setRevision] = (0, import_react13.useState)(0);
-  const dirtyRef = (0, import_react13.useRef)(false);
-  const saveTimer = (0, import_react13.useRef)(null);
-  const paramsRef = (0, import_react13.useRef)(null);
-  const editorSnapshot = (0, import_react13.useRef)(null);
-  const pinnedRef = (0, import_react13.useRef)(false);
-  const [imageBroken, setImageBroken] = (0, import_react13.useState)(false);
+  const [resultHeight, setResultHeight] = (0, import_react14.useState)(initialUi.resultHeight);
+  const [resultCollapsed, setResultCollapsed] = (0, import_react14.useState)(initialUi.resultCollapsed);
+  const [historyWidth, setHistoryWidth] = (0, import_react14.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
+  const [historyResizing, setHistoryResizing] = (0, import_react14.useState)(false);
+  const historyResizeRef = (0, import_react14.useRef)(null);
+  const [resizing, setResizing] = (0, import_react14.useState)(false);
+  const resizeRef = (0, import_react14.useRef)(null);
+  const revisionRef = (0, import_react14.useRef)(0);
+  const [revision, setRevision] = (0, import_react14.useState)(0);
+  const dirtyRef = (0, import_react14.useRef)(false);
+  const saveTimer = (0, import_react14.useRef)(null);
+  const paramsRef = (0, import_react14.useRef)(null);
+  const editorSnapshot = (0, import_react14.useRef)(null);
+  const pinnedRef = (0, import_react14.useRef)(false);
+  const [imageBroken, setImageBroken] = (0, import_react14.useState)(false);
   paramsRef.current = params;
-  const applyServerState = (0, import_react13.useCallback)((state) => {
+  const applyServerState = (0, import_react14.useCallback)((state) => {
     revisionRef.current = state.revision;
     setRevision(state.revision);
     if (!dirtyRef.current) setParams(state.params);
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
-    setNextBefore((current2) => current2 !== null ? current2 : state.nextBefore ?? null);
+    setNextBefore((current) => current !== null ? current : state.nextBefore ?? null);
     if (!pinnedRef.current) {
       const newest = state.records[0];
       const latestDone = state.records.find((record) => record.hasImage);
       const target = newest?.status === "running" ? newest.id : latestDone?.id ?? null;
-      setActiveRecordId((current2) => current2 === target ? current2 : target);
+      setActiveRecordId((current) => current === target ? current : target);
     }
   }, []);
-  const refresh = (0, import_react13.useCallback)(async () => {
+  const refresh = (0, import_react14.useCallback)(async () => {
     try {
       const state = await fetchState(sessionId, 40, showArchived);
       applyServerState(state);
@@ -6949,10 +7150,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [sessionId, applyServerState, showArchived]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     void refresh();
   }, [refresh]);
-  const checkHealth = (0, import_react13.useCallback)(async () => {
+  const checkHealth = (0, import_react14.useCallback)(async () => {
     try {
       const health = await fetchHealth();
       setComfy(health.comfy ?? { ok: false });
@@ -6961,15 +7162,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setComfy({ ok: false });
     }
   }, []);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     void checkHealth();
     const timer = setInterval(() => {
       void checkHealth();
     }, 5e3);
     return () => clearInterval(timer);
   }, [checkHealth]);
-  const [pushed, setPushed] = (0, import_react13.useState)(() => typeof EventSource === "function");
-  (0, import_react13.useEffect)(() => {
+  const [pushed, setPushed] = (0, import_react14.useState)(() => typeof EventSource === "function");
+  (0, import_react14.useEffect)(() => {
     if (!pushed) {
       const timer = setInterval(() => {
         void refresh();
@@ -7029,7 +7230,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       source?.close();
     };
   }, [pushed, sessionId, refresh]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (!busy) {
       setElapsed(0);
       setPhase("");
@@ -7039,14 +7240,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1e3)), 500);
     return () => clearInterval(timer);
   }, [busy]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     saveUiPrefs({
       resultHeight,
       resultCollapsed,
       historyWidth: wide ? { ...loadUiPrefs().historyWidth, wide: historyWidth } : { ...loadUiPrefs().historyWidth, narrow: historyWidth }
     });
   }, [resultHeight, resultCollapsed, historyWidth, wide]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (!historyResizing) return void 0;
     function onMove(event) {
       const drag = historyResizeRef.current;
@@ -7064,7 +7265,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [historyResizing]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (!resizing) return void 0;
     function onMove(event) {
       const drag = resizeRef.current;
@@ -7083,7 +7284,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [resizing]);
-  const flush = (0, import_react13.useCallback)(async (patch) => {
+  const flush = (0, import_react14.useCallback)(async (patch) => {
     setSaving(true);
     try {
       const { status, body } = await putDraft(sessionId, patch, revisionRef.current);
@@ -7092,14 +7293,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setRevision(body.revision);
         dirtyRef.current = false;
         setParams(body.params);
-        setNotice(t("\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570"));
+        setNotice(t("notice.draftSyncedFromAi"));
       } else if (status === 200 && body !== null) {
         revisionRef.current = body.revision;
         setRevision(body.revision);
         dirtyRef.current = false;
         setError("");
       } else {
-        setError(body?.message ?? t("\u4FDD\u5B58\u5931\u8D25\uFF08{status}\uFF09", { status }));
+        setError(body?.message ?? t("error.save", { status }));
       }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
@@ -7107,9 +7308,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setSaving(false);
     }
   }, [sessionId]);
-  const update = (0, import_react13.useCallback)((patch) => {
-    setParams((current2) => {
-      const next = { ...current2, ...patch };
+  const update = (0, import_react14.useCallback)((patch) => {
+    setParams((current) => {
+      const next = { ...current, ...patch };
       dirtyRef.current = true;
       if (saveTimer.current !== null) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
@@ -7118,17 +7319,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       return next;
     });
   }, [flush]);
-  const [widthText, setWidthText] = (0, import_react13.useState)("1024");
-  const [heightText, setHeightText] = (0, import_react13.useState)("1024");
-  const [sizeHint, setSizeHint] = (0, import_react13.useState)(null);
-  (0, import_react13.useEffect)(() => {
+  const [widthText, setWidthText] = (0, import_react14.useState)("1024");
+  const [heightText, setHeightText] = (0, import_react14.useState)("1024");
+  const [sizeHint, setSizeHint] = (0, import_react14.useState)(null);
+  (0, import_react14.useEffect)(() => {
     const parts = String(params?.size ?? "").split("x");
     if (parts.length !== 2) return;
     setWidthText(parts[0]);
     setHeightText(parts[1]);
     setSizeHint(null);
   }, [params?.size]);
-  const commitSize = (0, import_react13.useCallback)((widthSource, heightSource) => {
+  const commitSize = (0, import_react14.useCallback)((widthSource, heightSource) => {
     const width = Number(widthSource);
     const height = Number(heightSource);
     const problem = sizeProblem(width, height, widthSource, heightSource);
@@ -7140,40 +7341,40 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const next = formatSize(width, height);
     if (next !== paramsRef.current?.size) update({ size: next });
   }, [update]);
-  const updateBox = (0, import_react13.useCallback)((index, patch) => {
+  const updateBox = (0, import_react14.useCallback)((index, patch) => {
     const boxes2 = (paramsRef.current?.boxes ?? []).map((box, position) => position === index ? { ...box, ...patch } : box);
     update({ boxes: boxes2 });
   }, [update]);
-  const addBox = (0, import_react13.useCallback)(() => {
+  const addBox = (0, import_react14.useCallback)(() => {
     const boxes2 = [...paramsRef.current?.boxes ?? []];
     boxes2.push(defaultBox());
     update({ boxes: boxes2 });
     setSelectedBox(boxes2.length - 1);
     setShowCanvas(true);
   }, [update]);
-  const removeBox = (0, import_react13.useCallback)((index) => {
+  const removeBox = (0, import_react14.useCallback)((index) => {
     const boxes2 = (paramsRef.current?.boxes ?? []).filter((_, position) => position !== index);
     update({ boxes: boxes2 });
     setSelectedBox(-1);
   }, [update]);
-  const toggleCharacter = (0, import_react13.useCallback)((index) => {
+  const toggleCharacter = (0, import_react14.useCallback)((index) => {
     const set = toCharacterSet(paramsRef.current?.characterBoxes);
     if (set.has(index + 1)) set.delete(index + 1);
     else set.add(index + 1);
     update({ characterBoxes: fromCharacterSet(set) });
   }, [update]);
-  const newDraft = (0, import_react13.useCallback)(() => {
+  const newDraft = (0, import_react14.useCallback)(() => {
     update({ prompt: "", boxes: [], seed: -1, characterBoxes: "", enhance: false });
     setSelectedBox(-1);
-    setNotice(t("\u5DF2\u65B0\u5EFA\u7A7A\u8349\u7A3F"));
+    setNotice(t("notice.newDraft"));
   }, [update]);
-  const openEditor = (0, import_react13.useCallback)(() => {
+  const openEditor = (0, import_react14.useCallback)(() => {
     editorSnapshot.current = structuredClone(paramsRef.current ?? {});
     setZoom(false);
     setEditorOpen(true);
   }, []);
-  const closeEditor = (0, import_react13.useCallback)(() => setEditorOpen(false), []);
-  const cancelEditor = (0, import_react13.useCallback)(() => {
+  const closeEditor = (0, import_react14.useCallback)(() => setEditorOpen(false), []);
+  const cancelEditor = (0, import_react14.useCallback)(() => {
     const snapshot = editorSnapshot.current;
     setEditorOpen(false);
     if (snapshot === null) return;
@@ -7183,9 +7384,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     saveTimer.current = setTimeout(() => {
       void flush(snapshot);
     }, SAVE_DELAY_MS);
-    setNotice(t("\u5DF2\u64A4\u9500\u672C\u6B21\u5E03\u5C40\u4FEE\u6539"));
+    setNotice(t("notice.layoutReverted"));
   }, [flush]);
-  const waitForCompletion = (0, import_react13.useCallback)(async () => {
+  const waitForCompletion = (0, import_react14.useCallback)(async () => {
     const started = Date.now();
     while (Date.now() - started < 6e5) {
       await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -7194,24 +7395,24 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       const newest = state.records[0];
       if (newest !== void 0 && newest.status !== "running") {
         if (newest.status === "failed") {
-          setError(newest.error?.message ?? t("\u751F\u6210\u5931\u8D25"));
+          setError(newest.error?.message ?? t("error.generation"));
           setNotice("");
         } else {
           pinnedRef.current = false;
           setImageBroken(false);
           setActiveRecordId(newest.id);
-          setNotice(t("\u5DF2\u5B8C\u6210\uFF1A{width}\xD7{height}\uFF0C{seconds} \u79D2", { width: newest.width, height: newest.height, seconds: newest.seconds }));
+          setNotice(t("notice.generationDone", { width: newest.width, height: newest.height, seconds: newest.seconds }));
         }
         return;
       }
     }
-    setNotice(t("\u7B49\u5F85\u8D85\u65F6\uFF0C\u4EFB\u52A1\u53EF\u80FD\u4ECD\u5728 ComfyUI \u961F\u5217\u4E2D"));
+    setNotice(t("notice.generationTimeout"));
   }, [sessionId, applyServerState]);
-  const runGenerate = (0, import_react13.useCallback)(async () => {
+  const runGenerate = (0, import_react14.useCallback)(async () => {
     if (busy) return;
     setBusy(true);
     setError("");
-    setNotice(t("\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85 ComfyUI \u51FA\u56FE\u2026"));
+    setNotice(t("notice.generationSubmitted"));
     try {
       const { status, body } = await generate(sessionId, revisionRef.current);
       if (status === 409 && body !== null) {
@@ -7219,15 +7420,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setRevision(body.revision);
         setParams(body.params);
         dirtyRef.current = false;
-        setNotice(t("\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210"));
+        setNotice(t("notice.draftChanged"));
         return;
       }
       if (status === 429) {
-        setNotice(t("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C"));
+        setNotice(t("notice.generationBusy"));
         return;
       }
       if (status !== 202) {
-        setError(body?.message ?? t("\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09", { status }));
+        setError(body?.message ?? t("error.generateRequest", { status }));
         return;
       }
       await waitForCompletion();
@@ -7237,19 +7438,19 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setBusy(false);
     }
   }, [busy, sessionId, waitForCompletion]);
-  const retryRecord = (0, import_react13.useCallback)(async (record) => {
+  const retryRecord = (0, import_react14.useCallback)(async (record) => {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
     setError("");
-    setNotice(t("\u5DF2\u6309\u8FD9\u6761\u8BB0\u5F55\u91CD\u8BD5\uFF0C\u7B49\u5F85\u51FA\u56FE\u2026"));
+    setNotice(t("notice.retrySubmitted"));
     try {
       const { status, body } = await generate(sessionId, void 0, record.params);
       if (status === 429) {
-        setNotice(t("\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C"));
+        setNotice(t("notice.generationBusy"));
         return;
       }
       if (status !== 202) {
-        setError(body?.message ?? t("\u91CD\u8BD5\u5931\u8D25\uFF08{status}\uFF09", { status }));
+        setError(body?.message ?? t("error.retry", { status }));
         return;
       }
       await waitForCompletion();
@@ -7259,13 +7460,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setBusy(false);
     }
   }, [busy, sessionId, waitForCompletion]);
-  const generateRandom = (0, import_react13.useCallback)(() => {
+  const generateRandom = (0, import_react14.useCallback)(() => {
     update({ seed: -1 });
     setTimeout(() => {
       void runGenerate();
     }, SAVE_DELAY_MS + 80);
   }, [update, runGenerate]);
-  const selectRecord = (0, import_react13.useCallback)(async (id) => {
+  const selectRecord = (0, import_react14.useCallback)(async (id) => {
     pinnedRef.current = true;
     setImageBroken(false);
     setActiveRecordId(id);
@@ -7275,7 +7476,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setActiveRecord(null);
     }
   }, []);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (activeRecordId === null) {
       setActiveRecord(null);
       return void 0;
@@ -7289,10 +7490,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       alive = false;
     };
   }, [activeRecordId]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     setImageBroken(false);
   }, [activeRecordId]);
-  const loadRecord = (0, import_react13.useCallback)(() => {
+  const loadRecord = (0, import_react14.useCallback)(() => {
     if (activeRecord === null) return;
     setParams(activeRecord.params);
     dirtyRef.current = true;
@@ -7300,17 +7501,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     saveTimer.current = setTimeout(() => {
       void flush(activeRecord.params);
     }, SAVE_DELAY_MS);
-    setNotice(t("\u5DF2\u8F7D\u5165 {id} \u7684\u53C2\u6570", { id: activeRecord.id }));
+    setNotice(t("notice.recordLoaded", { id: activeRecord.id }));
   }, [activeRecord, flush]);
-  const removeRecordById = (0, import_react13.useCallback)(async (id) => {
+  const removeRecordById = (0, import_react14.useCallback)(async (id) => {
     try {
       const { status, body } = await deleteRecord(id);
       if (status === 409) {
-        setError(body?.message ?? t("\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220"));
+        setError(body?.message ?? t("history.deleteBlockedRunning"));
         return;
       }
       if (status !== 200) {
-        setError(body?.message ?? t("\u5220\u9664\u5931\u8D25\uFF08{status}\uFF09", { status }));
+        setError(body?.message ?? t("error.delete", { status }));
         return;
       }
       setError("");
@@ -7323,15 +7524,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [activeRecordId, refresh]);
-  const toggleFlag = (0, import_react13.useCallback)(async (record, flags) => {
+  const toggleFlag = (0, import_react14.useCallback)(async (record, flags) => {
     try {
       const { status, body } = await patchRecord(record.id, flags);
       if (status === 405) {
-        setError(t("\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09"));
+        setError(t("notice.flagsNeedNewHost"));
         return;
       }
       if (status !== 200) {
-        setError(body?.message ?? t("\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09", { status }));
+        setError(body?.message ?? t("error.flag", { status }));
         return;
       }
       setError("");
@@ -7340,17 +7541,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [refresh]);
-  const removeRecord = (0, import_react13.useCallback)(async () => {
+  const removeRecord = (0, import_react14.useCallback)(async () => {
     if (activeRecordId === null) return;
     await removeRecordById(activeRecordId);
   }, [activeRecordId, removeRecordById]);
-  const characterSet = (0, import_react13.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
+  const characterSet = (0, import_react14.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
   const mergedRecords = (() => {
     const seen = new Set(records.map((record) => record.id));
     return [...records, ...older.filter((record) => !seen.has(record.id))];
   })();
   const needle = query.trim().toLowerCase();
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (needle === "") {
       setMatches(null);
       return void 0;
@@ -7372,14 +7573,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     };
   }, [needle, showArchived]);
   const visibleRecords = (needle === "" ? mergedRecords : matches ?? []).filter((record) => flagLocalOnly ? record.sessionId === sessionId : true);
-  const loadMore = (0, import_react13.useCallback)(async () => {
+  const loadMore = (0, import_react14.useCallback)(async () => {
     if (loadingMore || nextBefore === null || query.trim() !== "") return;
     setLoadingMore(true);
     try {
       const page = await fetchRecords(40, nextBefore);
-      setOlder((current2) => {
-        const seen = new Set(current2.map((record) => record.id));
-        return [...current2, ...page.records.filter((record) => !seen.has(record.id))];
+      setOlder((current) => {
+        const seen = new Set(current.map((record) => record.id));
+        return [...current, ...page.records.filter((record) => !seen.has(record.id))];
       });
       setNextBefore(page.nextBefore);
     } catch (problem) {
@@ -7395,17 +7596,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     overscan: 6
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const onHistoryScroll = (0, import_react13.useCallback)((event) => {
+  const onHistoryScroll = (0, import_react14.useCallback)((event) => {
     const element = event.currentTarget;
     if (element.scrollHeight - element.scrollTop - element.clientHeight < 120) void loadMore();
   }, [loadMore]);
-  const selectForDelete = (0, import_react13.useCallback)((id) => {
+  const selectForDelete = (0, import_react14.useCallback)((id) => {
     if (id === null || id === void 0) return;
     const found = mergedRecords.find((record) => record.id === id) ?? (activeRecord?.id === id ? activeRecord : { id });
     setPendingDelete(found);
   }, [mergedRecords, activeRecord]);
   if (params === null) {
-    return /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? t("\u8BFB\u53D6\u5931\u8D25\uFF1A{error}", { error }) : "\u6B63\u5728\u8BFB\u53D6 moss studio \u72B6\u6001\u2026");
+    return /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? t("error.read", { error }) : t("status.loading"));
   }
   const boxes = params.boxes ?? [];
   const shownRecordId = activeRecordId ?? records.find((record) => record.hasImage)?.id ?? null;
@@ -7418,12 +7619,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const shownHasImage = shownSummary === void 0 ? shownRecordId !== null : shownSummary.hasImage;
   const shownRunning = shownSummary?.status === "running";
   const running = records.find((record) => record.status === "running");
-  return /* @__PURE__ */ import_react13.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react13.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: t("\u65B0\u5EFA\u7A7A\u8349\u7A3F"), "aria-label": t("\u65B0\u5EFA\u8349\u7A3F"), onClick: newDraft }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react13.default.createElement(
+  return /* @__PURE__ */ import_react14.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react14.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.newDraftTitle"), "aria-label": t("action.newDraft"), onClick: newDraft }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react14.default.createElement(
     "button",
     {
       type: "button",
-      title: `${comfy?.ok ? `${t("ComfyUI {version}", { version: comfy.version })} \xB7 ${comfy.url ?? ""}` : `${t("\u8FDE\u4E0D\u4E0A ComfyUI")}${comfy?.error ? `\uFF1A${comfy.error}` : ""}`}\uFF08${t("\u70B9\u51FB\u91CD\u65B0\u68C0\u6D4B")}\uFF09`,
-      "aria-label": t("\u91CD\u65B0\u68C0\u6D4B ComfyUI"),
+      title: `${comfy?.ok ? `${t("status.comfyVersion", { version: comfy.version })} \xB7 ${comfy.url ?? ""}` : `${t("status.comfyUnreachable")}${comfy?.error ? `\uFF1A${comfy.error}` : ""}`}\uFF08${t("status.recheckHint")}\uFF09`,
+      "aria-label": t("status.recheck"),
       onClick: () => {
         setComfy(null);
         void checkHealth();
@@ -7443,7 +7644,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.ok ? "inherit" : "var(--dsw-alias-state-error-primary, #ff8f7a)"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       "span",
       {
         "aria-hidden": "true",
@@ -7455,11 +7656,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
       }
     ),
-    comfy === null ? t("\u8FDE\u63A5\u4E2D") : comfy.ok ? t("ComfyUI {version}", { version: comfy.version }) : t("ComfyUI \u79BB\u7EBF")
-  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: t("\u8349\u7A3F\u4F1A\u8BDD\uFF1A{sessionId}", { sessionId }) }, sessionId === "root" ? t("\u6839\u8349\u7A3F") : sessionId === "global" ? t("\u672A\u7ED1\u5B9A\u4F1A\u8BDD") : t("\u5BF9\u8BDD\u8349\u7A3F")), /* @__PURE__ */ import_react13.default.createElement(
+    comfy === null ? t("status.connecting") : comfy.ok ? t("status.comfyVersion", { version: comfy.version }) : t("status.comfyOffline")
+  ), /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: t("status.draftSession", { sessionId }) }, sessionId === "root" ? t("status.draftRoot") : sessionId === "global" ? t("status.draftUnbound") : t("status.draftConversation")), /* @__PURE__ */ import_react14.default.createElement(
     "span",
     {
-      title: t("\u663E\u5B58 {total} GB \u603B\u91CF\uFF0C\u5185\u5B58 {ram} GB \u603B\u91CF", { total: gigabytes(comfy?.gpu?.vramTotal), ram: gigabytes(comfy?.ramTotal) }),
+      title: t("status.memoryTitle", { total: gigabytes(comfy?.gpu?.vramTotal), ram: gigabytes(comfy?.ramTotal) }),
       style: {
         fontSize: 10,
         whiteSpace: "nowrap",
@@ -7468,9 +7669,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.gpu !== void 0 && usedPercent(comfy.gpu.vramTotal, comfy.gpu.vramFree) >= 90 ? "var(--dsw-alias-state-error-primary, #ff8f7a)" : "var(--dsw-alias-label-secondary, inherit)"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement("span", null, "\u663E\u5B58 ", gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)), "/", gigabytes(comfy?.gpu?.vramTotal), " G"),
-    /* @__PURE__ */ import_react13.default.createElement("span", null, "\u5185\u5B58 ", gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)), "/", gigabytes(comfy?.ramTotal), " G")
-  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("\u4FDD\u5B58\u4E2D\u2026") : `revision ${revision}`), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconOnly3, title: t("\u8BBE\u7F6E"), "aria-label": t("\u8BBE\u7F6E"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("span", null, t("status.vram", {
+      used: gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)),
+      total: gigabytes(comfy?.gpu?.vramTotal)
+    })),
+    /* @__PURE__ */ import_react14.default.createElement("span", null, t("status.ram", {
+      used: gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)),
+      total: gigabytes(comfy?.ramTotal)
+    }))
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("status.saving") : `revision ${revision}`), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.settings"), "aria-label": t("action.settings"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       className: "moss-scroller",
@@ -7483,20 +7690,20 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         minHeight: 0
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u5386\u53F2 ", visibleRecords.length, mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("history.title", { count: visibleRecords.length }), mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement(
       FilterChip,
       {
         selected: flagLocalOnly,
-        label: t("\u672C\u4F1A\u8BDD"),
-        title: flagLocalOnly ? t("\u663E\u793A\u5168\u90E8\u4F1A\u8BDD\u7684\u8BB0\u5F55") : t("\u53EA\u770B\u672C\u4F1A\u8BDD\u7684\u8BB0\u5F55"),
+        label: t("history.filterSession"),
+        title: flagLocalOnly ? t("history.showAllSessions") : t("history.onlyThisSession"),
         onClick: () => setLocalOnly((value) => !value)
       }
-    ), /* @__PURE__ */ import_react13.default.createElement(
+    ), /* @__PURE__ */ import_react14.default.createElement(
       FilterChip,
       {
         selected: showArchived,
-        label: t("\u5F52\u6863"),
-        title: showArchived ? t("\u9690\u85CF\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55") : t("\u663E\u793A\u5DF2\u5F52\u6863\u7684\u8BB0\u5F55"),
+        label: t("action.archive"),
+        title: showArchived ? t("history.hideArchived") : t("history.showArchived"),
         onClick: () => {
           setShowArchived((value) => !value);
           setOlder([]);
@@ -7504,16 +7711,16 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
       }
     ))),
-    /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react14.default.createElement(
       "input",
       {
         value: query,
         onChange: (event) => setQuery(event.target.value),
-        placeholder: t("\u641C\u7D22\u63D0\u793A\u8BCD\u6216\u8BB0\u5F55\u53F7"),
+        placeholder: t("history.searchPlaceholder"),
         style: { ...input3, width: "100%", boxSizing: "border-box", fontSize: 11 }
       }
     )),
-    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? t("\u7F6E\u9876\u8D85\u8FC7 50 \u6761\uFF0C\u53EA\u663E\u793A\u6700\u8FD1 50 \u6761") : void 0 }, "\u7F6E\u9876 ", pinnedRecords.length, pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
+    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? t("history.pinnedTruncated") : void 0 }, t("history.pinnedTitle", { count: pinnedRecords.length }), pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react14.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react14.default.createElement(
       HistoryRow,
       {
         record,
@@ -7524,15 +7731,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
       }
     )))) : null,
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       "div",
       {
         ref: historyRef,
         onScroll: onHistoryScroll,
         style: { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 6px" }
       },
-      visibleRecords.length === 0 ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? t("\u6CA1\u6709\u5339\u914D\u300C{query}\u300D\u7684\u8BB0\u5F55", { query: query.trim() }) : flagLocalOnly ? t("\u8FD9\u4E2A\u4F1A\u8BDD\u8FD8\u6CA1\u6709\u8BB0\u5F55\uFF08\u53EF\u4EE5\u5173\u6389\u300C\u672C\u4F1A\u8BDD\u300D\u770B\u5168\u90E8\uFF09") : t("\u8FD8\u6CA1\u6709\u8BB0\u5F55")) : null,
-      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react13.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react13.default.createElement(
+      visibleRecords.length === 0 ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? t("history.noMatches", { query: query.trim() }) : flagLocalOnly ? t("history.emptySession") : t("history.empty")) : null,
+      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react14.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react14.default.createElement(
         HistoryRow,
         {
           record,
@@ -7542,10 +7749,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           onPin: (row4) => void toggleFlag(row4, { pinned: !row4.pinned }),
           onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
         }
-      ))) : /* @__PURE__ */ import_react13.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
+      ))) : /* @__PURE__ */ import_react14.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
         const record = visibleRecords[item.index];
         if (record === void 0) return null;
-        return /* @__PURE__ */ import_react13.default.createElement(
+        return /* @__PURE__ */ import_react14.default.createElement(
           "div",
           {
             key: record.id,
@@ -7553,7 +7760,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
             ref: rowVirtualizer.measureElement,
             style: { position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${item.start}px)`, paddingBottom: 5 }
           },
-          /* @__PURE__ */ import_react13.default.createElement(
+          /* @__PURE__ */ import_react14.default.createElement(
             HistoryRow,
             {
               record,
@@ -7566,9 +7773,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           )
         );
       })),
-      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("\u52A0\u8F7D\u4E2D\u2026") : t("\u52A0\u8F7D\u66F4\u591A"))) : null
+      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("history.loading") : t("history.loadMore"))) : null
     )
-  ), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       onPointerDown: (event) => {
@@ -7577,7 +7784,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setHistoryResizing(true);
       },
       onDoubleClick: () => setHistoryWidth(wide ? 280 : 196),
-      title: t("\u62D6\u52A8\u8C03\u6574\u5386\u53F2\u5217\u5BBD\uFF0C\u53CC\u51FB\u590D\u4F4D"),
+      title: t("history.resizeTitle"),
       style: {
         width: 5,
         flexShrink: 0,
@@ -7585,43 +7792,43 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
       }
     }
-  ), /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t("\u63D0\u793A\u8BCD"))), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
     "textarea",
     {
       value: params.prompt,
       onChange: (event) => update({ prompt: event.target.value }),
-      placeholder: t("\u6574\u56FE\u63CF\u8FF0\uFF1B\u6846\u5185\u7EC6\u8282\u5199\u5728\u6BCF\u4E2A\u6846\u7684 desc \u91CC"),
+      placeholder: t("prompt.placeholder"),
       rows: 4,
       style: { ...input3, width: "100%", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { ...label2, minWidth: 0 } }, "\u5E03\u5C40\u6846 ", boxes.length), /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react13.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...label2, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react14.default.createElement(
     "button",
     {
       type: "button",
       style: iconOnly3,
-      title: showCanvas ? t("\u6298\u53E0\u9884\u89C8") : t("\u5C55\u5F00\u9884\u89C8"),
-      "aria-label": showCanvas ? t("\u6298\u53E0\u9884\u89C8") : t("\u5C55\u5F00\u9884\u89C8"),
+      title: showCanvas ? t("preview.collapse") : t("preview.expand"),
+      "aria-label": showCanvas ? t("preview.collapse") : t("preview.expand"),
       onClick: () => setShowCanvas((value) => !value)
     },
-    /* @__PURE__ */ import_react13.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
-  ), /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
+  ), /* @__PURE__ */ import_react14.default.createElement(
     "button",
     {
       type: "button",
       style: iconOnly3,
-      title: t("\u7F16\u8F91\u5E03\u5C40"),
-      "aria-label": t("\u7F16\u8F91\u5E03\u5C40"),
+      title: t("preview.editLayout"),
+      "aria-label": t("preview.editLayout"),
       onClick: openEditor
     },
-    /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "dashboard_customize" })
-  ))), showCanvas ? /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "dashboard_customize" })
+  ))), showCanvas ? /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       onClick: openEditor,
-      title: t("\u70B9\u51FB\u6253\u5F00\u5E03\u5C40\u7F16\u8F91\u5668"),
+      title: t("preview.openEditor"),
       style: { cursor: "zoom-in" }
     },
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       BoxCanvas,
       {
         boxes,
@@ -7635,7 +7842,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         compact: boxes.length === 0
       }
     )
-  ) : null), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t("\u5C3A\u5BF8")), /* @__PURE__ */ import_react13.default.createElement(
+  ) : null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("size.label")), /* @__PURE__ */ import_react14.default.createElement(
     "input",
     {
       type: "number",
@@ -7644,10 +7851,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       value: widthText,
       onChange: (event) => setWidthText(event.target.value),
       onBlur: () => commitSize(widthText, heightText),
-      "aria-label": t("\u5BBD\u5EA6"),
+      "aria-label": t("size.width"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react13.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react14.default.createElement(
     "input",
     {
       type: "number",
@@ -7656,10 +7863,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       value: heightText,
       onChange: (event) => setHeightText(event.target.value),
       onBlur: () => commitSize(widthText, heightText),
-      "aria-label": t("\u9AD8\u5EA6"),
+      "aria-label": t("size.height"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement(
     "select",
     {
       value: SIZE_PRESETS.includes(params.size) ? params.size : "",
@@ -7670,29 +7877,29 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setHeightText(h);
         update({ size: event.target.value });
       },
-      "aria-label": t("\u5E38\u7528\u5C3A\u5BF8"),
+      "aria-label": t("size.presets"),
       style: { ...input3, flex: "0 0 96px", width: 96 }
     },
-    /* @__PURE__ */ import_react13.default.createElement("option", { value: "", style: optionStyle2 }, t("\u9884\u8BBE")),
-    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react13.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
-  )), sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t("\u6B65\u6570")), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react13.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react13.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react13.default.createElement("div", null, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: label2 }, t("\u8D1F\u5411\u63D0\u793A\u8BCD"))), /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("option", { value: "", style: optionStyle2 }, t("size.presetPlaceholder")),
+    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react14.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
+  )), sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("params.steps")), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, "CFG"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, "seed"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label2 }, t("params.negative"))), /* @__PURE__ */ import_react14.default.createElement(
     "textarea",
     {
       value: params.negative,
       onChange: (event) => update({ negative: event.target.value }),
-      placeholder: t("\u4E0D\u5E0C\u671B\u51FA\u73B0\u7684\u5185\u5BB9\uFF0C\u9017\u53F7\u5206\u9694"),
+      placeholder: t("params.negativePlaceholder"),
       rows: 2,
       style: { ...input3, width: "100%", display: "block", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react13.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement(
     IconCheckbox,
     {
       checked: params.enhance,
       disabled: boxes.length > 0,
       onChange: (event) => update({ enhance: event.target.checked }),
-      label: t("\u5148\u7528\u672C\u5730 9B \u6269\u5199\u63D0\u793A\u8BCD\uFF08\u6709\u6846\u65F6\u4E0D\u53EF\u7528\uFF09")
+      label: t("params.enhanceHint")
     }
-  )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react13.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("\u751F\u6210\u4E2D {seconds}s", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_LABEL[phase] ?? phase)}`}` : otherBusy ? t("\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210") : t("\u968F\u673A seed \u751F\u6210")), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("\u7528\u5F53\u524D seed \u751F\u6210")), running !== void 0 && !busy ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, "\u961F\u5217\u4E2D \xB7 ", running.id.slice(-4)) : null, sizeHint !== null ? /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("\u5C3A\u5BF8\u65E0\u6548\uFF0C\u672A\u4FDD\u5B58")) : null), notice !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react13.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react13.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       style: {
@@ -7704,7 +7911,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         display: "flex"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       ResultPane,
       {
         orientation: "column",
@@ -7722,7 +7929,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     )
-  ) : null), wide ? null : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, /* @__PURE__ */ import_react13.default.createElement(
+  ) : null), wide ? null : /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       onPointerDown: (event) => {
@@ -7731,7 +7938,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setResizing(true);
       },
       onDoubleClick: () => setResultCollapsed((value) => !value),
-      title: t("\u62D6\u52A8\u8C03\u6574\u9AD8\u5EA6\uFF0C\u53CC\u51FB\u6536\u8D77/\u5C55\u5F00"),
+      title: t("result.resizeTitle"),
       style: {
         height: 6,
         flexShrink: 0,
@@ -7740,7 +7947,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"
       }
     }
-  ), /* @__PURE__ */ import_react13.default.createElement(
+  ), /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       style: {
@@ -7752,18 +7959,18 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("\u7ED3\u679C")), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("result.label")), /* @__PURE__ */ import_react14.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react14.default.createElement(
       "button",
       {
         type: "button",
         style: iconOnly3,
-        title: resultCollapsed ? t("\u5C55\u5F00\u7ED3\u679C\u533A") : t("\u6536\u8D77\u7ED3\u679C\u533A"),
-        "aria-label": resultCollapsed ? t("\u5C55\u5F00\u7ED3\u679C\u533A") : t("\u6536\u8D77\u7ED3\u679C"),
+        title: resultCollapsed ? t("result.expand") : t("result.collapse"),
+        "aria-label": resultCollapsed ? t("result.expand") : t("result.collapseShort"),
         onClick: () => setResultCollapsed((value) => !value)
       },
-      /* @__PURE__ */ import_react13.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
+      /* @__PURE__ */ import_react14.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
     )),
-    resultCollapsed ? null : /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
+    resultCollapsed ? null : /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react14.default.createElement(
       ResultPane,
       {
         orientation: "row",
@@ -7781,7 +7988,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     ))
-  )), editorOpen ? /* @__PURE__ */ import_react13.default.createElement(
+  )), editorOpen ? /* @__PURE__ */ import_react14.default.createElement(
     BoxEditor,
     {
       params,
@@ -7794,11 +8001,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onClose: closeEditor,
       onCancel: cancelEditor
     }
-  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react13.default.createElement(
+  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react14.default.createElement(
     ConfirmDialog,
     {
-      title: t("\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F"),
-      message: "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002",
+      title: t("confirm.deleteTitle"),
+      message: t("confirm.deleteMessage"),
       detail: [pendingDelete.prompt, pendingDelete.id].filter((part) => typeof part === "string" && part !== "").join(" \xB7 "),
       onCancel: () => setPendingDelete(null),
       onConfirm: () => {
@@ -7807,7 +8014,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         void removeRecordById(id);
       }
     }
-  ) : null, settingsOpen ? /* @__PURE__ */ import_react13.default.createElement(
+  ) : null, settingsOpen ? /* @__PURE__ */ import_react14.default.createElement(
     SettingsDialog,
     {
       onClose: () => setSettingsOpen(false),
@@ -7815,7 +8022,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setComfy(null);
       }
     }
-  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react13.default.createElement(
+  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement(
     ImageViewer,
     {
       recordId: shownRecordId,
@@ -7835,7 +8042,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
 var PANEL_ID = "moss-studio";
 var TAB_ID = "dsh-moss-studio";
 var TAB_KIND = "moss-studio";
-var PanelBoundary = class extends import_react14.default.Component {
+var PanelBoundary = class extends import_react15.default.Component {
   constructor(props) {
     super(props);
     this.state = { error: null };
@@ -7845,12 +8052,12 @@ var PanelBoundary = class extends import_react14.default.Component {
   }
   render() {
     if (this.state.error !== null) {
-      return import_react14.default.createElement(
+      return import_react15.default.createElement(
         "div",
         { style: { padding: 16, fontSize: 12, opacity: 0.8, lineHeight: 1.6 } },
-        import_react14.default.createElement("div", null, t("Moss studio \u9762\u677F\u51FA\u9519")),
-        import_react14.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
-        import_react14.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, t("\u5237\u65B0\u9875\u9762\u53EF\u91CD\u8BD5\uFF1B\u53C2\u6570\u4ECD\u4FDD\u5B58\u5728 ~/.dsh/moss-studio\u3002"))
+        import_react15.default.createElement("div", null, t("panel.errorTitle")),
+        import_react15.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
+        import_react15.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, t("panel.errorHint"))
       );
     }
     return this.props.children;
@@ -7860,7 +8067,7 @@ function createPlugin() {
   function PanelIcon({ size = 16, active = false }) {
     const edge = typeof size === "number" && size > 0 ? size : 16;
     const brand = active ? "var(--dsw-alias-brand-primary, #78be91)" : "currentColor";
-    return import_react14.default.createElement(
+    return import_react15.default.createElement(
       "span",
       {
         style: {
@@ -7872,7 +8079,7 @@ function createPlugin() {
           flexShrink: 0
         }
       },
-      import_react14.default.createElement(
+      import_react15.default.createElement(
         "svg",
         {
           xmlns: "http://www.w3.org/2000/svg",
@@ -7884,9 +8091,9 @@ function createPlugin() {
           focusable: "false",
           style: { display: "block" }
         },
-        import_react14.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
-        import_react14.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
-        import_react14.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
+        import_react15.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
+        import_react15.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
+        import_react15.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
       )
     );
   }
@@ -7897,31 +8104,25 @@ function createPlugin() {
     } catch {
     }
     const sessionId = typeof props?.sessionId === "string" && props.sessionId !== "" ? props.sessionId : typeof fromTab === "string" && fromTab !== "" ? fromTab : "global";
-    return import_react14.default.createElement(StudioPanel, { sessionId });
+    return import_react15.default.createElement(StudioPanel, { sessionId });
   }
   const ROOT_SESSION = "root";
   function StudioMainPanel() {
     function Main() {
-      return import_react14.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
+      return import_react15.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
     }
     return Main;
   }
   return {
     // Internal seam for tests and embedding; the loader ignores it.
     components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
-    inject: ["slots", "sidebarRightTabs", "sidebarRight"],
+    inject: ["locale", "slots", "sidebarRightTabs", "sidebarRight"],
     apply(ctx) {
-      try {
-        const locale = typeof ctx.get === "function" ? ctx.get("locale") : ctx.locale;
-        const tag = locale?.current?.() ?? locale?.current ?? locale?.language ?? (typeof document === "undefined" ? void 0 : document.documentElement?.lang) ?? (typeof navigator === "undefined" ? void 0 : navigator.language);
-        detectLocale(tag);
-      } catch {
-      }
       const safe = (label3, run) => {
         try {
           ctx.effect(run, label3);
         } catch (error) {
-          console.error(`[moss-studio] ${label3} \u6CE8\u518C\u5931\u8D25`, error);
+          console.error(`[moss-studio] ${label3} registration failed`, error);
         }
       };
       const injectInto = (owner, label3, register) => safe(label3, () => {
@@ -7930,12 +8131,16 @@ function createPlugin() {
           try {
             return register();
           } catch (error) {
-            console.error(`[moss-studio] ${label3} \u6CE8\u518C\u5931\u8D25`, error);
+            console.error(`[moss-studio] ${label3} registration failed`, error);
             return () => {
             };
           }
         });
       });
+      const locale = typeof ctx.get === "function" ? ctx.get("locale") : ctx.locale;
+      if (locale !== void 0 && locale !== null) {
+        safe("locale", () => ctx.effect(() => attachLocale(locale), "moss-studio: locale dictionaries"));
+      }
       safe("moss-studio: tab type", () => ctx.sidebarRightTabs.register({
         id: TAB_ID,
         kind: TAB_KIND,
@@ -7946,7 +8151,7 @@ function createPlugin() {
           id: "moss-studio",
           order: 100,
           title: () => "Moss studio",
-          description: () => t("\u672C\u673A MOSS-Image \u751F\u56FE\uFF1A\u5386\u53F2\u3001\u6846\u4F4D\u3001\u53C2\u6570"),
+          description: () => t("panel.description"),
           // The start page cards render this; a guide entry without one is the only
           // card in the grid with a blank leading slot.
           icon: PanelIcon

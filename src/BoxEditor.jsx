@@ -136,15 +136,15 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
         }}
       >
         <div style={{ ...row, justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
-          <span id={titleId} style={{ fontSize: 13 }}>编辑布局 · {boxes.length} 个框 · {size}</span>
+          <span id={titleId} style={{ fontSize: 13 }}>{t('editor.title', { count: boxes.length, size })}</span>
           <div style={{ ...row }}>
-            <button type="button" style={iconOnly} title={t('加一个框')} aria-label={t('加框')} onClick={onAdd}>
+            <button type="button" style={iconOnly} title={t('editor.addBoxTitle')} aria-label={t('editor.addBox')} onClick={onAdd}>
               <Icon name="add_box" />
             </button>
-            <button type="button" style={iconOnly} title={t('完成')} aria-label={t('完成')} onClick={onClose}>
+            <button type="button" style={iconOnly} title={t('action.done')} aria-label={t('action.done')} onClick={onClose}>
               <Icon name="check" />
             </button>
-            <button type="button" style={iconOnly} onClick={onCancel} aria-label={t('取消')} title={t('取消并撤销本次修改')}>
+            <button type="button" style={iconOnly} onClick={onCancel} aria-label={t('action.cancel')} title={t('editor.cancelTitle')}>
               <Icon name="close" />
             </button>
           </div>
@@ -165,7 +165,7 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
           <div style={{ width: 300, flexShrink: 0, borderLeft: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {boxes.length === 0 ? (
               <div style={{ ...dim, padding: 8, lineHeight: 1.6 }}>
-                还没有框。点「加框」放一个，然后拖动移动、拉右下角改大小。
+                {t('editor.empty')}
               </div>
             ) : null}
             {boxes.map((box, index) => (
@@ -199,15 +199,15 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
                     <IconCheckbox
                       checked={characters.has(index + 1)}
                       onChange={() => onToggleCharacter(index)}
-                      label={t('人物')}
+                      label={t('editor.kindPerson')}
                     />
                   )}
                   <span style={{ flex: 1 }} />
                   <button
                     type="button"
                     style={iconDanger}
-                    title={t('删除这个框')}
-                    aria-label={t('删除框')}
+                    title={t('editor.deleteBoxTitle')}
+                    aria-label={t('editor.deleteBox')}
                     onClick={(event) => { event.stopPropagation(); onRemove(index) }}
                   >
                     <Icon name="delete" />
@@ -215,11 +215,11 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
                 </div>
                 {box.type === 'text' ? (
                   <label style={row}>
-                    <span style={{ ...label, minWidth: 28 }}>{t('文字')}</span>
+                    <span style={{ ...label, minWidth: 28 }}>{t('editor.kindText')}</span>
                     <input
                       value={box.text ?? ''}
                       onChange={(event) => updateBox(index, { text: event.target.value })}
-                      placeholder={t('逐字渲染的文字')}
+                      placeholder={t('editor.kindTextHint')}
                       style={input}
                     />
                   </label>
@@ -227,7 +227,7 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
                 <textarea
                   value={box.desc ?? ''}
                   onChange={(event) => updateBox(index, { desc: event.target.value })}
-                  placeholder={t('框内是什么：主体、姿态、材质、光线')}
+                  placeholder={t('editor.descPlaceholder')}
                   rows={3}
                   style={{ ...input, width: '100%', resize: 'vertical', lineHeight: 1.45 }}
                 />
@@ -235,8 +235,8 @@ export function BoxEditor({ params, selected, onSelect, onChange, onAdd, onRemov
                   {[
                     ['X', 'x', box.x],
                     ['Y', 'y', box.y],
-                    [t('宽'), 'width', box.width],
-                    [t('高'), 'height', box.height],
+                    [t('editor.widthShort'), 'width', box.width],
+                    [t('editor.heightShort'), 'height', box.height],
                   ].map(([label, key, value]) => (
                     <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, fontSize: 10, ...dim }}>
                       <span style={{ flexShrink: 0 }}>{label}</span>

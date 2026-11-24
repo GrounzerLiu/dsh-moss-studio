@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { MIN_SIZE, frameSize, labelMetrics, moveBox, parseRatio, resizeBox } from './box-math.js'
 import { selectionFill } from './theme.js'
+import { t } from './i18n.js'
 
 const TALL = 260
 const COMPACT = 120
@@ -194,7 +195,7 @@ export function BoxCanvas({ boxes, size, selected, onSelect, onChange, compact =
         })}
         {boxes.length === 0 ? (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 12, opacity: 0.55 }}>
-            无框：整幅自由构图
+            {t('preview.empty')}
           </div>
         ) : null}
       </div>

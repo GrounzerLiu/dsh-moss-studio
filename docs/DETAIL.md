@@ -188,13 +188,15 @@ records/<id>/image.png
 - 无障碍：`useDialogFocus` 统一处理三个对话框的初始焦点、Tab 循环与关闭后焦点归还；设置与编辑布局补上 `role="dialog"`、`aria-modal`、`aria-labelledby`。
 - 版本升到 0.2.0，新增 CHANGELOG.md。
 
-## 第五批：国际化
+## 第五批：国际化（0.5.0 起改用官方 locale 机制）
 
-- `src/i18n.js`：`t(中文原文, {占位符})`，中文作为字典键，英文表缺项时原样返回中文，避免出现 `moss.xxx` 这种键名。
-- 语言来源优先级：Client locale 服务（若存在）→ `<html lang>` → `navigator.language`；非 `en` 一律中文。
-- 面板所有按钮、标题、占位符、提示、错误提示、时间格式都已走 `t()`；`PHASE_LABEL` 在渲染时翻译，避免模块加载时被固定成中文。
-- `test/i18n.test.js` 会扫描 `src/` 里所有 `t('…')` 调用，断言每个中文键在英文表里都有条目——漏翻会直接让测试失败。
-- 尚未翻译：宿主侧 `lib/*.js` 返回的校验文案（`请填写 ComfyUI 地址` 等）、工具描述、`cordis.patch.yml` 注释。
+- 字典注册到 client locale 服务：`ctx.locale.register('moss-studio', { zh, en })`，读取用 `ctx.locale.bind(NS)`；`client` 的 inject 里声明 `locale`，注册包在 `ctx.effect` 里，随插件卸载自动撤销。
+- 键名是稳定的英文语义标识（`action.delete`、`history.empty`、`settings.comfyUrl`…），改文案不必改键；中文只是 `ZH` 里的值。0.3.0 的中文当键方案已废弃——改名会静默断链，且同文不同义无法分叉。
+- 语言切换即时生效：`src/useLocale.js` 用 `useSyncExternalStore` 订阅 `getRevision`/`subscribe`，在 `StudioPanel` 根调用一次，整个子树（含各对话框）随语言切换重渲染。
+- 兜底三级：服务可用时走服务的回退链（未注册的语种回退英文）；服务缺失（单测、无 locale 插件的宿主）退回中文；两者都没有则显示键本身，不会是空白。
+- 时间格式按当前语言取 `zh-CN` 或对应标签。
+- 测试：键集对齐、占位符对齐、源码引用的键必须存在、键名不得为中文、注册/翻译/订阅/降级四条运行时用例；client 侧断言命名空间以 `zh`+`en` 注册。
+- 尚未翻译：宿主侧 `lib/*.js` 返回的校验文案与工具描述。
 
 ## 兼容性（DSH 0.2.3-alpha.2）
 

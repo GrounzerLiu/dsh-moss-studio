@@ -32,9 +32,31 @@ function loadPlugin() {
 }
 
 function fakeContext() {
-  const calls = { tabTypes: [], slots: [], opened: [] }
+  const calls = { tabTypes: [], slots: [], opened: [], effects: [], dictionaries: [] }
+  // Stand-in for the client locale service: it must translate, because the
+  // panel reads its copy through the bound translator after registration.
+  const registered = new Map()
+  // Stand-in for the client locale service: enough for registration to succeed.
+  const locale = {
+    register(ns, dicts) {
+      calls.dictionaries.push({ ns, locales: Object.keys(dicts) })
+      registered.set(ns, dicts)
+      return () => registered.delete(ns)
+    },
+    bind: (ns) => (key, params) => {
+      const template = registered.get(ns)?.zh?.[key] ?? key
+      if (params === undefined) return template
+      return template.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match))
+    },
+    getSnapshot: () => ({ active: 'zh', revision: 0 }),
+    subscribe: () => () => {},
+  }
   const ctx = {
-    effect(fn) {
+    get(name) {
+      return name === 'locale' ? locale : undefined
+    },
+    effect(fn, label) {
+      if (typeof label === 'string') calls.effects.push(label)
       const dispose = fn()
       return typeof dispose === 'function' ? dispose : () => {}
     },
@@ -71,7 +93,10 @@ test('the bundle registers the tab, the main panel, and its sidebar launcher', (
 
   plugin.apply(ctx)
 
-  assert.deepEqual(plugin.inject, ['slots', 'sidebarRightTabs', 'sidebarRight'])
+  assert.deepEqual(plugin.inject, ['locale', 'slots', 'sidebarRightTabs', 'sidebarRight'])
+
+  // Dictionaries are registered through the locale service, not a private table.
+  assert.ok(calls.effects.includes('moss-studio: locale dictionaries'), 'the locale effect runs')
   assert.equal(calls.tabTypes.length, 1)
   assert.equal(calls.tabTypes[0].id, 'dsh-moss-studio')
   assert.equal(calls.tabTypes[0].kind, 'moss-studio')
@@ -183,4 +208,13 @@ test('the tab body reads the session from props or the tab record', () => {
   assert.equal(render({ sessionId: 'sess-1' }).props.sessionId, 'sess-1')
   assert.equal(render({ useTabInfo: () => ({ tab: { sessionId: 'sess-2' } }) }).props.sessionId, 'sess-2')
   assert.equal(render({}).props.sessionId, 'global', 'a body without a session still renders')
+})
+
+test('the locale namespace is registered with both base languages', () => {
+  const plugin = loadPlugin()
+  const { ctx, calls } = fakeContext()
+  plugin.apply(ctx)
+  assert.equal(calls.dictionaries.length, 1)
+  assert.equal(calls.dictionaries[0].ns, 'moss-studio')
+  assert.deepEqual(calls.dictionaries[0].locales.sort(), ['en', 'zh'])
 })

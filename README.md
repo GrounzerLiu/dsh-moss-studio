@@ -40,10 +40,27 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 
 ## Languages
 
-The panel ships Chinese and English copy. Chinese text is the lookup key in
-`src/i18n.js`, so an untranslated string still renders; `test/i18n.test.js`
-fails when a used key has no English entry. Host-side validation messages are
-still Chinese.
+The panel ships Chinese and English copy through the client locale service, not
+a private table:
+
+```js
+ctx.locale.register('moss-studio', { zh: ZH, en: EN })
+const t = ctx.locale.bind('moss-studio')
+```
+
+Keys are stable English identifiers grouped by area (`action.*`, `history.*`,
+`result.*`, `settings.*`), so rewording a message never breaks the mapping. The
+service owns the active language, its fallback chain and the `locale/change`
+event, so switching language in the app's settings re-renders the panel without
+a reload — `src/useLocale.js` subscribes once at the panel root.
+
+Without the service (unit tests, or a host without the locale plugin) `t()`
+falls back to the Chinese text, then to the key itself. `test/i18n.test.js`
+enforces key parity, placeholder parity and full coverage of the keys the source
+uses.
+
+Host-side validation messages returned by `lib/*.js` are still Chinese; only the
+panel is translated so far.
 
 ## Build the client bundle
 

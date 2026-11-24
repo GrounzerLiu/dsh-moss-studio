@@ -33,13 +33,13 @@ export function splitSize(text) {
  * @returns {string | null}
  */
 export function sizeProblem(width, height, widthText, heightText) {
-  if (String(widthText).trim() === '' || String(heightText).trim() === '') return t('宽高不能为空')
+  if (String(widthText).trim() === '' || String(heightText).trim() === '') return t('size.errorEmpty')
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
-    return t('宽高必须是正整数')
+    return t('size.errorPositive')
   }
-  if (width % 16 !== 0 || height % 16 !== 0) return t('宽高必须是 16 的倍数')
+  if (width % 16 !== 0 || height % 16 !== 0) return t('size.errorMultiple')
   const pixels = width * height
-  if (pixels < MIN_PIXELS) return t('低于 0.25 MP（512×512）')
-  if (pixels > MAX_PIXELS) return t('超过 4 MP（约 2048×2048）')
+  if (pixels < MIN_PIXELS) return t('size.errorTooSmall')
+  if (pixels > MAX_PIXELS) return t('size.errorTooLarge')
   return null
 }
