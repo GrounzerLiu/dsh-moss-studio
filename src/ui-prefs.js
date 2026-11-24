@@ -12,7 +12,13 @@ const KEY = 'moss-studio.ui'
 export const DEFAULT_UI = Object.freeze({
   resultHeight: 240,
   resultCollapsed: false,
-  historyWidth: { narrow: 196, wide: 280 },
+  // A 360px sidebar cannot afford a 196px history column: the parameter column
+  // was left about 150px wide, which clipped inputs and made the prompt
+  // textarea barely usable. Narrow starts collapsed and opens on demand.
+  historyWidth: { narrow: 160, wide: 280 },
+  historyOpen: { narrow: false, wide: true },
+  // The prompt box is resizeable; remember the height the user dragged to.
+  promptHeight: 108,
 })
 
 function clamp(value, min, max, fallback) {
@@ -38,8 +44,13 @@ export function loadUiPrefs(storage = memoryStorage()) {
   return {
     resultHeight: clamp(raw.resultHeight, 120, 720, DEFAULT_UI.resultHeight),
     resultCollapsed: raw.resultCollapsed === true,
+    promptHeight: clamp(raw.promptHeight, 72, 520, DEFAULT_UI.promptHeight),
+    historyOpen: {
+      narrow: raw.historyOpen?.narrow ?? DEFAULT_UI.historyOpen.narrow,
+      wide: raw.historyOpen?.wide ?? DEFAULT_UI.historyOpen.wide,
+    },
     historyWidth: {
-      narrow: clamp(raw.historyWidth?.narrow, 160, 420, DEFAULT_UI.historyWidth.narrow),
+      narrow: clamp(raw.historyWidth?.narrow, 140, 420, DEFAULT_UI.historyWidth.narrow),
       wide: clamp(raw.historyWidth?.wide, 160, 420, DEFAULT_UI.historyWidth.wide),
     },
   }

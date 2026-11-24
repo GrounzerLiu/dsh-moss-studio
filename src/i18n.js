@@ -211,6 +211,8 @@ export const ZH = {
   "editor.distributeX": "水平等距分布",
   "editor.distributeY": "垂直等距分布",
   "editor.noDesc": "（未填写描述）",
+  "history.show": "显示历史（{count}）",
+  "history.hide": "收起历史",
 }
 
 /** English copy. */
@@ -408,6 +410,8 @@ export const EN = {
   "editor.distributeX": "Distribute horizontally",
   "editor.distributeY": "Distribute vertically",
   "editor.noDesc": "(no description)",
+  "history.show": "Show history ({count})",
+  "history.hide": "Hide history",
 }
 
 function fill(template, params) {

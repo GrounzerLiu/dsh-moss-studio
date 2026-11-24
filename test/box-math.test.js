@@ -82,6 +82,11 @@ test('labelMetrics hides captions on tiny boxes and scales with size', () => {
   assert.ok(small.fontSize >= 9 && small.fontSize <= 12)
   assert.equal(small.lines, 1)
 
+  // Narrow boxes go one character per line, which is unreadable: below roughly
+  // four characters' width the caption is dropped instead.
+  assert.equal(labelMetrics(30, 120).show, false, 'too narrow to read')
+  assert.equal(labelMetrics(56, 120).show, true, 'about four characters fits')
+
   const large = labelMetrics(400, 300)
   assert.ok(large.fontSize <= 12)
   assert.ok(large.lines >= 3)

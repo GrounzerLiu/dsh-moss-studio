@@ -273,6 +273,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [resultCollapsed, setResultCollapsed] = useState(initialUi.resultCollapsed)
   const [historyWidth, setHistoryWidth] = useState(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow)
   const [historyResizing, setHistoryResizing] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(wide ? initialUi.historyOpen.wide : initialUi.historyOpen.narrow)
+  // The prompt box drags to whatever height the text needs, like a chat composer.
+  const [promptHeight, setPromptHeight] = useState(initialUi.promptHeight)
+  const promptRef = useRef(null)
   const historyResizeRef = useRef(null)
   const [resizing, setResizing] = useState(false)
   const resizeRef = useRef(null)
@@ -428,11 +432,30 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     saveUiPrefs({
       resultHeight,
       resultCollapsed,
+      historyOpen: wide
+        ? { ...loadUiPrefs().historyOpen, wide: historyOpen }
+        : { ...loadUiPrefs().historyOpen, narrow: historyOpen },
+      promptHeight,
       historyWidth: wide
         ? { ...loadUiPrefs().historyWidth, wide: historyWidth }
         : { ...loadUiPrefs().historyWidth, narrow: historyWidth },
     })
-  }, [resultHeight, resultCollapsed, historyWidth, wide])
+  }, [resultHeight, resultCollapsed, historyWidth, historyOpen, promptHeight, wide])
+
+  // The prompt box has the browser's own vertical resize grip; observing the box
+  // is what remembers the height the user dragged to.
+  useEffect(() => {
+    const element = promptRef.current
+    if (element === null || typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.offsetHeight)
+        if (height >= 72) setPromptHeight(height)
+      }
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!historyResizing) return undefined
@@ -943,6 +966,16 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
         </div>
         <div style={{ ...row, gap: 4, flexShrink: 0 }}>
           <span style={{ fontSize: 10, ...dim }}>{saving ? t('status.saving') : `revision ${revision}`}</span>
+          <button
+            type="button"
+            style={historyOpen ? iconOnly : { ...iconOnly, opacity: 0.65 }}
+            title={historyOpen ? t('history.hide') : t('history.show', { count: mergedRecords.length })}
+            aria-label={historyOpen ? t('history.hide') : t('history.show', { count: mergedRecords.length })}
+            aria-pressed={historyOpen}
+            onClick={() => setHistoryOpen((value) => !value)}
+          >
+            <Icon name="history" />
+          </button>
           <button type="button" style={iconOnly} title={t('action.settings')} aria-label={t('action.settings')} onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" />
           </button>
@@ -950,155 +983,159 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
       </div>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <div
-          className="moss-scroller"
-          style={{
-            width: historyWidth,
-            flexShrink: 0,
-            borderRight: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))',
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 0,
-          }}
-        >
-          {/* One header for everything that filters the list: count on the left,
-              scope and archived toggles on the right, search directly below. */}
-          <div style={{ ...row, justifyContent: 'space-between', padding: '6px 6px 4px', gap: 4 }}>
-            <span style={{ fontSize: 11, ...dim }}>
-              {t('history.title', { count: visibleRecords.length })}
-              {mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ''}
-            </span>
-            <div style={{ ...row, gap: 4 }}>
-              <FilterChip
-                selected={flagLocalOnly}
-                label={t('history.filterSession')}
-                title={flagLocalOnly ? t('history.showAllSessions') : t('history.onlyThisSession')}
-                onClick={() => setLocalOnly((value) => !value)}
-              />
-              <FilterChip
-                selected={showArchived}
-                label={t('action.archive')}
-                title={showArchived ? t('history.hideArchived') : t('history.showArchived')}
-                onClick={() => {
-                  setShowArchived((value) => !value)
-                  setOlder([])
-                  setNextBefore(null)
-                }}
-              />
-            </div>
-          </div>
-          <div style={{ padding: '0 6px 6px' }}>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('history.searchPlaceholder')}
-              style={{ ...input, width: '100%', boxSizing: 'border-box', fontSize: 11 }}
-            />
-          </div>
-
-          {pinnedRecords.length > 0 ? (
-            <div style={{ padding: '0 6px 6px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', marginBottom: 6 }}>
-              <div style={{ fontSize: 10, ...dim, marginBottom: 4 }} title={pinnedTruncated ? t('history.pinnedTruncated') : undefined}>
-              {t('history.pinnedTitle', { count: pinnedRecords.length })}
-              {pinnedTruncated ? ' +' : ''}
-            </div>
-              {pinnedRecords.map((record) => (
-                <div key={record.id} style={{ paddingBottom: 5 }}>
-                  <HistoryRow
-                    record={record}
-                    active={record.id === activeRecordId}
-                    onSelect={(id) => void selectRecord(id)}
-                    onDelete={(id) => selectForDelete(id)}
-                    onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
-                    onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
-
+        {historyOpen ? (
+          <>
           <div
-            ref={historyRef}
-            onScroll={onHistoryScroll}
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 6px' }}
+            className="moss-scroller"
+            style={{
+              width: historyWidth,
+              flexShrink: 0,
+              borderRight: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
           >
-            {visibleRecords.length === 0 ? (
-              <div style={{ ...dim, padding: 8, lineHeight: 1.6 }}>
-                {needle !== ''
-                  ? t('history.noMatches', { query: query.trim() })
-                  : flagLocalOnly
-                    ? t('history.emptySession')
-                    : t('history.empty')}
+            {/* One header for everything that filters the list: count on the left,
+                scope and archived toggles on the right, search directly below. */}
+            <div style={{ ...row, justifyContent: 'space-between', padding: '6px 6px 4px', gap: 4 }}>
+              <span style={{ fontSize: 11, ...dim }}>
+                {t('history.title', { count: visibleRecords.length })}
+                {mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ''}
+              </span>
+              <div style={{ ...row, gap: 4 }}>
+                <FilterChip
+                  selected={flagLocalOnly}
+                  label={t('history.filterSession')}
+                  title={flagLocalOnly ? t('history.showAllSessions') : t('history.onlyThisSession')}
+                  onClick={() => setLocalOnly((value) => !value)}
+                />
+                <FilterChip
+                  selected={showArchived}
+                  label={t('action.archive')}
+                  title={showArchived ? t('history.hideArchived') : t('history.showArchived')}
+                  onClick={() => {
+                    setShowArchived((value) => !value)
+                    setOlder([])
+                    setNextBefore(null)
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ padding: '0 6px 6px' }}>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t('history.searchPlaceholder')}
+                style={{ ...input, width: '100%', boxSizing: 'border-box', fontSize: 11 }}
+              />
+            </div>
+
+            {pinnedRecords.length > 0 ? (
+              <div style={{ padding: '0 6px 6px', borderBottom: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', marginBottom: 6 }}>
+                <div style={{ fontSize: 10, ...dim, marginBottom: 4 }} title={pinnedTruncated ? t('history.pinnedTruncated') : undefined}>
+                {t('history.pinnedTitle', { count: pinnedRecords.length })}
+                {pinnedTruncated ? ' +' : ''}
+              </div>
+                {pinnedRecords.map((record) => (
+                  <div key={record.id} style={{ paddingBottom: 5 }}>
+                    <HistoryRow
+                      record={record}
+                      active={record.id === activeRecordId}
+                      onSelect={(id) => void selectRecord(id)}
+                      onDelete={(id) => selectForDelete(id)}
+                      onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
+                      onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
+                    />
+                  </div>
+                ))}
               </div>
             ) : null}
 
-            {virtualRows.length === 0 ? (
-              visibleRecords.map((record) => (
-                <div key={record.id} style={{ paddingBottom: 5 }}>
-                  <HistoryRow
-                    record={record}
-                    active={record.id === activeRecordId}
-                    onSelect={(id) => void selectRecord(id)}
-                    onDelete={(id) => selectForDelete(id)}
-                    onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
-                    onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
-                  />
+            <div
+              ref={historyRef}
+              onScroll={onHistoryScroll}
+              style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 6px' }}
+            >
+              {visibleRecords.length === 0 ? (
+                <div style={{ ...dim, padding: 8, lineHeight: 1.6 }}>
+                  {needle !== ''
+                    ? t('history.noMatches', { query: query.trim() })
+                    : flagLocalOnly
+                      ? t('history.emptySession')
+                      : t('history.empty')}
                 </div>
-              ))
-            ) : (
-              <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-                {virtualRows.map((item) => {
-                  const record = visibleRecords[item.index]
-                  if (record === undefined) return null
-                  return (
-                    <div
-                      key={record.id}
-                      data-index={item.index}
-                      ref={rowVirtualizer.measureElement}
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)`, paddingBottom: 5 }}
-                    >
-                      <HistoryRow
-                        record={record}
-                        active={record.id === activeRecordId}
-                        onSelect={(id) => void selectRecord(id)}
-                        onDelete={(id) => selectForDelete(id)}
-                        onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
-                        onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+              ) : null}
 
-            {nextBefore !== null && needle === '' ? (
-              <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
-                <button type="button" style={iconButton} onClick={() => void loadMore()} disabled={loadingMore}>
-                  {loadingMore ? t('history.loading') : t('history.loadMore')}
-                </button>
-              </div>
-            ) : null}
+              {virtualRows.length === 0 ? (
+                visibleRecords.map((record) => (
+                  <div key={record.id} style={{ paddingBottom: 5 }}>
+                    <HistoryRow
+                      record={record}
+                      active={record.id === activeRecordId}
+                      onSelect={(id) => void selectRecord(id)}
+                      onDelete={(id) => selectForDelete(id)}
+                      onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
+                      onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+                  {virtualRows.map((item) => {
+                    const record = visibleRecords[item.index]
+                    if (record === undefined) return null
+                    return (
+                      <div
+                        key={record.id}
+                        data-index={item.index}
+                        ref={rowVirtualizer.measureElement}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)`, paddingBottom: 5 }}
+                      >
+                        <HistoryRow
+                          record={record}
+                          active={record.id === activeRecordId}
+                          onSelect={(id) => void selectRecord(id)}
+                          onDelete={(id) => selectForDelete(id)}
+                          onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
+                          onArchive={(row) => void toggleFlag(row, { archived: !row.archived })}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {nextBefore !== null && needle === '' ? (
+                <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
+                  <button type="button" style={iconButton} onClick={() => void loadMore()} disabled={loadingMore}>
+                    {loadingMore ? t('history.loading') : t('history.loadMore')}
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
 
-        {/* Drag to resize the history column; the width is remembered. */}
-        <div
-          onPointerDown={(event) => {
-            event.preventDefault()
-            historyResizeRef.current = { x: event.clientX, width: historyWidth }
-            setHistoryResizing(true)
-          }}
-          onDoubleClick={() => setHistoryWidth(wide ? 280 : 196)}
-          title={t('history.resizeTitle')}
-          style={{
-            width: 5,
-            flexShrink: 0,
-            cursor: 'col-resize',
-            background: historyResizing
-              ? 'var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))'
-              : 'transparent',
-          }}
-        />
+          {/* Drag to resize the history column; the width is remembered. */}
+          <div
+            onPointerDown={(event) => {
+              event.preventDefault()
+              historyResizeRef.current = { x: event.clientX, width: historyWidth }
+              setHistoryResizing(true)
+            }}
+            onDoubleClick={() => setHistoryWidth(wide ? 280 : 160)}
+            title={t('history.resizeTitle')}
+            style={{
+              width: 5,
+              flexShrink: 0,
+              cursor: 'col-resize',
+              background: historyResizing
+                ? 'var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))'
+                : 'transparent',
+            }}
+          />
+          </>
+        ) : null}
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1107,11 +1144,24 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                 <span style={label}>{t('prompt.label')}</span>
               </div>
               <textarea
+                ref={promptRef}
                 value={params.prompt}
                 onChange={(event) => update({ prompt: event.target.value })}
                 placeholder={t('prompt.placeholder')}
                 rows={4}
-                style={{ ...input, width: '100%', resize: 'vertical', lineHeight: 1.5 }}
+                // Height comes from the preference; the grip below the box and the
+                // browser's own resize handle both write back to it.
+                style={{
+                  ...input,
+                  width: '100%',
+                  height: promptHeight,
+                  minHeight: 72,
+                  maxHeight: 520,
+                  resize: 'vertical',
+                  overflowY: 'auto',
+                  lineHeight: 1.55,
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
 

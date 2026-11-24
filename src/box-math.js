@@ -294,7 +294,9 @@ export function frameSize(available, ratio, budget) {
  * @param heightPx - the box's on-screen height.
  */
 export function labelMetrics(widthPx, heightPx) {
-  if (!(widthPx >= 26) || !(heightPx >= 20)) return { show: false, fontSize: 0, lines: 0 }
+  // Below about four characters of width the text wraps one letter per line and
+  // reads as a vertical ribbon; the box list is the place to read it instead.
+  if (!(widthPx >= 56) || !(heightPx >= 20)) return { show: false, fontSize: 0, lines: 0 }
   const fontSize = Math.max(9, Math.min(12, Math.round(Math.min(widthPx / 12, heightPx / 10))))
   const usable = heightPx - 18
   const lines = Math.max(1, Math.min(6, Math.floor(usable / (fontSize * 1.35))))

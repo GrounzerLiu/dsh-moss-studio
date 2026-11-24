@@ -504,25 +504,32 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   </span>
                 </div>
                 {selection.includes(index) && selection.length === 1 ? (
-                  <>
-                    {box.type === 'text' ? (
-                      <input
-                        value={box.text ?? ''}
-                        onChange={(event) => patchBox(index, { text: event.target.value }, true)}
-                        placeholder={t('editor.kindTextHint')}
-                        aria-label={t('editor.kindTextHint')}
-                        style={input}
-                      />
-                    ) : (
-                      <input
-                        value={box.desc ?? ''}
-                        onChange={(event) => patchBox(index, { desc: event.target.value }, true)}
-                        placeholder={t('editor.descPlaceholder')}
-                        aria-label={t('editor.descPlaceholder')}
-                        style={input}
-                      />
+                  // A box's description is a sentence or two, so it gets the same
+                  // kind of box as the prompt: multi-line, drag the corner taller.
+                  <textarea
+                    value={box.type === 'text' ? (box.text ?? '') : (box.desc ?? '')}
+                    onChange={(event) => patchBox(
+                      index,
+                      box.type === 'text'
+                        ? { text: event.target.value }
+                        : { desc: event.target.value },
+                      true,
                     )}
-                  </>
+                    placeholder={box.type === 'text' ? t('editor.kindTextHint') : t('editor.descPlaceholder')}
+                    aria-label={box.type === 'text' ? t('editor.kindTextHint') : t('editor.descPlaceholder')}
+                    rows={3}
+                    style={{
+                      ...input,
+                      display: 'block',
+                      width: '100%',
+                      minHeight: 64,
+                      maxHeight: 260,
+                      resize: 'vertical',
+                      overflowY: 'auto',
+                      lineHeight: 1.55,
+                      fontFamily: 'inherit',
+                    }}
+                  />
                 ) : null}
               </div>
             ))}

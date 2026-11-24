@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.6.1
+
+Editing a box's description is the point of the layout editor, so it now has room:
+
+- The per-box description (and a text box's text) is a multi-line textarea with
+  the browser's own vertical resize grip, instead of a single-line input that
+  scrolled a sentence through a 60px window. It starts at three rows and drags to
+  at most 260px.
+- The prompt in the main panel is a resizeable box too: it starts at 108px, drags
+  between 72 and 520, and remembers the height like the other layout choices.
+- The history column is now collapsible, and the narrow sidebar starts with it
+  closed. At 360px wide the open column left the parameter column about 150px,
+  which clipped inputs and squeezed the prompt box to 175px by 82px; with the
+  column closed the parameters get the full width. The header gained a history
+  toggle that shows the record count.
+- A box caption is only drawn on the canvas when the box is wide enough to show
+  about four characters. Narrower boxes used to render one letter per line, which
+  read as a vertical ribbon.
+
 ## 0.6.0
 
 The layout editor now follows the interaction model of bounding-box annotators

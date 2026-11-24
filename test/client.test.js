@@ -150,6 +150,43 @@ test('the panel renders its loading state before state arrives', () => {
   const html = renderToString(React.createElement(body.component, { sessionId: 'sess-1' }))
   assert.match(html, /moss studio/i)
 })
+/**
+ * A box's description is prose, not a label.
+ *
+ * It was a single-line input, so a sentence scrolled sideways inside 60px and
+ * could not be read while writing. It is now a textarea that drags taller, the
+ * same as the prompt in the main panel.
+ */
+test('a box description is a multi-line box that resizes vertically', () => {
+  const plugin = loadPlugin()
+  const Editor = plugin.components.BoxEditor
+  const html = renderToString(React.createElement(Editor, {
+    params: {
+      prompt: 'p',
+      negative: 'x',
+      size: '1024x1024',
+      steps: 25,
+      cfg: 2.5,
+      seed: -1,
+      characterBoxes: '',
+      enhance: false,
+      boxes: [{ x: 0.1, y: 0.1, width: 0.4, height: 0.3, type: 'obj', desc: 'a tall cream rectangle', palette: [] }],
+    },
+    onApply: () => {},
+    onAdd: () => 0,
+    onClose: () => {},
+    onCancel: () => {},
+  }))
+
+  // The box only reveals its editor once selected, so the static render is used
+  // for the counts and the styles are checked from source.
+  assert.ok(html.includes('1024x1024'))
+  const source = readFileSync('src/BoxEditor.jsx', 'utf8')
+  assert.match(source, /<textarea/)
+  assert.match(source, /resize: 'vertical'/)
+  assert.doesNotMatch(source, /<input[sS]{0,200}editor.descPlaceholder/)
+})
+
 test('the layout editor modal renders its controls', () => {
   const plugin = loadPlugin()
   const Editor = plugin.components.BoxEditor

@@ -140,6 +140,14 @@ test('the panel renders history, parameters and the result image once state arri
     await new Promise((resolve) => setTimeout(resolve, 50))
   })
 
+  // Narrow panels start with the history column collapsed so the parameters get
+  // the full width; the header toggle opens it.
+  const openHistory = container.querySelector('[aria-label^="显示历史"]')
+  assert.ok(openHistory !== null, 'the header offers a history toggle')
+  await act(async () => {
+    openHistory.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+  })
+
   const text = container.textContent
   assert.match(text, /历史 1/)
   assert.match(text, /布局框 1/)
@@ -163,7 +171,10 @@ test('the panel renders history, parameters and the result image once state arri
   assert.ok(container.querySelectorAll('input[type=checkbox]').length >= 1, 'checkboxes stay in the tree for accessibility')
   assert.ok(labels.includes('本会话'), 'the history header offers a scope chip')
   assert.ok(labels.includes('归档'), 'the history header offers an archive chip')
-  const chips = [...container.querySelectorAll('button[aria-pressed]')].map((button) => button.getAttribute('aria-pressed'))
+  // The history toggle is also a pressed button; the two chips are the rest.
+  const chips = [...container.querySelectorAll('button[aria-pressed]')]
+    .filter((button) => !(button.getAttribute('aria-label') ?? '').includes('历史'))
+    .map((button) => button.getAttribute('aria-pressed'))
   assert.ok(chips.length >= 2 && chips.every((value) => value === 'false'), 'both chips start unselected')
   const rowDelete = [...container.querySelectorAll('button')].filter((button) => button.getAttribute('aria-label') === '删除记录')
   assert.equal(rowDelete[0].parentElement.style.opacity, '0', 'the row actions stay hidden until hover')

@@ -235,7 +235,9 @@ var ZH = {
   "editor.alignBottom": "\u5E95\u5BF9\u9F50",
   "editor.distributeX": "\u6C34\u5E73\u7B49\u8DDD\u5206\u5E03",
   "editor.distributeY": "\u5782\u76F4\u7B49\u8DDD\u5206\u5E03",
-  "editor.noDesc": "\uFF08\u672A\u586B\u5199\u63CF\u8FF0\uFF09"
+  "editor.noDesc": "\uFF08\u672A\u586B\u5199\u63CF\u8FF0\uFF09",
+  "history.show": "\u663E\u793A\u5386\u53F2\uFF08{count}\uFF09",
+  "history.hide": "\u6536\u8D77\u5386\u53F2"
 };
 var EN = {
   "action.archive": "Archive",
@@ -430,7 +432,9 @@ var EN = {
   "editor.alignBottom": "Align bottom",
   "editor.distributeX": "Distribute horizontally",
   "editor.distributeY": "Distribute vertically",
-  "editor.noDesc": "(no description)"
+  "editor.noDesc": "(no description)",
+  "history.show": "Show history ({count})",
+  "history.hide": "Hide history"
 };
 function fill(template, params) {
   if (params === void 0 || params === null) return template;
@@ -753,7 +757,7 @@ function frameSize(available, ratio, budget) {
   return { width, height: width / ratio };
 }
 function labelMetrics(widthPx, heightPx) {
-  if (!(widthPx >= 26) || !(heightPx >= 20)) return { show: false, fontSize: 0, lines: 0 };
+  if (!(widthPx >= 56) || !(heightPx >= 20)) return { show: false, fontSize: 0, lines: 0 };
   const fontSize = Math.max(9, Math.min(12, Math.round(Math.min(widthPx / 12, heightPx / 10))));
   const usable = heightPx - 18;
   const lines = Math.max(1, Math.min(6, Math.floor(usable / (fontSize * 1.35))));
@@ -1162,6 +1166,7 @@ var import_react6 = __toESM(require("react"), 1);
 // src/icons.jsx
 var import_react2 = __toESM(require("react"), 1);
 var PATHS = {
+  "history": "M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z",
   "undo": "M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z",
   "redo": "M396-200q-97 0-166.5-63T160-420q0-94 69.5-157T396-640h252L544-744l56-56 200 200-200 200-56-56 104-104H396q-63 0-109.5 40T240-420q0 60 46.5 100T396-280h284v80H396Z",
   "aspect_ratio": "M560-280h200v-200h-80v120H560v80ZM200-480h80v-120h120v-80H200v200Zm-40 320q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z",
@@ -1727,25 +1732,35 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           }
         },
         /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...dim, fontSize: 10, whiteSpace: "nowrap" } }, Math.round(box.width * 100), "\xD7", Math.round(box.height * 100))),
-        selection.includes(index) && selection.length === 1 ? /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, box.type === "text" ? /* @__PURE__ */ import_react6.default.createElement(
-          "input",
-          {
-            value: box.text ?? "",
-            onChange: (event) => patchBox(index, { text: event.target.value }, true),
-            placeholder: t("editor.kindTextHint"),
-            "aria-label": t("editor.kindTextHint"),
-            style: input
-          }
-        ) : /* @__PURE__ */ import_react6.default.createElement(
-          "input",
-          {
-            value: box.desc ?? "",
-            onChange: (event) => patchBox(index, { desc: event.target.value }, true),
-            placeholder: t("editor.descPlaceholder"),
-            "aria-label": t("editor.descPlaceholder"),
-            style: input
-          }
-        )) : null
+        selection.includes(index) && selection.length === 1 ? (
+          // A box's description is a sentence or two, so it gets the same
+          // kind of box as the prompt: multi-line, drag the corner taller.
+          /* @__PURE__ */ import_react6.default.createElement(
+            "textarea",
+            {
+              value: box.type === "text" ? box.text ?? "" : box.desc ?? "",
+              onChange: (event) => patchBox(
+                index,
+                box.type === "text" ? { text: event.target.value } : { desc: event.target.value },
+                true
+              ),
+              placeholder: box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
+              "aria-label": box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
+              rows: 3,
+              style: {
+                ...input,
+                display: "block",
+                width: "100%",
+                minHeight: 64,
+                maxHeight: 260,
+                resize: "vertical",
+                overflowY: "auto",
+                lineHeight: 1.55,
+                fontFamily: "inherit"
+              }
+            }
+          )
+        ) : null
       ))))
     )
   );
@@ -4392,7 +4407,13 @@ var KEY = "moss-studio.ui";
 var DEFAULT_UI = Object.freeze({
   resultHeight: 240,
   resultCollapsed: false,
-  historyWidth: { narrow: 196, wide: 280 }
+  // A 360px sidebar cannot afford a 196px history column: the parameter column
+  // was left about 150px wide, which clipped inputs and made the prompt
+  // textarea barely usable. Narrow starts collapsed and opens on demand.
+  historyWidth: { narrow: 160, wide: 280 },
+  historyOpen: { narrow: false, wide: true },
+  // The prompt box is resizeable; remember the height the user dragged to.
+  promptHeight: 108
 });
 function clamp2(value, min, max, fallback) {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
@@ -4414,8 +4435,13 @@ function loadUiPrefs(storage = memoryStorage()) {
   return {
     resultHeight: clamp2(raw.resultHeight, 120, 720, DEFAULT_UI.resultHeight),
     resultCollapsed: raw.resultCollapsed === true,
+    promptHeight: clamp2(raw.promptHeight, 72, 520, DEFAULT_UI.promptHeight),
+    historyOpen: {
+      narrow: raw.historyOpen?.narrow ?? DEFAULT_UI.historyOpen.narrow,
+      wide: raw.historyOpen?.wide ?? DEFAULT_UI.historyOpen.wide
+    },
     historyWidth: {
-      narrow: clamp2(raw.historyWidth?.narrow, 160, 420, DEFAULT_UI.historyWidth.narrow),
+      narrow: clamp2(raw.historyWidth?.narrow, 140, 420, DEFAULT_UI.historyWidth.narrow),
       wide: clamp2(raw.historyWidth?.wide, 160, 420, DEFAULT_UI.historyWidth.wide)
     }
   };
@@ -7718,6 +7744,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [resultCollapsed, setResultCollapsed] = (0, import_react14.useState)(initialUi.resultCollapsed);
   const [historyWidth, setHistoryWidth] = (0, import_react14.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
   const [historyResizing, setHistoryResizing] = (0, import_react14.useState)(false);
+  const [historyOpen, setHistoryOpen] = (0, import_react14.useState)(wide ? initialUi.historyOpen.wide : initialUi.historyOpen.narrow);
+  const [promptHeight, setPromptHeight] = (0, import_react14.useState)(initialUi.promptHeight);
+  const promptRef = (0, import_react14.useRef)(null);
   const historyResizeRef = (0, import_react14.useRef)(null);
   const [resizing, setResizing] = (0, import_react14.useState)(false);
   const resizeRef = (0, import_react14.useRef)(null);
@@ -7848,9 +7877,23 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     saveUiPrefs({
       resultHeight,
       resultCollapsed,
+      historyOpen: wide ? { ...loadUiPrefs().historyOpen, wide: historyOpen } : { ...loadUiPrefs().historyOpen, narrow: historyOpen },
+      promptHeight,
       historyWidth: wide ? { ...loadUiPrefs().historyWidth, wide: historyWidth } : { ...loadUiPrefs().historyWidth, narrow: historyWidth }
     });
-  }, [resultHeight, resultCollapsed, historyWidth, wide]);
+  }, [resultHeight, resultCollapsed, historyWidth, historyOpen, promptHeight, wide]);
+  (0, import_react14.useEffect)(() => {
+    const element = promptRef.current;
+    if (element === null || typeof ResizeObserver === "undefined") return void 0;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.offsetHeight);
+        if (height >= 72) setPromptHeight(height);
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   (0, import_react14.useEffect)(() => {
     if (!historyResizing) return void 0;
     function onMove(event) {
@@ -8274,7 +8317,18 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       used: gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)),
       total: gigabytes(comfy?.ramTotal)
     }))
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("status.saving") : `revision ${revision}`), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.settings"), "aria-label": t("action.settings"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("status.saving") : `revision ${revision}`), /* @__PURE__ */ import_react14.default.createElement(
+    "button",
+    {
+      type: "button",
+      style: historyOpen ? iconOnly3 : { ...iconOnly3, opacity: 0.65 },
+      title: historyOpen ? t("history.hide") : t("history.show", { count: mergedRecords.length }),
+      "aria-label": historyOpen ? t("history.hide") : t("history.show", { count: mergedRecords.length }),
+      "aria-pressed": historyOpen,
+      onClick: () => setHistoryOpen((value) => !value)
+    },
+    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "history" })
+  ), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.settings"), "aria-label": t("action.settings"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, historyOpen ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       className: "moss-scroller",
@@ -8380,7 +8434,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         historyResizeRef.current = { x: event.clientX, width: historyWidth };
         setHistoryResizing(true);
       },
-      onDoubleClick: () => setHistoryWidth(wide ? 280 : 196),
+      onDoubleClick: () => setHistoryWidth(wide ? 280 : 160),
       title: t("history.resizeTitle"),
       style: {
         width: 5,
@@ -8389,14 +8443,25 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
       }
     }
-  ), /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
+  )) : null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
     "textarea",
     {
+      ref: promptRef,
       value: params.prompt,
       onChange: (event) => update({ prompt: event.target.value }),
       placeholder: t("prompt.placeholder"),
       rows: 4,
-      style: { ...input3, width: "100%", resize: "vertical", lineHeight: 1.5 }
+      style: {
+        ...input3,
+        width: "100%",
+        height: promptHeight,
+        minHeight: 72,
+        maxHeight: 520,
+        resize: "vertical",
+        overflowY: "auto",
+        lineHeight: 1.55,
+        fontFamily: "inherit"
+      }
     }
   )), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...label, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react14.default.createElement(
     "button",
