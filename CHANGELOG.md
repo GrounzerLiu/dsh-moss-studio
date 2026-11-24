@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.2
+
+- Fix: the host half referenced an undefined `busySession` when building the
+  route handler. That throw happened inside a `ctx.effect` callback, so the
+  loader only logged it and every studio route stayed unregistered — the panel
+  answered every request with 404. `busySession()` is now defined next to
+  `busy()`.
+- New activation test calls `apply()` with a minimal context and asserts the
+  prefix route plus the four tools are registered, so a reference error in
+  apply fails the suite instead of the panel.
+
 ## 0.4.1
 
 - Fix: `src/api.js` called `t()` without importing it, so any failed request

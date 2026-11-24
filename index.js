@@ -212,6 +212,8 @@ export function apply(ctx, rawConfig) {
   let running = 0
   let runningSession = null
   const busy = () => running > 0
+  /** Which draft holds the pipeline, so another session can explain its wait. */
+  const busySession = () => runningSession
 
   /** Run one generation and persist it as a record. Shared by tools and routes. */
   async function generate({ sessionId, params, signal, source = 'user' }) {
