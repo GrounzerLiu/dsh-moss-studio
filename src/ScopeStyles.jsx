@@ -18,6 +18,16 @@ export function ScopeStyles() {
    keeps it for read-write fields. Combined with a field's own ring that reads
    as two concentric borders, and on a container it boxes the whole row. The
    studio therefore draws exactly one indicator: the field's own ring. */
+/* Padding must never add to a stated height: a box with height 100% and padding
+   otherwise overflows its slot by exactly the padding, which clipped the result
+   picture at the bottom of a short strip. */
+.moss-studio,
+.moss-studio *,
+.moss-studio *::before,
+.moss-studio *::after {
+  box-sizing: border-box;
+}
+
 .moss-studio:focus,
 .moss-studio:focus-visible,
 .moss-studio *:focus,

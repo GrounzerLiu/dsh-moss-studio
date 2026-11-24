@@ -88,6 +88,11 @@ export function ResultPane({
     <div
       onClick={() => { if (shownHasImage) onZoom() }}
       style={{
+        // The frame is the constraint: the picture fills it and letterboxes
+        // itself. Relying on `max-height: 100%` for the <img> meant a percentage
+        // against an auto-height box, which left the bottom of tall images
+        // clipped once the strip got short.
+        position: 'relative',
         flex: 1,
         minHeight: 0,
         minWidth: 0,
@@ -105,7 +110,14 @@ export function ResultPane({
           src={imageUrl(shownRecordId)}
           alt={t('result.imageAlt')}
           onError={onImageError}
-          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            display: 'block',
+          }}
         />
       ) : shownRunning ? (
         <span style={{ fontSize: 12, ...dim }}>{t('generate.pending', { id: shownRecordId.slice(-4) })}</span>

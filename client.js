@@ -857,6 +857,16 @@ function ScopeStyles() {
    keeps it for read-write fields. Combined with a field's own ring that reads
    as two concentric borders, and on a container it boxes the whole row. The
    studio therefore draws exactly one indicator: the field's own ring. */
+/* Padding must never add to a stated height: a box with height 100% and padding
+   otherwise overflows its slot by exactly the padding, which clipped the result
+   picture at the bottom of a short strip. */
+.moss-studio,
+.moss-studio *,
+.moss-studio *::before,
+.moss-studio *::after {
+  box-sizing: border-box;
+}
+
 .moss-studio:focus,
 .moss-studio:focus-visible,
 .moss-studio *:focus,
@@ -3432,6 +3442,11 @@ function ResultPane({
         if (shownHasImage) onZoom();
       },
       style: {
+        // The frame is the constraint: the picture fills it and letterboxes
+        // itself. Relying on `max-height: 100%` for the <img> meant a percentage
+        // against an auto-height box, which left the bottom of tall images
+        // clipped once the strip got short.
+        position: "relative",
         flex: 1,
         minHeight: 0,
         minWidth: 0,
@@ -3450,7 +3465,14 @@ function ResultPane({
         src: imageUrl(shownRecordId),
         alt: t("result.imageAlt"),
         onError: onImageError,
-        style: { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain", display: "block" }
+        style: {
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          display: "block"
+        }
       }
     ) : shownRunning ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, t("generate.pending", { id: shownRecordId.slice(-4) })) : /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t("result.imageFailed") : t("result.empty"))
   );
@@ -6895,6 +6917,10 @@ var panel = {
   flexDirection: "column",
   height: "100%",
   minHeight: 0,
+  // Nothing may paint past the panel: on a short viewport the columns inside
+  // have to fit, not spill into the host's scroller. Fixed-position dialogs are
+  // unaffected by this.
+  overflow: "hidden",
   fontSize: 12,
   color: "inherit"
 };
@@ -7952,10 +7978,21 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     {
       style: {
         height: resultCollapsed ? 32 : resultHeight,
-        flexShrink: 0,
+        // The strip states a preferred height, but it must yield when the
+        // column is shorter: with `flexShrink: 0` it kept its full height and
+        // pushed the picture past the bottom edge instead of fitting it.
+        // The parameter column uses flex-basis 0, so every missing pixel comes
+        // out of this strip first.
+        flexShrink: 1,
+        minHeight: resultCollapsed ? 32 : 88,
+        // A stored pixel height can exceed a short sidebar; cap it to the share
+        // of the column it may take, so the picture shrinks instead of being
+        // pushed below the edge.
+        maxHeight: resultCollapsed ? 32 : "55%",
         display: "flex",
         flexDirection: "column",
-        minHeight: 0,
+        minWidth: 0,
+        overflow: "hidden",
         background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))"
       }
     },
@@ -8115,7 +8152,7 @@ function createPlugin() {
   }
   return {
     // Internal seam for tests and embedding; the loader ignores it.
-    components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog },
+    components: { StudioPanel, BoxEditor, BoxCanvas, ConfirmDialog, SettingsDialog, ResultPane },
     inject: ["locale", "slots", "sidebarRightTabs", "sidebarRight"],
     apply(ctx) {
       const safe = (label3, run) => {

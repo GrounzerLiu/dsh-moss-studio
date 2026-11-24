@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.1
+
+- Fix: the result picture was clipped at the bottom of a short panel. Measured
+  in a real browser, the `height: 100%` result pane added its own 8px padding on
+  top of the slot (content-box sizing), so the frame started 8px too low and the
+  picture ended 8px past the panel edge. The panel now sets
+  `box-sizing: border-box` for its whole subtree, the strip may shrink
+  (`flex-shrink: 1`, `max-height: 55%`), and nothing paints outside the panel.
+- The picture itself is absolutely positioned inside a relative frame with
+  `object-fit: contain`, so its size never depends on a percentage against an
+  auto-height box.
+- Verified in headless Edge against the real component tree: the image's bottom
+  edge stays inside the panel at 300, 220, 170 and 140px panel heights.
+
 ## 0.5.0
 
 - i18n moved onto the client locale service: the panel registers a

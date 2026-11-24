@@ -29,6 +29,10 @@ const panel = {
   flexDirection: 'column',
   height: '100%',
   minHeight: 0,
+  // Nothing may paint past the panel: on a short viewport the columns inside
+  // have to fit, not spill into the host's scroller. Fixed-position dialogs are
+  // unaffected by this.
+  overflow: 'hidden',
   fontSize: 12,
   color: 'inherit',
 }
@@ -1303,10 +1307,21 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
       <div
         style={{
           height: resultCollapsed ? 32 : resultHeight,
-          flexShrink: 0,
+          // The strip states a preferred height, but it must yield when the
+          // column is shorter: with `flexShrink: 0` it kept its full height and
+          // pushed the picture past the bottom edge instead of fitting it.
+          // The parameter column uses flex-basis 0, so every missing pixel comes
+          // out of this strip first.
+          flexShrink: 1,
+          minHeight: resultCollapsed ? 32 : 88,
+          // A stored pixel height can exceed a short sidebar; cap it to the share
+          // of the column it may take, so the picture shrinks instead of being
+          // pushed below the edge.
+          maxHeight: resultCollapsed ? 32 : '55%',
           display: 'flex',
           flexDirection: 'column',
-          minHeight: 0,
+          minWidth: 0,
+          overflow: 'hidden',
           background: 'var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))',
         }}
       >

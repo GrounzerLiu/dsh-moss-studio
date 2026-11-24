@@ -37,6 +37,9 @@ test('apply registers the route prefix and the four tools', async () => {
 
   try {
     apply(ctx, { dataDir: root, comfyUrl: 'http://127.0.0.1:8188' })
+    // apply() starts creating the data directory asynchronously; removing it
+    // underneath that work made this test flaky under the full suite.
+    await new Promise((resolve) => setTimeout(resolve, 50))
   } finally {
     await rm(root, { recursive: true, force: true })
   }
