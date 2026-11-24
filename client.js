@@ -237,7 +237,13 @@ var ZH = {
   "editor.distributeY": "\u5782\u76F4\u7B49\u8DDD\u5206\u5E03",
   "editor.noDesc": "\uFF08\u672A\u586B\u5199\u63CF\u8FF0\uFF09",
   "history.show": "\u663E\u793A\u5386\u53F2\uFF08{count}\uFF09",
-  "history.hide": "\u6536\u8D77\u5386\u53F2"
+  "history.hide": "\u6536\u8D77\u5386\u53F2",
+  "editor.lock": "\u9501\u5B9A\uFF08\u907F\u514D\u8BEF\u62D6\uFF09",
+  "editor.unlock": "\u89E3\u9501",
+  "editor.hide": "\u9690\u85CF\uFF08\u4E0D\u9001\u8FDB\u5DE5\u4F5C\u6D41\uFF09",
+  "editor.show": "\u663E\u793A",
+  "editor.hiddenBadge": "\u5DF2\u9690\u85CF",
+  "editor.lockedBadge": "\u5DF2\u9501\u5B9A"
 };
 var EN = {
   "action.archive": "Archive",
@@ -434,7 +440,13 @@ var EN = {
   "editor.distributeY": "Distribute vertically",
   "editor.noDesc": "(no description)",
   "history.show": "Show history ({count})",
-  "history.hide": "Hide history"
+  "history.hide": "Hide history",
+  "editor.lock": "Lock (prevent accidental drags)",
+  "editor.unlock": "Unlock",
+  "editor.hide": "Hide (leave it out of the request)",
+  "editor.show": "Show",
+  "editor.hiddenBadge": "Hidden",
+  "editor.lockedBadge": "Locked"
 };
 function fill(template, params) {
   if (params === void 0 || params === null) return template;
@@ -942,9 +954,14 @@ function BoxCanvas({
   }
   function onBoxPointerDown(event, index) {
     if (!interactive) return;
+    const locked = boxes[index]?.locked === true;
     const additive = event.shiftKey || event.metaKey || event.ctrlKey;
     const nextSelection = additive ? selection.includes(index) ? selection.filter((item) => item !== index) : [...selection, index] : selection.includes(index) ? selection : [index];
     onSelect(nextSelection);
+    if (locked) {
+      event.stopPropagation();
+      return;
+    }
     if (additive) {
       event.stopPropagation();
       event.preventDefault();
@@ -1007,8 +1024,9 @@ function BoxCanvas({
             top: toPercent(box.y),
             width: toPercent(box.width),
             height: toPercent(box.height),
-            border: `${active ? 2 : 1}px solid ${active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : "rgba(190,190,190,0.75)"}`,
-            background: active ? selectionFill(16) : "rgba(160,160,160,0.09)",
+            border: `${active ? 2 : 1}px ${box.hidden === true ? "dashed" : "solid"} ${active ? "var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))" : box.hidden === true ? "rgba(190,190,190,0.4)" : "rgba(190,190,190,0.75)"}`,
+            background: box.hidden === true ? "rgba(120,120,120,0.05)" : active ? selectionFill(16) : "rgba(160,160,160,0.09)",
+            opacity: box.hidden === true ? 0.55 : 1,
             borderRadius: 4,
             cursor: interactive ? "move" : "inherit",
             boxSizing: "border-box",
@@ -1054,7 +1072,8 @@ function BoxCanvas({
               pointerEvents: "none"
             }
           },
-          index + 1
+          index + 1,
+          box.locked === true ? " \xB7 L" : ""
         ),
         interactive && active && selection.length === 1 ? HANDLES.map((handle) => /* @__PURE__ */ import_react.default.createElement(
           "span",
@@ -1166,6 +1185,10 @@ var import_react6 = __toESM(require("react"), 1);
 // src/icons.jsx
 var import_react2 = __toESM(require("react"), 1);
 var PATHS = {
+  "lock": "M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm296.5-143.5Q560-327 560-360t-23.5-56.5Q513-440 480-440t-56.5 23.5Q400-393 400-360t23.5 56.5Q447-280 480-280t56.5-23.5ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z",
+  "lock_open": "M240-640h360v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85h-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640Zm0 480h480v-400H240v400Zm296.5-143.5Q560-327 560-360t-23.5-56.5Q513-440 480-440t-56.5 23.5Q400-393 400-360t23.5 56.5Q447-280 480-280t56.5-23.5ZM240-160v-400 400Z",
+  "visibility": "M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q588-545 588-500t-31.5 76.5Q525-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5ZM480-500Zm207.5 160.5Q782-399 832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q113 0 207.5-59.5Z",
+  "visibility_off": "m644-428-58-58q9-47-27-88t-93-32l-58-58q17-8 34.5-12t37.5-4q75 0 127.5 52.5T660-500q0 20-4 37.5T644-428Zm128 126-58-56q38-29 67.5-63.5T832-500q-50-101-143.5-160.5T480-720q-29 0-57 4t-55 12l-62-62q41-17 84-25.5t90-8.5q151 0 269 83.5T920-500q-23 59-60.5 109.5T772-302Zm20 246L624-222q-35 11-70.5 16.5T480-200q-151 0-269-83.5T40-500q21-53 53-98.5t73-81.5L56-792l56-56 736 736-56 56ZM222-624q-29 26-53 57t-41 67q50 101 143.5 160.5T480-280q20 0 39-2.5t39-5.5l-36-38q-11 3-21 4.5t-21 1.5q-75 0-127.5-52.5T300-500q0-11 1.5-21t4.5-21l-84-82Zm319 93Zm-151 75Z",
   "history": "M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z",
   "undo": "M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z",
   "redo": "M396-200q-97 0-166.5-63T160-420q0-94 69.5-157T396-640h252L544-744l56-56 200 200-200 200-56-56 104-104H396q-63 0-109.5 40T240-420q0 60 46.5 100T396-280h284v80H396Z",
@@ -1513,7 +1536,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     commit(distributeBoxes(boxes, selection, axis));
   }, [boxes, commit, selection]);
   const patchBox = (0, import_react6.useCallback)((index, patch, coalesce = false) => {
-    const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : box);
+    const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : { ...box, locked: box.locked === true, hidden: box.hidden === true });
     commit(next, { coalesce });
   }, [boxes, commit]);
   const toggleCharacter = (0, import_react6.useCallback)((index) => {
@@ -1650,7 +1673,29 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           onChange: (next) => commit(next),
           onCreate: createAt
         }
-      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 320, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, selection.length > 1 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.selectionCount", { count: selection.length })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, flexWrap: "wrap", gap: 4 } }, alignButtons.map(([mode, key, icon]) => /* @__PURE__ */ import_react6.default.createElement("button", { key: mode, type: "button", style: iconButton, title: t(key), "aria-label": t(key), onClick: () => move(mode) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: icon, size: 14 })))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeX"), "aria-label": t("editor.distributeX"), onClick: () => spread("x") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_horizontal", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeY"), "aria-label": t("editor.distributeY"), onClick: () => spread("y") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_vertical", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteSelected"), "aria-label": t("editor.deleteSelected"), onClick: () => remove(selection) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : null, primary3 !== void 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.geometry")), /* @__PURE__ */ import_react6.default.createElement(
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 320, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, selection.length > 1 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.selectionCount", { count: selection.length })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, flexWrap: "wrap", gap: 4 } }, alignButtons.map(([mode, key, icon]) => /* @__PURE__ */ import_react6.default.createElement("button", { key: mode, type: "button", style: iconButton, title: t(key), "aria-label": t(key), onClick: () => move(mode) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: icon, size: 14 })))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeX"), "aria-label": t("editor.distributeX"), onClick: () => spread("x") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_horizontal", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeY"), "aria-label": t("editor.distributeY"), onClick: () => spread("y") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_vertical", size: 14 })), /* @__PURE__ */ import_react6.default.createElement(
+        "button",
+        {
+          type: "button",
+          style: primary3.locked ? iconOnly : { ...iconOnly, opacity: 0.6 },
+          title: primary3.locked ? t("editor.unlock") : t("editor.lock"),
+          "aria-label": primary3.locked ? t("editor.unlock") : t("editor.lock"),
+          "aria-pressed": primary3.locked === true,
+          onClick: () => patchBox(primaryIndex, { locked: primary3.locked !== true })
+        },
+        /* @__PURE__ */ import_react6.default.createElement(Icon, { name: primary3.locked ? "lock" : "lock_open", size: 14 })
+      ), /* @__PURE__ */ import_react6.default.createElement(
+        "button",
+        {
+          type: "button",
+          style: primary3.hidden ? iconOnly : { ...iconOnly, opacity: 0.6 },
+          title: primary3.hidden ? t("editor.show") : t("editor.hide"),
+          "aria-label": primary3.hidden ? t("editor.show") : t("editor.hide"),
+          "aria-pressed": primary3.hidden === true,
+          onClick: () => patchBox(primaryIndex, { hidden: primary3.hidden !== true })
+        },
+        /* @__PURE__ */ import_react6.default.createElement(Icon, { name: primary3.hidden ? "visibility_off" : "visibility", size: 14 })
+      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteSelected"), "aria-label": t("editor.deleteSelected"), onClick: () => remove(selection) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : null, primary3 !== void 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.geometry")), /* @__PURE__ */ import_react6.default.createElement(
         "button",
         {
           type: "button",
@@ -1731,7 +1776,35 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             border: `1px solid ${selection.includes(index) ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`
           }
         },
-        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...dim, fontSize: 10, whiteSpace: "nowrap" } }, Math.round(box.width * 100), "\xD7", Math.round(box.height * 100))),
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim, opacity: box.hidden ? 0.4 : 1 } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none", opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? "line-through" : "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...dim, fontSize: 10, whiteSpace: "nowrap" } }, Math.round(box.width * 100), "\xD7", Math.round(box.height * 100)), /* @__PURE__ */ import_react6.default.createElement(
+          "button",
+          {
+            type: "button",
+            style: box.locked ? { ...iconButton, padding: 2, color: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } : { ...iconButton, padding: 2, opacity: 0.55 },
+            title: box.locked ? t("editor.unlock") : t("editor.lock"),
+            "aria-label": box.locked ? t("editor.unlock") : t("editor.lock"),
+            "aria-pressed": box.locked === true,
+            onClick: (event) => {
+              event.stopPropagation();
+              patchBox(index, { locked: box.locked !== true });
+            }
+          },
+          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.locked ? "lock" : "lock_open", size: 13 })
+        ), /* @__PURE__ */ import_react6.default.createElement(
+          "button",
+          {
+            type: "button",
+            style: box.hidden ? { ...iconButton, padding: 2, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } : { ...iconButton, padding: 2, opacity: 0.55 },
+            title: box.hidden ? t("editor.show") : t("editor.hide"),
+            "aria-label": box.hidden ? t("editor.show") : t("editor.hide"),
+            "aria-pressed": box.hidden === true,
+            onClick: (event) => {
+              event.stopPropagation();
+              patchBox(index, { hidden: box.hidden !== true });
+            }
+          },
+          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.hidden ? "visibility_off" : "visibility", size: 13 })
+        )),
         selection.includes(index) && selection.length === 1 ? (
           // A box's description is a sentence or two, so it gets the same
           // kind of box as the prompt: multi-line, drag the corner taller.

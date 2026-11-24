@@ -33,7 +33,8 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 - Layout editor with the gestures bounding-box annotators use: drag on empty
   canvas to draw a box, eight resize handles, shift-click and shift-drag for
   multi-selection, smart guides that snap edges and centres, align/distribute,
-  a numeric X/Y/W/H inspector, duplicate, and undo/redo.
+  a numeric X/Y/W/H inspector, duplicate, and undo/redo. A box can be locked
+  (visible but immovable) or hidden (kept in the draft, left out of the request).
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.

@@ -213,6 +213,12 @@ export const ZH = {
   "editor.noDesc": "（未填写描述）",
   "history.show": "显示历史（{count}）",
   "history.hide": "收起历史",
+  "editor.lock": "锁定（避免误拖）",
+  "editor.unlock": "解锁",
+  "editor.hide": "隐藏（不送进工作流）",
+  "editor.show": "显示",
+  "editor.hiddenBadge": "已隐藏",
+  "editor.lockedBadge": "已锁定",
 }
 
 /** English copy. */
@@ -412,6 +418,12 @@ export const EN = {
   "editor.noDesc": "(no description)",
   "history.show": "Show history ({count})",
   "history.hide": "Hide history",
+  "editor.lock": "Lock (prevent accidental drags)",
+  "editor.unlock": "Unlock",
+  "editor.hide": "Hide (leave it out of the request)",
+  "editor.show": "Show",
+  "editor.hiddenBadge": "Hidden",
+  "editor.lockedBadge": "Locked",
 }
 
 function fill(template, params) {

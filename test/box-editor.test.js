@@ -268,3 +268,64 @@ test('the description field opts out of flex sizing so the resize grip works', (
   assert.match(block.slice(0, 1200), /flex: '0 0 auto'/)
   assert.match(block.slice(0, 1200), /resize: 'vertical'/)
 })
+
+test('a box can be locked and hidden from the list', async (t) => {
+  const { dom, act, root, Editor } = setup(t)
+  const applied = []
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'a', palette: [] },
+    { type: 'obj', x: 0.6, y: 0.6, width: 0.2, height: 0.2, desc: 'b', palette: [] },
+  ]
+  await act(async () => {
+    root.render(React.createElement(Editor, {
+      params: { prompt: 'p', negative: 'x', size: '1024x1024', steps: 25, cfg: 2.5, seed: -1, characterBoxes: '', enhance: false, boxes },
+      onApply: (next) => applied.push(next),
+      onAdd: () => 0,
+      onClose: () => {},
+      onCancel: () => {},
+    }))
+  })
+
+  const lockButtons = () => [...dom.window.document.querySelectorAll('#root button')]
+    .filter((node) => (node.getAttribute('aria-label') ?? '').startsWith('锁定') || (node.getAttribute('aria-label') ?? '').startsWith('解锁'))
+  const hideButtons = () => [...dom.window.document.querySelectorAll('#root button')]
+    .filter((node) => (node.getAttribute('aria-label') ?? '').startsWith('隐藏') || (node.getAttribute('aria-label') ?? '').startsWith('显示'))
+
+  assert.equal(lockButtons().length, 2, 'each row has a lock toggle')
+  assert.equal(hideButtons().length, 2, 'each row has a visibility toggle')
+
+  await act(async () => { lockButtons()[0].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  assert.equal(applied.at(-1)[0].locked, true, 'the first box is locked')
+  assert.equal(applied.at(-1)[1].locked, false, 'the second is untouched')
+
+  await act(async () => { hideButtons()[1].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  assert.equal(applied.at(-1)[1].hidden, true, 'the second box is hidden')
+})
+
+test('a locked box cannot be dragged, a hidden one is drawn dashed', async (t) => {
+  const { dom, act, root, Editor } = setup(t)
+  const applied = []
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.3, height: 0.3, desc: 'a', palette: [], locked: true },
+    { type: 'obj', x: 0.6, y: 0.6, width: 0.2, height: 0.2, desc: 'b', palette: [], hidden: true },
+  ]
+  await act(async () => {
+    root.render(React.createElement(Editor, {
+      params: { prompt: 'p', negative: 'x', size: '1024x1024', steps: 25, cfg: 2.5, seed: -1, characterBoxes: '', enhance: false, boxes },
+      onApply: (next) => applied.push(next),
+      onAdd: () => 0,
+      onClose: () => {},
+      onCancel: () => {},
+    }))
+  })
+
+  canvasArea(dom)
+  const frames = () => [...dom.window.document.querySelectorAll('#root div')]
+    .filter((node) => node.style.position === 'absolute' && node.style.left !== '' && node.style.borderRadius === '4px')
+
+  // The hidden box is dashed, the visible one is not.
+  assert.match(frames()[1].style.border, /dashed/)
+
+  await act(async () => { gesture(dom, frames()[0], [80, 80], [200, 200]) })
+  assert.equal(applied.length, 0, 'dragging a locked box changes nothing')
+})

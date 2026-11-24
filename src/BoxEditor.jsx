@@ -195,7 +195,10 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
    */
   const patchBox = useCallback((index, patch, coalesce = false) => {
     const next = boxes.map((box, position) => (
-      position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : box
+      position === index
+        ? updateBoxGeometry({ ...box, ...patch }, patch)
+        // Normalise the editing flags so every box carries both explicitly.
+        : { ...box, locked: box.locked === true, hidden: box.hidden === true },
     ))
     commit(next, { coalesce })
   }, [boxes, commit])
@@ -378,6 +381,26 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   <button type="button" style={iconButton} title={t('editor.distributeY')} aria-label={t('editor.distributeY')} onClick={() => spread('y')}>
                     <Icon name="distribute_vertical" size={14} />
                   </button>
+                  <button
+                    type="button"
+                    style={primary.locked ? iconOnly : { ...iconOnly, opacity: 0.6 }}
+                    title={primary.locked ? t('editor.unlock') : t('editor.lock')}
+                    aria-label={primary.locked ? t('editor.unlock') : t('editor.lock')}
+                    aria-pressed={primary.locked === true}
+                    onClick={() => patchBox(primaryIndex, { locked: primary.locked !== true })}
+                  >
+                    <Icon name={primary.locked ? 'lock' : 'lock_open'} size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    style={primary.hidden ? iconOnly : { ...iconOnly, opacity: 0.6 }}
+                    title={primary.hidden ? t('editor.show') : t('editor.hide')}
+                    aria-label={primary.hidden ? t('editor.show') : t('editor.hide')}
+                    aria-pressed={primary.hidden === true}
+                    onClick={() => patchBox(primaryIndex, { hidden: primary.hidden !== true })}
+                  >
+                    <Icon name={primary.hidden ? 'visibility_off' : 'visibility'} size={14} />
+                  </button>
                   <span style={{ flex: 1 }} />
                   <button type="button" style={iconOnly} title={t('editor.duplicate')} aria-label={t('editor.duplicate')} onClick={duplicate}>
                     <Icon name="content_copy" size={14} />
@@ -502,13 +525,41 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                 }}
               >
                 <div style={{ ...row }}>
-                  <span style={{ width: 16, ...dim }}>{index + 1}</span>
-                  <span style={{ ...input, flex: 1, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 'none' }}>
+                  <span style={{ width: 16, ...dim, opacity: box.hidden ? 0.4 : 1 }}>{index + 1}</span>
+                  <span style={{ ...input, flex: 1, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 'none', opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? 'line-through' : 'none' }}>
                     {box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc'))}
                   </span>
                   <span style={{ ...dim, fontSize: 10, whiteSpace: 'nowrap' }}>
                     {Math.round(box.width * 100)}×{Math.round(box.height * 100)}
                   </span>
+                  {/* Locking protects a finished box from accidental drags; hiding
+                      keeps it in the draft but leaves it out of the request. */}
+                  <button
+                    type="button"
+                    style={box.locked ? { ...iconButton, padding: 2, color: 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))' } : { ...iconButton, padding: 2, opacity: 0.55 }}
+                    title={box.locked ? t('editor.unlock') : t('editor.lock')}
+                    aria-label={box.locked ? t('editor.unlock') : t('editor.lock')}
+                    aria-pressed={box.locked === true}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      patchBox(index, { locked: box.locked !== true })
+                    }}
+                  >
+                    <Icon name={box.locked ? 'lock' : 'lock_open'} size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    style={box.hidden ? { ...iconButton, padding: 2, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' } : { ...iconButton, padding: 2, opacity: 0.55 }}
+                    title={box.hidden ? t('editor.show') : t('editor.hide')}
+                    aria-label={box.hidden ? t('editor.show') : t('editor.hide')}
+                    aria-pressed={box.hidden === true}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      patchBox(index, { hidden: box.hidden !== true })
+                    }}
+                  >
+                    <Icon name={box.hidden ? 'visibility_off' : 'visibility'} size={13} />
+                  </button>
                 </div>
                 {selection.includes(index) && selection.length === 1 ? (
                   // A box's description is a sentence or two, so it gets the same

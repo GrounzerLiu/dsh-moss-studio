@@ -220,11 +220,17 @@ export function BoxCanvas({
 
   function onBoxPointerDown(event, index) {
     if (!interactive) return
+    // A locked box still selects — it just refuses to be dragged or resized.
+    const locked = boxes[index]?.locked === true
     const additive = event.shiftKey || event.metaKey || event.ctrlKey
     const nextSelection = additive
       ? (selection.includes(index) ? selection.filter((item) => item !== index) : [...selection, index])
       : (selection.includes(index) ? selection : [index])
     onSelect(nextSelection)
+    if (locked) {
+      event.stopPropagation()
+      return
+    }
     if (additive) {
       // Toggling membership is a click, not the start of a canvas gesture:
       // without this the frame would begin drawing a box underneath the click.
@@ -301,10 +307,13 @@ export function BoxCanvas({
                 top: toPercent(box.y),
                 width: toPercent(box.width),
                 height: toPercent(box.height),
-                border: `${active ? 2 : 1}px solid ${active
+                border: `${active ? 2 : 1}px ${box.hidden === true ? 'dashed' : 'solid'} ${active
                   ? 'var(--dsw-alias-brand-primary, rgba(120,200,150,0.95))'
-                  : 'rgba(190,190,190,0.75)'}`,
-                background: active ? selectionFill(16) : 'rgba(160,160,160,0.09)',
+                  : box.hidden === true ? 'rgba(190,190,190,0.4)' : 'rgba(190,190,190,0.75)'}`,
+                background: box.hidden === true
+                  ? 'rgba(120,120,120,0.05)'
+                  : active ? selectionFill(16) : 'rgba(160,160,160,0.09)',
+                opacity: box.hidden === true ? 0.55 : 1,
                 borderRadius: 4,
                 cursor: interactive ? 'move' : 'inherit',
                 boxSizing: 'border-box',
@@ -351,6 +360,7 @@ export function BoxCanvas({
                 }}
               >
                 {index + 1}
+                {box.locked === true ? ' · L' : ''}
               </span>
 
               {/* Handles belong to the single selected box: a multi-selection is

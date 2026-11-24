@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0
+
+Boxes can be locked and hidden — the two states a layout needs once some of it is
+settled.
+
+- **Hidden** leaves a box in the draft but out of the request: `injectWorkflow`
+  filters it before building `bboxes`, and character marks are remapped to the
+  numbering the workflow actually receives. A mark on a hidden box is dropped
+  rather than silently pointing at a different box. Hiding every box removes the
+  `bboxes` input entirely, which is what the graph expects for a free composition.
+- **Locked** keeps a box visible and generatable but refuses to drag or resize it,
+  so a finished shape cannot be nudged by accident. It still selects.
+- Both toggles sit on every row of the box list and in the single-box inspector;
+  hidden boxes are drawn dashed and dimmed on the canvas and struck through in the
+  list, locked ones show a lock chip on the canvas badge.
+- `sanitizeBox` keeps `locked` and `hidden` through a round trip, so a tool call
+  cannot silently re-enable a box the user excluded, and every box carries both
+  flags explicitly after any edit.
+- Seven workflow tests cover the filtering, the character remap, the empty case
+  and the guarantee that locking changes nothing about the request.
+
 ## 0.6.2
 
 - Fix: typing in a box description was discarded. `patchBox` handed the patch to
