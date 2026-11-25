@@ -68,7 +68,8 @@ export function ScopeStyles() {
 
 /* Layout boxes and list rows are keyboard controls too. */
 .moss-studio [role="button"]:focus-visible,
-.moss-studio [role="listitem"]:focus-visible {
+.moss-studio [role="listitem"]:focus-visible,
+.moss-studio [role="group"][data-box-index]:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.55);
 }

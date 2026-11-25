@@ -154,9 +154,15 @@ records/<id>/image.png
 - 键盘：画布框和列表行可 Tab 聚焦，有 ARIA 名称/选择状态与焦点环；Enter/Space 选择、Shift 多选、方向键移动或导航、Delete 删除；原生按钮和输入框保留自身键盘行为。
 - 测试从 177 增至 181 项。
 
+## 0.7.7：拖拽失效修复
+
+- 真实 Edge/CDP 复现后确认：手柄 focus 后立即 blur 会取消原生 `dragstart`，`mousedown.preventDefault()` 也会抑制拖拽。
+- 拖拽柄改为不可聚焦的视觉 `span`，与可聚焦行内容 sibling；鼠标拖拽不再聚焦/选中行，也不会展开描述编辑区。键盘仍聚焦行内容并用 `Alt+↑/↓` 调序。
+- 真实浏览器验证完整事件链 `dragstart → dragover → drop → dragend`，顺序正确变更且焦点保持在 `body`。
+
 ## 0.7.6：调序与生成进度
 
-- 布局框列表新增拖拽手柄与落点指示；调序可撤销，`characterBoxes` 的 1-based 人物标记随框重映射。拖拽时手柄不获取焦点、不选中行，因此描述编辑区不会自动展开影响操作。
+- 布局框列表新增拖拽手柄与落点指示；拖拽柄不可聚焦且与行内容 sibling，拖动时不选中、不展开编辑区。调序可撤销，`characterBoxes` 的 1-based 人物标记随框重映射。
 - 键盘可用 `Alt+↑/↓` 调序；调序后焦点跟随到新位置。
 - ComfyUI WebSocket 同时支持旧 `progress` 与当前 `progress_state`，优先展示 running 采样节点，避免模型加载完成时误闪 100%；显示百分比、当前步/总步数与进度条。
 - `/queue` 轮询提供精确的 1-based 排队位置；旧版 ComfyUI 没有该接口时安静省略。宿主通过 SSE、`/state`、`/health` 暴露当前进度快照，面板也支持取消同会话由 AI 工具启动的任务。

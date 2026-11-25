@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.7
+
+Fix native list dragging after the no-focus adjustment.
+
+- The visual drag handle is now a non-focusable `span` sibling of the focusable
+  row content. Mouse dragging no longer focuses/selects the row or expands its
+  description editor.
+- Removed the focus-then-blur workaround: Edge cancelled `dragstart` after that
+  blur, and preventing `mousedown` also suppressed native dragging.
+- Keyboard users still focus the row content and use `Alt+↑/↓` to reorder.
+- Verified in isolated headless Edge with real CDP mouse input: `dragstart`,
+  `dragover`, `drop`, and `dragend` all fire, focus stays on `body`, and the
+  order changes correctly.
+
 ## 0.7.6
 
 Layout ordering and live ComfyUI progress.

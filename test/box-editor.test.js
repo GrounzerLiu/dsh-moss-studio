@@ -414,11 +414,11 @@ test('canvas boxes and list rows are reachable and operable from the keyboard', 
   await act(async () => { press(dom, 'Delete') })
   assert.equal(getParams().boxes.length, 1, 'Delete removes the selected box')
 
-  const rows = [...dom.window.document.querySelectorAll('[role="listitem"]')]
-  assert.equal(rows.length, 1)
-  await act(async () => { rows[0].focus() })
+  const controls = [...dom.window.document.querySelectorAll('[role="group"][data-box-index]')]
+  assert.equal(controls.length, 1)
+  await act(async () => { controls[0].focus() })
   await act(async () => { press(dom, 'Enter') })
-  assert.equal(rows[0].getAttribute('aria-current'), 'true')
+  assert.equal(controls[0].getAttribute('aria-current'), 'true')
   assert.ok(calls.length >= 2, 'keyboard selection and deletion reached the host')
 })
 
@@ -429,20 +429,17 @@ test('list drag and Alt+Arrow reorder boxes while preserving character marks', a
     { type: 'obj', x: 0.7, y: 0.1, width: 0.2, height: 0.2, desc: 'c', palette: [] },
   ]
   const { dom, act, calls, getParams } = await mountControlledEditor(t, editorParams(boxes, '1,3'))
-  const handles = () => [...dom.window.document.querySelectorAll('button[aria-label="拖动调序；Alt+↑/↓ 也可调整顺序"]')]
+  const handles = () => [...dom.window.document.querySelectorAll('span[data-drag-index]')]
   const rows = () => [...dom.window.document.querySelectorAll('[role="listitem"]')]
+  const controls = () => [...dom.window.document.querySelectorAll('[role="group"][data-box-index]')]
 
   const transfer = { effectAllowed: '', dropEffect: '', setData() {} }
-  await act(async () => {
-    handles()[0].dispatchEvent(new dom.window.MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0 }))
-    handles()[0].focus()
-  })
-  assert.equal(dom.window.document.activeElement, dom.window.document.body, 'pointer drag does not focus the handle')
-  assert.equal(rows().some((row) => row.getAttribute('aria-current') === 'true'), false, 'pointer drag does not select or expand a row')
+  assert.equal(handles()[0].tabIndex, -1, 'the visual drag handle is not a tab stop')
+  assert.equal(handles()[0].getAttribute('aria-hidden'), 'true')
+  assert.equal(handles()[0].closest('[role="group"]'), null, 'the drag handle is not inside the focusable row control')
+  assert.equal(handles()[0].parentElement, controls()[0].parentElement, 'drag handle and focusable row content are siblings')
+  assert.equal(controls().some((row) => row.getAttribute('aria-current') === 'true'), false)
   assert.equal(dom.window.document.querySelectorAll('textarea').length, 0)
-  await act(async () => {
-    handles()[0].dispatchEvent(new dom.window.MouseEvent('pointerup', { bubbles: true, cancelable: true, button: 0 }))
-  })
 
   const dragStart = new dom.window.Event('dragstart', { bubbles: true, cancelable: true })
   Object.defineProperty(dragStart, 'dataTransfer', { value: transfer })
@@ -454,7 +451,7 @@ test('list drag and Alt+Arrow reorder boxes while preserving character marks', a
   assert.equal(getParams().characterBoxes, '2,3')
 
   await act(async () => {
-    handles()[0].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }))
+    controls()[0].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }))
   })
   assert.deepEqual(getParams().boxes.map((entry) => entry.desc), ['c', 'b', 'a'])
   assert.equal(getParams().characterBoxes, '1,3')

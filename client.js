@@ -1602,7 +1602,8 @@ function ScopeStyles() {
 
 /* Layout boxes and list rows are keyboard controls too. */
 .moss-studio [role="button"]:focus-visible,
-.moss-studio [role="listitem"]:focus-visible {
+.moss-studio [role="listitem"]:focus-visible,
+.moss-studio [role="group"][data-box-index]:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.55);
 }
@@ -1733,7 +1734,6 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const [selection, setSelection] = (0, import_react6.useState)([]);
   const [draggingIndex, setDraggingIndex] = (0, import_react6.useState)(null);
   const [dropTarget, setDropTarget] = (0, import_react6.useState)(null);
-  const pointerDragRef = (0, import_react6.useRef)(false);
   const [lockAspect, setLockAspect] = (0, import_react6.useState)(false);
   const [notice, setNotice] = (0, import_react6.useState)("");
   const charactersRef = (0, import_react6.useRef)(characterBoxes);
@@ -2137,13 +2137,11 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         {
           key: index,
           role: "listitem",
-          tabIndex: 0,
           "aria-label": t("editor.boxLabel", {
             index: index + 1,
             caption: box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc"),
             flags: `${box.locked === true ? t("editor.lockedFlag") : ""}${box.hidden === true ? t("editor.hiddenFlag") : ""}`
           }),
-          "aria-current": selection.includes(index) ? "true" : void 0,
           onDragOver: (event) => {
             if (draggingIndex === null) return;
             event.preventDefault();
@@ -2161,46 +2159,15 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             reorder(draggingIndex, target > draggingIndex ? target - 1 : target);
           },
           onDragEnd: () => {
-            pointerDragRef.current = false;
             setDraggingIndex(null);
             setDropTarget(null);
-          },
-          onFocus: (event) => {
-            if (event.target !== event.currentTarget || pointerDragRef.current) return;
-            if (!selection.includes(index)) setSelection([index]);
-          },
-          onKeyDown: (event) => {
-            if (event.target !== event.currentTarget) return;
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              const additive = event.shiftKey || event.metaKey || event.ctrlKey;
-              setSelection((current) => additive ? current.includes(index) ? current.filter((item) => item !== index) : [...current, index] : [index]);
-              return;
-            }
-            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-            event.preventDefault();
-            event.stopPropagation();
-            if (event.altKey) {
-              reorder(index, index + (event.key === "ArrowDown" ? 1 : -1));
-              return;
-            }
-            const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')];
-            const position = rows.indexOf(event.currentTarget);
-            const next = position + (event.key === "ArrowDown" ? 1 : -1);
-            if (next >= 0 && next < rows.length) rows[next].focus();
-          },
-          onClick: (event) => {
-            if (event.shiftKey || event.metaKey || event.ctrlKey) {
-              setSelection((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]);
-            } else {
-              setSelection([index]);
-            }
           },
           style: {
             display: "flex",
             flexDirection: "column",
             gap: 4,
-            padding: 6,
+            padding: "6px 6px 6px 26px",
+            position: "relative",
             borderRadius: 8,
             cursor: "pointer",
             background: selection.includes(index) ? selectionFill(14) : "transparent",
@@ -2209,28 +2176,12 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             boxShadow: dropTarget?.index === index ? `inset 0 ${dropTarget.after ? -2 : 2}px 0 var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))` : void 0
           }
         },
-        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement(
-          "button",
+        /* @__PURE__ */ import_react6.default.createElement(
+          "span",
           {
-            type: "button",
             draggable: true,
-            tabIndex: 0,
-            "data-box-index": index,
-            onPointerDown: () => {
-              pointerDragRef.current = true;
-            },
-            onPointerUp: () => {
-              pointerDragRef.current = false;
-            },
-            onPointerCancel: () => {
-              pointerDragRef.current = false;
-            },
-            onBlur: () => {
-              pointerDragRef.current = false;
-            },
-            onFocus: (event) => {
-              if (pointerDragRef.current) event.currentTarget.blur();
-            },
+            "aria-hidden": "true",
+            "data-drag-index": index,
             onClick: (event) => event.stopPropagation(),
             onDragStart: (event) => {
               if (!event.dataTransfer) return;
@@ -2242,97 +2193,136 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
               setDraggingIndex(null);
               setDropTarget(null);
             },
-            onKeyDown: (event) => {
-              if (!event.altKey || event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-              event.preventDefault();
-              event.stopPropagation();
-              const next = index + (event.key === "ArrowDown" ? 1 : -1);
-              const list = event.currentTarget.closest('[role="list"]');
-              reorder(index, next);
-              setTimeout(() => {
-                list?.querySelector(`[data-box-index="${next}"]`)?.focus();
-              }, 0);
-            },
             title: t("editor.reorder"),
-            "aria-label": t("editor.reorder"),
-            style: { ...iconButton, padding: 2, cursor: "grab" }
+            style: { ...iconButton, padding: 2, cursor: "grab", display: "inline-flex", alignItems: "center", justifyContent: "center", position: "absolute", left: 3, top: 8 }
           },
           /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "drag_indicator", size: 14 })
-        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 12, ...dim, opacity: box.hidden ? 0.4 : 1 } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none", opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? "line-through" : "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement(
-          "span",
+        ),
+        /* @__PURE__ */ import_react6.default.createElement(
+          "div",
           {
-            title: boxProblem(box) === void 0 ? void 0 : t(boxProblem(box) === "text" ? "editor.needsText" : "editor.needsDesc"),
-            style: {
-              ...dim,
-              fontSize: 10,
-              whiteSpace: "nowrap",
-              color: boxProblem(box) === void 0 ? void 0 : "var(--dsw-alias-state-error-primary, #ff8f7a)"
-            }
-          },
-          boxProblem(box) === void 0 ? "" : "! ",
-          Math.round(box.width * 100),
-          "\xD7",
-          Math.round(box.height * 100)
-        ), /* @__PURE__ */ import_react6.default.createElement(
-          "button",
-          {
-            type: "button",
-            style: box.locked ? { ...iconButton, padding: 2, color: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } : { ...iconButton, padding: 2, opacity: 0.55 },
-            title: box.locked ? t("editor.unlock") : t("editor.lock"),
-            "aria-label": box.locked ? t("editor.unlock") : t("editor.lock"),
-            "aria-pressed": box.locked === true,
-            onClick: (event) => {
-              event.stopPropagation();
-              patchBox(index, { locked: box.locked !== true });
-            }
-          },
-          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.locked ? "lock" : "lock_open", size: 13 })
-        ), /* @__PURE__ */ import_react6.default.createElement(
-          "button",
-          {
-            type: "button",
-            style: box.hidden ? { ...iconButton, padding: 2, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } : { ...iconButton, padding: 2, opacity: 0.55 },
-            title: box.hidden ? t("editor.show") : t("editor.hide"),
-            "aria-label": box.hidden ? t("editor.show") : t("editor.hide"),
-            "aria-pressed": box.hidden === true,
-            onClick: (event) => {
-              event.stopPropagation();
-              patchBox(index, { hidden: box.hidden !== true });
-            }
-          },
-          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.hidden ? "visibility_off" : "visibility", size: 13 })
-        )),
-        selection.includes(index) && selection.length === 1 ? (
-          // A box's description is a sentence or two, so it gets the same
-          // kind of box as the prompt: multi-line, drag the corner taller.
-          /* @__PURE__ */ import_react6.default.createElement(
-            "textarea",
-            {
-              value: box.type === "text" ? box.text ?? "" : box.desc ?? "",
-              onChange: (event) => {
-                const field = box.type === "text" ? "text" : "desc";
-                patchBox(index, { [field]: event.target.value }, { coalesceKey: `box:${index}:${field}` });
-              },
-              placeholder: box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
-              "aria-label": box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
-              rows: 3,
-              style: {
-                ...input,
-                // `input` carries flex:1, and a flex item ignores the height the
-                // browser's resize grip writes; opt out so dragging works.
-                flex: "0 0 auto",
-                display: "block",
-                width: "100%",
-                minHeight: 64,
-                maxHeight: 260,
-                resize: "vertical",
-                overflowY: "auto",
-                lineHeight: 1.55,
-                fontFamily: "inherit"
+            role: "group",
+            tabIndex: 0,
+            "data-box-index": index,
+            "aria-label": t("editor.boxLabel", {
+              index: index + 1,
+              caption: box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc"),
+              flags: `${box.locked === true ? t("editor.lockedFlag") : ""}${box.hidden === true ? t("editor.hiddenFlag") : ""}`
+            }),
+            "aria-current": selection.includes(index) ? "true" : void 0,
+            onFocus: () => {
+              if (!selection.includes(index)) setSelection([index]);
+            },
+            onKeyDown: (event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+                setSelection((current) => additive ? current.includes(index) ? current.filter((item) => item !== index) : [...current, index] : [index]);
+                return;
               }
-            }
-          )
-        ) : null
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              event.stopPropagation();
+              if (event.altKey) {
+                const next2 = index + (event.key === "ArrowDown" ? 1 : -1);
+                const list = event.currentTarget.closest('[role="list"]');
+                reorder(index, next2);
+                setTimeout(() => {
+                  list?.querySelector(`[role="group"][data-box-index="${next2}"]`)?.focus();
+                }, 0);
+                return;
+              }
+              const rows = [...event.currentTarget.closest('[role="list"]').querySelectorAll('[role="group"][data-box-index]')];
+              const position = rows.indexOf(event.currentTarget);
+              const next = position + (event.key === "ArrowDown" ? 1 : -1);
+              if (next >= 0 && next < rows.length) rows[next].focus();
+            },
+            onClick: (event) => {
+              if (event.shiftKey || event.metaKey || event.ctrlKey) {
+                setSelection((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]);
+              } else {
+                setSelection([index]);
+              }
+            },
+            style: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1, cursor: "pointer" }
+          },
+          /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 12, ...dim, opacity: box.hidden ? 0.4 : 1 } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none", opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? "line-through" : "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement(
+            "span",
+            {
+              title: boxProblem(box) === void 0 ? void 0 : t(boxProblem(box) === "text" ? "editor.needsText" : "editor.needsDesc"),
+              style: {
+                ...dim,
+                fontSize: 10,
+                whiteSpace: "nowrap",
+                color: boxProblem(box) === void 0 ? void 0 : "var(--dsw-alias-state-error-primary, #ff8f7a)"
+              }
+            },
+            boxProblem(box) === void 0 ? "" : "! ",
+            Math.round(box.width * 100),
+            "\xD7",
+            Math.round(box.height * 100)
+          ), /* @__PURE__ */ import_react6.default.createElement(
+            "button",
+            {
+              type: "button",
+              style: box.locked ? { ...iconButton, padding: 2, color: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } : { ...iconButton, padding: 2, opacity: 0.55 },
+              title: box.locked ? t("editor.unlock") : t("editor.lock"),
+              "aria-label": box.locked ? t("editor.unlock") : t("editor.lock"),
+              "aria-pressed": box.locked === true,
+              onClick: (event) => {
+                event.stopPropagation();
+                patchBox(index, { locked: box.locked !== true });
+              }
+            },
+            /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.locked ? "lock" : "lock_open", size: 13 })
+          ), /* @__PURE__ */ import_react6.default.createElement(
+            "button",
+            {
+              type: "button",
+              style: box.hidden ? { ...iconButton, padding: 2, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } : { ...iconButton, padding: 2, opacity: 0.55 },
+              title: box.hidden ? t("editor.show") : t("editor.hide"),
+              "aria-label": box.hidden ? t("editor.show") : t("editor.hide"),
+              "aria-pressed": box.hidden === true,
+              onClick: (event) => {
+                event.stopPropagation();
+                patchBox(index, { hidden: box.hidden !== true });
+              }
+            },
+            /* @__PURE__ */ import_react6.default.createElement(Icon, { name: box.hidden ? "visibility_off" : "visibility", size: 13 })
+          )),
+          selection.includes(index) && selection.length === 1 ? (
+            // A box's description is a sentence or two, so it gets the same
+            // kind of box as the prompt: multi-line, drag the corner taller.
+            /* @__PURE__ */ import_react6.default.createElement(
+              "textarea",
+              {
+                value: box.type === "text" ? box.text ?? "" : box.desc ?? "",
+                onChange: (event) => {
+                  const field = box.type === "text" ? "text" : "desc";
+                  patchBox(index, { [field]: event.target.value }, { coalesceKey: `box:${index}:${field}` });
+                },
+                placeholder: box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
+                "aria-label": box.type === "text" ? t("editor.kindTextHint") : t("editor.descPlaceholder"),
+                rows: 3,
+                style: {
+                  ...input,
+                  // `input` carries flex:1, and a flex item ignores the height the
+                  // browser's resize grip writes; opt out so dragging works.
+                  flex: "0 0 auto",
+                  display: "block",
+                  width: "100%",
+                  minHeight: 64,
+                  maxHeight: 260,
+                  resize: "vertical",
+                  overflowY: "auto",
+                  lineHeight: 1.55,
+                  fontFamily: "inherit"
+                }
+              }
+            )
+          ) : null
+        )
       )))))
     )
   );

@@ -129,7 +129,6 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const [selection, setSelection] = useState([])
   const [draggingIndex, setDraggingIndex] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
-  const pointerDragRef = useRef(false)
   const [lockAspect, setLockAspect] = useState(false)
   const [notice, setNotice] = useState('')
   /**
@@ -698,13 +697,11 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
               <div
                 key={index}
                 role="listitem"
-                tabIndex={0}
                 aria-label={t('editor.boxLabel', {
                   index: index + 1,
                   caption: box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc')),
                   flags: `${box.locked === true ? t('editor.lockedFlag') : ''}${box.hidden === true ? t('editor.hiddenFlag') : ''}`,
                 })}
-                aria-current={selection.includes(index) ? 'true' : undefined}
                 onDragOver={(event) => {
                   if (draggingIndex === null) return
                   event.preventDefault()
@@ -721,47 +718,13 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   const target = after ? index + 1 : index
                   reorder(draggingIndex, target > draggingIndex ? target - 1 : target)
                 }}
-                onDragEnd={() => { pointerDragRef.current = false; setDraggingIndex(null); setDropTarget(null) }}
-                onFocus={(event) => {
-                  if (event.target !== event.currentTarget || pointerDragRef.current) return
-                  if (!selection.includes(index)) setSelection([index])
-                }}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    const additive = event.shiftKey || event.metaKey || event.ctrlKey
-                    setSelection((current) => additive
-                      ? (current.includes(index) ? current.filter((item) => item !== index) : [...current, index])
-                      : [index])
-                    return
-                  }
-                  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
-                  event.preventDefault()
-                  event.stopPropagation()
-                  if (event.altKey) {
-                    reorder(index, index + (event.key === 'ArrowDown' ? 1 : -1))
-                    return
-                  }
-                  const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')]
-                  const position = rows.indexOf(event.currentTarget)
-                  const next = position + (event.key === 'ArrowDown' ? 1 : -1)
-                  if (next >= 0 && next < rows.length) rows[next].focus()
-                }}
-                onClick={(event) => {
-                  if (event.shiftKey || event.metaKey || event.ctrlKey) {
-                    setSelection((current) => (
-                      current.includes(index) ? current.filter((item) => item !== index) : [...current, index]
-                    ))
-                  } else {
-                    setSelection([index])
-                  }
-                }}
+                onDragEnd={() => { setDraggingIndex(null); setDropTarget(null) }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 4,
-                  padding: 6,
+                  padding: '6px 6px 6px 26px',
+                  position: 'relative',
                   borderRadius: 8,
                   cursor: 'pointer',
                   background: selection.includes(index) ? selectionFill(14) : 'transparent',
@@ -772,44 +735,73 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                     : undefined,
                 }}
               >
-                <div style={{ ...row }}>
-                  <button
-                    type="button"
-                    draggable
-                    tabIndex={0}
-                    data-box-index={index}
-                    onPointerDown={() => { pointerDragRef.current = true }}
-                    onPointerUp={() => { pointerDragRef.current = false }}
-                    onPointerCancel={() => { pointerDragRef.current = false }}
-                    onBlur={() => { pointerDragRef.current = false }}
-                    onFocus={(event) => {
-                      if (pointerDragRef.current) event.currentTarget.blur()
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                    onDragStart={(event) => {
-                      if (!event.dataTransfer) return
-                      event.dataTransfer.effectAllowed = 'move'
-                      event.dataTransfer.setData('text/plain', String(index))
-                      setDraggingIndex(index)
-                    }}
-                    onDragEnd={() => { setDraggingIndex(null); setDropTarget(null) }}
-                    onKeyDown={(event) => {
-                      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
+                <span
+                  draggable
+                  aria-hidden="true"
+                  data-drag-index={index}
+                  onClick={(event) => event.stopPropagation()}
+                  onDragStart={(event) => {
+                    if (!event.dataTransfer) return
+                    event.dataTransfer.effectAllowed = 'move'
+                    event.dataTransfer.setData('text/plain', String(index))
+                    setDraggingIndex(index)
+                  }}
+                  onDragEnd={() => { setDraggingIndex(null); setDropTarget(null) }}
+                  title={t('editor.reorder')}
+                  style={{ ...iconButton, padding: 2, cursor: 'grab', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'absolute', left: 3, top: 8 }}
+                >
+                  <Icon name="drag_indicator" size={14} />
+                </span>
+                <div
+                  role="group"
+                  tabIndex={0}
+                  data-box-index={index}
+                  aria-label={t('editor.boxLabel', {
+                    index: index + 1,
+                    caption: box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc')),
+                    flags: `${box.locked === true ? t('editor.lockedFlag') : ''}${box.hidden === true ? t('editor.hiddenFlag') : ''}`,
+                  })}
+                  aria-current={selection.includes(index) ? 'true' : undefined}
+                  onFocus={() => { if (!selection.includes(index)) setSelection([index]) }}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return
+                    if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault()
-                      event.stopPropagation()
+                      const additive = event.shiftKey || event.metaKey || event.ctrlKey
+                      setSelection((current) => additive
+                        ? (current.includes(index) ? current.filter((item) => item !== index) : [...current, index])
+                        : [index])
+                      return
+                    }
+                    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    if (event.altKey) {
                       const next = index + (event.key === 'ArrowDown' ? 1 : -1)
                       const list = event.currentTarget.closest('[role="list"]')
                       reorder(index, next)
                       setTimeout(() => {
-                        list?.querySelector(`[data-box-index="${next}"]`)?.focus()
+                        list?.querySelector(`[role="group"][data-box-index="${next}"]`)?.focus()
                       }, 0)
-                    }}
-                    title={t('editor.reorder')}
-                    aria-label={t('editor.reorder')}
-                    style={{ ...iconButton, padding: 2, cursor: 'grab' }}
-                  >
-                    <Icon name="drag_indicator" size={14} />
-                  </button>
+                      return
+                    }
+                    const rows = [...event.currentTarget.closest('[role="list"]').querySelectorAll('[role="group"][data-box-index]')]
+                    const position = rows.indexOf(event.currentTarget)
+                    const next = position + (event.key === 'ArrowDown' ? 1 : -1)
+                    if (next >= 0 && next < rows.length) rows[next].focus()
+                  }}
+                  onClick={(event) => {
+                    if (event.shiftKey || event.metaKey || event.ctrlKey) {
+                      setSelection((current) => (
+                        current.includes(index) ? current.filter((item) => item !== index) : [...current, index]
+                      ))
+                    } else {
+                      setSelection([index])
+                    }
+                  }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1, cursor: 'pointer' }}
+                >
+                <div style={{ ...row }}>
                   <span style={{ width: 12, ...dim, opacity: box.hidden ? 0.4 : 1 }}>{index + 1}</span>
                   <span style={{ ...input, flex: 1, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 'none', opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? 'line-through' : 'none' }}>
                     {box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc'))}
@@ -883,6 +875,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                     }}
                   />
                 ) : null}
+                </div>
               </div>
             ))}
             </div>
