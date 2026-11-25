@@ -43,6 +43,9 @@ ComfyUI progress events. The plugin lives outside the profile tree, where bare
   websocket and exact queue position from `/queue`, with graceful fallback.
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
+- Repeated generate clicks queue independent records; live percentage, step count
+  and queue position appear on the matching history row or result, with per-record
+  cancellation.
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
 - Status strip: ComfyUI health (click the pill to re-probe), VRAM and RAM, draft scope, revision.
 - Settings dialog: the ComfyUI address is a volatile config field, so a new address applies to the next generation without a restart.
@@ -122,8 +125,8 @@ to a real ComfyUI server.
 
 - Live updates use SSE; if the stream cannot connect, the panel falls back to
   1.5-second polling.
-- One generation at a time across sessions; the active session can cancel it and
-  the cancellation is forwarded to ComfyUI.
+- Multiple generations may be queued across sessions. Each running record has
+  its own progress and cancel action, forwarded to ComfyUI.
 - Thumbnails are the full images.
 - Panel copy follows the host locale (Chinese and English); host validation
   errors remain in the language in which the host emits them.

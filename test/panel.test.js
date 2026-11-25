@@ -512,34 +512,34 @@ test('cancelling the editor queues its snapshot after an in-flight save', async 
   assert.equal(server.boxes[0].locked, false)
 })
 
-test('generation waits for its own record even when another session has a newer finished record', async (t) => {
+test('the generate button stays available and submits multiple independent records', async (t) => {
   const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
-  const mine = { id: 'rec-mine', sessionId: 'sess-1', status: 'done', hasImage: true, prompt: 'p', size: '512x512', width: 512, height: 512, seconds: 2 }
-  const other = { id: 'rec-other', sessionId: 'other', status: 'done', hasImage: true, prompt: 'other', size: '1024x1024', width: 1024, height: 1024, seconds: 1 }
-  let records = []
+  const submitted = []
   const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
     const target = String(url)
-    if (target.includes('/state')) return jsonResponse({ ...panelState(server, 1), records })
-    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.includes('/state')) return jsonResponse(panelState(server, 1))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false, generations: [] })
     if (target.endsWith('/generate') && init.method === 'POST') {
-      records = [other, { ...mine, status: 'running', hasImage: false }]
-      return jsonResponse({ ok: true, started: true, recordId: 'rec-mine' }, 202)
+      const recordId = `rec-${submitted.length + 1}`
+      submitted.push(recordId)
+      return jsonResponse({ ok: true, started: true, recordId }, 202)
     }
-    if (target.includes('/records/rec-mine')) return jsonResponse({ ok: true, record: { ...mine, params: server, result: { width: 512, height: 512, seconds: 2 } } })
     return jsonResponse({ ok: true, records: [], nextBefore: null })
   })
 
   const button = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
   await act(async () => {
     button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
-    await new Promise((resolve) => setTimeout(resolve, 1300))
+    await new Promise((resolve) => setTimeout(resolve, 50))
   })
-  records = [other, mine]
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 1300)) })
-
-  assert.match(container.textContent, /已完成：512×512，2 秒/)
-  assert.doesNotMatch(container.textContent, /已完成：1024×1024，1 秒/)
-  assert.equal(container.querySelector('img[alt="生成结果"]')?.getAttribute('src'), '/plugins/dsh-moss-studio/image/rec-mine')
+  assert.equal(button.disabled, false, 'the first queued job does not occupy the button')
+  await act(async () => {
+    button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  })
+  assert.deepEqual(submitted, ['rec-1', 'rec-2'])
+  assert.equal(button.textContent, '用当前 seed 生成', 'the button keeps its draft action label')
+  assert.equal(button.parentElement.querySelector('button[aria-label="取消生成"]'), null, 'cancel is not placed beside the generate button')
 })
 
 test('progress events render percentage, step count and queue position', async (t) => {
@@ -563,13 +563,13 @@ test('progress events render percentage, step count and queue position', async (
     await new Promise((resolve) => setTimeout(resolve, 80))
   })
   await act(async () => {
-    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'wait', percent: 40, step: 10, maxStep: 25 }) })
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'running', percent: 40, step: 10, maxStep: 25 }) })
   })
   assert.match(container.textContent, /生成 40% · 10\/25 步/)
   assert.equal(container.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow'), '40')
 
   await act(async () => {
-    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'wait', queuePosition: 2, queuePending: 3 }) })
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'queued', queuePosition: 2, queuePending: 3 }) })
   })
   assert.match(container.textContent, /队列第 2 位 · 共 3 个/)
 })
@@ -596,16 +596,16 @@ test('the cancel button sends the active record id and reports cancellation', as
     generateButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
     await new Promise((resolve) => setTimeout(resolve, 80))
   })
-  const cancel = [...container.querySelectorAll('button')].find((node) => node.textContent === '取消生成')
-  assert.ok(cancel !== undefined, 'the active generation exposes a cancel button')
+  const cancel = container.querySelector('button[aria-label="取消生成"]')
+  assert.ok(cancel !== undefined, 'the active record exposes its own cancel button')
   await act(async () => {
     cancel.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
-    await new Promise((resolve) => setTimeout(resolve, 1300))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   })
 
   assert.deepEqual(cancellations, [{ sessionId: 'sess-1', recordId: 'rec-mine' }])
-  assert.match(container.textContent, /已取消生成/)
-  assert.equal([...container.querySelectorAll('button')].some((node) => node.textContent === '取消生成'), false)
+  assert.match(container.textContent, /正在取消 ComfyUI 任务/)
+  assert.equal(generateButton.parentElement.querySelector('button[aria-label="取消生成"]'), null, 'cancel is not a footer action')
 })
 
 test('archived load-more keeps the archive filter and an exhausted cursor stays exhausted', async (t) => {

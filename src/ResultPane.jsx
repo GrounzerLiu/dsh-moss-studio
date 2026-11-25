@@ -4,6 +4,7 @@ import { Icon } from './icons.jsx'
 import { imageUrl } from './api.js'
 import { downloadName } from './format.js'
 import { selectionFill } from './theme.js'
+import { GenerationProgress } from './GenerationProgress.jsx'
 
 const dim = { color: 'var(--dsw-alias-label-secondary, inherit)' }
 const button = {
@@ -38,6 +39,8 @@ export function ResultPane({
   shownRecordId,
   shownHasImage,
   shownRunning,
+  progress,
+  onCancel,
   imageBroken,
   onImageError,
   activeRecord,
@@ -142,6 +145,7 @@ export function ResultPane({
           <span style={{ flex: 1 }} />
           {actions}
         </div>
+        {shownRunning ? <GenerationProgress progress={progress} onCancel={shownRecordId === null ? undefined : () => onCancel?.(shownRecordId)} /> : null}
         {image}
         {error !== '' ? <div style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{error}</div> : null}
       </div>
@@ -161,6 +165,7 @@ export function ResultPane({
         {/* Actions sit next to the metadata, not at the bottom: in a short strip
             the row's foot is the far corner from where the pointer enters. */}
         <div style={{ marginTop: 2 }}>{actions}</div>
+        {shownRunning ? <GenerationProgress progress={progress} onCancel={shownRecordId === null ? undefined : () => onCancel?.(shownRecordId)} /> : null}
         {activeRecord?.error?.message ? <span style={{ color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{activeRecord.error.message}</span> : null}
         {error !== '' ? <div style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{error}</div> : null}
       </div>

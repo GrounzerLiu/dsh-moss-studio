@@ -17,10 +17,10 @@ import { MAX_BOXES, boxesProblem, defaultBox } from './box-math.js'
 import { gigabytes, usedPercent } from './format.js'
 import { ImageViewer } from './ImageViewer.jsx'
 import { ScopeStyles } from './ScopeStyles.jsx'
+import { GenerationProgress } from './GenerationProgress.jsx'
 import { selectionFill } from './theme.js'
 
 const POLL_MS = 1500
-const PHASE_KEY = { probe: 'phase.probe', submit: 'phase.submit', wait: 'phase.wait', download: 'phase.download' }
 const SAVE_DELAY_MS = 500
 
 
@@ -89,7 +89,7 @@ const rowAction = {
 }
 
 /** One history entry: thumbnail, prompt summary, metrics, and its own delete button. */
-function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
+function HistoryRow({ record, active, progress, onSelect, onDelete, onPin, onArchive, onCancel }) {
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const revealed = hovered || focused
@@ -154,6 +154,11 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         <span style={{ display: 'block', fontSize: 10, ...dim }}>
           {record.status === 'done' ? `${record.seconds}s` : record.status}
         </span>
+        {record.status === 'running' && progress !== undefined ? (
+          <span style={{ display: 'block', marginTop: 2 }} onClick={(event) => event.stopPropagation()}>
+            <GenerationProgress progress={progress} compact onCancel={() => onCancel?.(record.id)} />
+          </span>
+        ) : null}
       </span>
       {/* Overlaid, not laid out: the row keeps its full width for the prompt and
           the buttons only take space while they are actually shown. */}
@@ -243,18 +248,13 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [generationRecordId, setGenerationRecordId] = useState(null)
-  const [elapsed, setElapsed] = useState(0)
-  const [phase, setPhase] = useState('')
-  const [progress, setProgress] = useState(null)
+  const [generations, setGenerations] = useState({})
   const [flagLocalOnly, setLocalOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [comfy, setComfy] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
-  const [queue, setQueue] = useState({ busy: false, sessionId: null })
   const [pinnedRecords, setPinnedRecords] = useState([])
   const [pinnedTruncated, setPinnedTruncated] = useState(false)
   const [matches, setMatches] = useState(null)
@@ -321,12 +321,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     }
     setRevision(state.revision)
     latestServerRef.current = { revision: state.revision, params: state.params }
-    setProgress(state.generation?.sessionId === sessionId ? state.generation.progress ?? null : null)
-    setQueue({
-      busy: state.generation !== null && state.generation !== undefined,
-      sessionId: state.generation?.sessionId ?? null,
-      recordId: state.generation?.recordId ?? null,
-    })
+    setGenerations(Object.fromEntries((state.generations ?? []).map((entry) => [entry.recordId, entry])))
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
@@ -366,12 +361,11 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     try {
       const health = await fetchHealth()
       setComfy(health.comfy ?? { ok: false })
-      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null, recordId: health.busyRecordId ?? null })
-      setProgress(health.busy === true && health.busySession === sessionId ? health.progress ?? null : null)
+      setGenerations(Object.fromEntries((health.generations ?? []).map((entry) => [entry.recordId, entry])))
     } catch {
       setComfy({ ok: false })
     }
-  }, [sessionId])
+  }, [])
 
   useEffect(() => {
     void checkHealth()
@@ -410,10 +404,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
           payload = JSON.parse(event.data)
         } catch { /* a heartbeat or a truncated frame */ }
         if (payload?.kind === 'progress' && typeof payload.phase === 'string') {
-          if (payload.sessionId === undefined || payload.sessionId === sessionId) {
-            setPhase(payload.phase)
-            setProgress(payload)
-            setQueue({ busy: true, sessionId: payload.sessionId ?? sessionId, recordId: payload.recordId ?? null })
+          if (typeof payload.recordId === 'string' && payload.recordId !== '') {
+            setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }))
           }
         }
         if (payload?.kind === 'error' && typeof payload.message === 'string') {
@@ -446,18 +438,6 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       source?.close()
     }
   }, [pushed, sessionId, refresh])
-
-  useEffect(() => {
-    const externalBusy = queue.busy && queue.sessionId === sessionId
-    if (!busy && !externalBusy) {
-      setElapsed(0)
-      setPhase('')
-      return undefined
-    }
-    const started = Date.now()
-    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 500)
-    return () => clearInterval(timer)
-  }, [busy, queue.busy, queue.sessionId, sessionId])
 
   // Write the layout preferences back whenever they change.
   useEffect(() => {
@@ -749,40 +729,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     replaceDraft(snapshot, t('notice.layoutReverted'))
   }, [replaceDraft])
 
-  /** Wait for one specific record, never another session's newest job. */
-  const waitForCompletion = useCallback(async (recordId) => {
-    const started = Date.now()
-    while (Date.now() - started < 600_000) {
-      await new Promise((resolve) => setTimeout(resolve, 1200))
-      const state = await fetchState(sessionId)
-      applyServerState(state)
-      const record = typeof recordId === 'string'
-        ? state.records.find((entry) => entry.id === recordId)
-        : state.records.find((entry) => entry.sessionId === sessionId && entry.status === 'running')
-          ?? state.records.find((entry) => entry.sessionId === sessionId)
-      if (record !== undefined && record.status !== 'running') {
-        if (record.status === 'failed') {
-          if (record.error?.message === '已取消') {
-            setError('')
-            setNotice(t('notice.generationCancelled'))
-          } else {
-            setError(record.error?.message ?? t('error.generation'))
-            setNotice('')
-          }
-        } else {
-          pinnedRef.current = false
-          setImageBroken(false)
-          setActiveRecordId(record.id)
-          setNotice(t('notice.generationDone', { width: record.width, height: record.height, seconds: record.seconds }))
-        }
-        return
-      }
-    }
-    setNotice(t('notice.generationTimeout'))
-  }, [sessionId, applyServerState])
-
+  /** Submit one job; ComfyUI owns queueing and the host tracks each record independently. */
   const runGenerate = useCallback(async () => {
-    if (busy) return
     const problem = boxesProblem(paramsRef.current?.boxes)
     if (problem !== undefined) {
       // Say it here, in the user's language, instead of letting the workflow
@@ -793,8 +741,6 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       setNotice('')
       return
     }
-    setBusy(true)
-    setProgress({ phase: 'submit', elapsed: 0 })
     setError('')
     setNotice(t('notice.generationSubmitted'))
     try {
@@ -811,30 +757,21 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setNotice(t('notice.draftChanged'))
         return
       }
-      if (status === 429) {
-        setNotice(t('notice.generationBusy'))
-        return
-      }
       if (status !== 202) {
         setError(body?.message ?? t('error.generateRequest', { status }))
         return
       }
-      setGenerationRecordId(body.recordId ?? null)
-      await waitForCompletion(body.recordId)
+      if (typeof body.recordId === 'string') {
+        setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: 'queued', elapsed: 0 } }))
+        setActiveRecordId(body.recordId)
+      }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
-    } finally {
-      setBusy(false)
-      setGenerationRecordId(null)
-      setProgress(null)
     }
-  }, [busy, flushAll, sessionId, waitForCompletion])
+  }, [flushAll, sessionId])
 
-  const cancelCurrentGeneration = useCallback(async () => {
-    const sameSessionBusy = queue.busy && queue.sessionId === sessionId
-    if (!busy && !sameSessionBusy) return
-    const recordId = generationRecordId ?? queue.recordId ?? null
-    if (recordId === null) return
+  const cancelJob = useCallback(async (recordId) => {
+    if (typeof recordId !== 'string' || recordId === '') return
     try {
       const { status, body } = await cancelGeneration(sessionId, recordId)
       if (status !== 200) {
@@ -845,37 +782,29 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
     }
-  }, [busy, generationRecordId, queue, sessionId])
+  }, [sessionId])
 
   /** Re-run a failed record with the parameters it was created with. */
   const retryRecord = useCallback(async (record) => {
-    if (busy || record === null || record === undefined) return
-    setBusy(true)
-    setProgress({ phase: 'submit', elapsed: 0 })
+    if (record === null || record === undefined) return
     setError('')
     setNotice(t('notice.retrySubmitted'))
     try {
       // No revision: the point of a retry is the recorded parameters, not the
       // draft someone may have edited since.
       const { status, body } = await generate(sessionId, undefined, record.params)
-      if (status === 429) {
-        setNotice(t('notice.generationBusy'))
-        return
-      }
       if (status !== 202) {
         setError(body?.message ?? t('error.retry', { status }))
         return
       }
-      setGenerationRecordId(body.recordId ?? null)
-      await waitForCompletion(body.recordId)
+      if (typeof body.recordId === 'string') {
+        setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: 'queued', elapsed: 0 } }))
+        setActiveRecordId(body.recordId)
+      }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
-    } finally {
-      setBusy(false)
-      setGenerationRecordId(null)
-      setProgress(null)
     }
-  }, [busy, sessionId, waitForCompletion])
+  }, [sessionId])
 
   const generateRandom = useCallback(() => {
     update({ seed: -1 })
@@ -1059,24 +988,9 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const previousId = viewIndex > 0 ? viewableIds[viewIndex - 1] : null
   const followingId = viewIndex >= 0 && viewIndex + 1 < viewableIds.length ? viewableIds[viewIndex + 1] : null
 
-  const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== sessionId
-  const sessionBusy = busy || (queue.busy && queue.sessionId === sessionId)
-  const activeGenerationRecordId = generationRecordId ?? queue.recordId ?? null
-  const progressPercent = typeof progress?.percent === 'number' && Number.isFinite(progress.percent)
-    ? Math.min(100, Math.max(0, progress.percent))
-    : null
-  const queuePosition = typeof progress?.queuePosition === 'number' && progress.queuePosition > 0
-    ? progress.queuePosition
-    : null
-  const progressText = queuePosition !== null
-    ? t('generate.queuePosition', { position: queuePosition, pending: progress.queuePending ?? queuePosition })
-    : progressPercent !== null
-      ? t('generate.percent', { percent: Math.round(progressPercent), step: progress.step ?? '—', maxStep: progress.maxStep ?? '—' })
-      : (progress?.phase ?? phase) === '' ? '' : t(PHASE_KEY[progress?.phase ?? phase] ?? (progress?.phase ?? phase))
-
-  const shownHasImage = shownSummary === undefined ? shownRecordId !== null : shownSummary.hasImage
-  const shownRunning = shownSummary?.status === 'running'
-  const running = records.find((record) => record.status === 'running')
+  const shownHasImage = shownSummary?.hasImage === true
+  const shownProgress = shownRecordId === null ? undefined : generations[shownRecordId]
+  const shownRunning = shownSummary?.status === 'running' || shownProgress !== undefined
 
   return (
     <div className="moss-studio" style={panel}>
@@ -1287,6 +1201,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
                         <HistoryRow
                           record={record}
                           active={record.id === activeRecordId}
+                          progress={generations[record.id]}
+                          onCancel={cancelJob}
                           onSelect={(id) => void selectRecord(id)}
                           onDelete={(id) => selectForDelete(id)}
                           onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}
@@ -1482,27 +1398,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
           <div style={{ borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ ...row, flexWrap: 'wrap' }}>
-              <button type="button" style={primary} disabled={sessionBusy || otherBusy || sizeHint !== null} onClick={generateRandom}>
-                {sessionBusy ? `${t('generate.running', { seconds: elapsed })}${progressText === '' ? '' : ` · ${progressText}`}` : otherBusy ? t('generate.otherSession') : t('generate.random')}
+              <button type="button" style={primary} disabled={sizeHint !== null} onClick={generateRandom}>
+                {t('generate.random')}
               </button>
-              <button type="button" style={button} disabled={sessionBusy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>{t('generate.currentSeed')}</button>
-              {sessionBusy && activeGenerationRecordId !== null ? (
-                <button type="button" style={button} onClick={() => void cancelCurrentGeneration()}>{t('generate.cancel')}</button>
-              ) : null}
-              {running !== undefined && !sessionBusy ? <span style={{ fontSize: 11, ...dim }}>{t('generate.queued', { id: running.id.slice(-4) })}</span> : null}
-              {sessionBusy && progressPercent !== null ? (
-                <div
-                  role="progressbar"
-                  aria-label={t('generate.progressLabel')}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(progressPercent)}
-                  style={{ width: '100%', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.18))' }}
-                >
-                  <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))' }} />
-                </div>
-              ) : null}
-              {sessionBusy && progressText !== '' ? <span style={{ fontSize: 11, ...dim }}>{progressText}</span> : null}
+              <button type="button" style={button} disabled={sizeHint !== null} onClick={() => void runGenerate()}>{t('generate.currentSeed')}</button>
               {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{t('size.invalidNotSaved')}</span> : null}
             </div>
             {conflict ? (
@@ -1537,6 +1436,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
               shownRecordId={shownRecordId}
               shownHasImage={shownHasImage}
               shownRunning={shownRunning}
+              progress={shownProgress}
+              onCancel={cancelJob}
               imageBroken={imageBroken}
               onImageError={() => setImageBroken(true)}
               activeRecord={activeRecord}
@@ -1612,6 +1513,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
               shownRecordId={shownRecordId}
               shownHasImage={shownHasImage}
               shownRunning={shownRunning}
+              progress={shownProgress}
+              onCancel={cancelJob}
               imageBroken={imageBroken}
               onImageError={() => setImageBroken(true)}
               activeRecord={activeRecord}

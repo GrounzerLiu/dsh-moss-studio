@@ -192,6 +192,38 @@ test('generation reports sampler progress and queue position without failing the
   assert.ok(updates.some((entry) => entry.queuePosition === 1 && entry.queuePending === 1))
 })
 
+test('generation waits for the progress socket before submitting the prompt', async (t) => {
+  const order = []
+  let openSocket
+  const socketReady = new Promise((resolve) => { openSocket = resolve })
+  installFetch(t, async (input, init = {}) => {
+    const url = new URL(String(input))
+    if (url.pathname === '/system_stats') return json({ system: { comfyui_version: 'test' }, devices: [] })
+    if (url.pathname === '/prompt') {
+      order.push('submit')
+      return json({ prompt_id: 'prompt-1', number: 1 })
+    }
+    if (url.pathname === '/history/prompt-1') {
+      return json({ 'prompt-1': { status: { completed: true }, outputs: { '9': { images: [{ filename: 'x.png', subfolder: '', type: 'output' }] } } } })
+    }
+    if (url.pathname === '/view') return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'image/png' } })
+    throw new Error(`unexpected request ${url.pathname}`)
+  })
+
+  const running = runGeneration({
+    baseUrl: 'http://127.0.0.1:8188', template, params, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => {
+      order.push('socket')
+      return { close() {}, ready: socketReady }
+    },
+  })
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.deepEqual(order, ['socket'], 'submission waits for websocket readiness')
+  openSocket(true)
+  await running
+  assert.deepEqual(order, ['socket', 'submit'])
+})
+
 test('a non-cancellation execution failure does not interrupt another prompt', async (t) => {
   const requests = []
   installFetch(t, async (input, init = {}) => {

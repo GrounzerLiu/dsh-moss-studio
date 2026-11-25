@@ -154,6 +154,16 @@ records/<id>/image.png
 - 键盘：画布框和列表行可 Tab 聚焦，有 ARIA 名称/选择状态与焦点环；Enter/Space 选择、Shift 多选、方向键移动或导航、Delete 删除；原生按钮和输入框保留自身键盘行为。
 - 测试从 177 增至 181 项。
 
+## 0.8.0：多任务排队与独立进度
+
+- 生成按钮恢复为纯草稿操作：任务运行期间仍可点击，连续提交会创建多条记录并进入 ComfyUI 队列；宿主不再用单任务锁拒绝 `/generate`。
+- 宿主用 `jobs: Map<recordId, job>` 分别保存每个任务的 `AbortController` 与进度快照；`/state`、`/health` 返回 `generations[]`，旧单任务字段仅用于兼容旧客户端。
+- 每个 ComfyUI 端点共享一个 WebSocket，按消息中的 `prompt_id` 把 `progress` / `progress_state` 路由到对应任务；提交前等待 socket 就绪，避免丢失首批进度。
+- progress SSE 全局广播以匹配全局历史；draft/error 仍按会话过滤。
+- running 历史行与当前结果区显示百分比/步数或精确队列位置，并提供该记录自己的取消按钮；生成按钮上不再显示进度、取消或其他任务状态。
+- `/queue` 轮询明确区分 queued/running，任务已执行时不再误显示「排队」。
+- 测试从 192 增至 195 项，新增并发提交、独立取消、共享 WebSocket 按 prompt_id 路由与提交前等待 socket 就绪测试。
+
 ## 0.7.7：拖拽失效修复
 
 - 真实 Edge/CDP 复现后确认：手柄 focus 后立即 blur 会取消原生 `dragstart`，`mousedown.preventDefault()` 也会抑制拖拽。
@@ -206,14 +216,14 @@ records/<id>/image.png
 
 ## 第三批：细节打磨（10 条）
 
-- 失败记录可重试：结果区在 `failed` 记录上出现「重试」，用记录自身参数直接生成（不带 revision，语义是复现当时那份参数），等待逻辑与正常生成共用 `waitForCompletion()`。
+- 失败记录可重试：结果区在 `failed` 记录上出现「重试」，用记录自身参数直接生成（不带 revision，语义是复现当时那份参数）；0.8.0 起同样支持连续提交多条任务。
 - 删除二次确认：历史行第一次点击变成红底「确认删除记录」，鼠标移出或失焦即复位；结果区删除按钮 4 秒后自动复位。运行中的记录仍禁用删除。
 - 空状态分因：搜索无结果、只看本会话且为空、确实没有记录，三种文案分开。
-- 生成阶段可见：按钮显示 `生成中 12s · 排队`，阶段来自 SSE 的 progress 事件（探测 / 提交 / 排队 / 下载）。
+- 生成阶段可见：0.8.0 起进度移到对应历史行/结果区，显示采样百分比、步数或队列位置；生成按钮保持草稿操作，不被运行中任务禁用。
 - 看图可翻页：按当前列表顺序（有图记录，新→旧）计算相邻 id，顶栏与键盘 ← → 均可切换，边界禁用。
 - 下载命名：`downloadName()` 把提示词转成安全文件名（保留字母/数字/中文，最长 40 字符），例如 `海报-蓝圆与黄块-e887.png`。
 - SSE 按会话过滤：只有携带 `sessionId` 的事件流会丢掉其它会话的 `draft` 事件；记录与进度仍全局推送。
-- 忙碌会话可见：生成期间宿主记录 `runningSession`，`/health` 返回 `busySession`；别的会话占用时按钮禁用并显示「另一会话正在生成」。
+- 多任务状态：0.8.0 起 `/health` 与 `/state` 返回 `generations[]`；旧 `busySession`/`busyRecordId` 仅保留兼容，不再禁用生成按钮。
 - 记录带 `version: 1`：为后续结构迁移留锚点。
 - 清理死代码：删除 `settings()`、`saveSettings()`、`invalidateIndex()`、`imageStat()`，`settings.json` 不再被读写（设置走 `configEditor`）。
 

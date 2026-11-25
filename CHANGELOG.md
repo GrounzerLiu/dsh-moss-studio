@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.8.0
+
+Multiple queued generations and per-record progress controls.
+
+- Generate buttons are draft actions again: they stay enabled while jobs run,
+  and repeated clicks submit additional records to ComfyUI's queue.
+- The host tracks each record with its own `AbortController` and progress
+  snapshot instead of a single global pipeline lock. `/generate` no longer
+  returns 429 because another job is running.
+- One shared ComfyUI websocket per endpoint routes `progress` /
+  `progress_state` events by `prompt_id`, so concurrent jobs do not steal each
+  other's progress. Submission waits briefly for the socket to be ready.
+- `/state` and `/health` expose `generations[]`; the legacy single-job fields
+  remain for older clients. Progress SSE is global because history is global,
+  while draft and error events stay session-scoped.
+- Running history rows and the selected result show percentage/step count or
+  exact queue position, each with its own cancel action. Cancel is no longer
+  attached to the generate button.
+- Queue polling distinguishes `queued` from `running`; a running job no longer
+  falls back to the misleading “排队” label.
+
+Regression coverage grew from 192 to 195 tests, including concurrent host
+submissions, independent cancellation, shared-websocket prompt routing and the
+submit-after-socket-ready ordering.
+
 ## 0.7.7
 
 Fix native list dragging after the no-focus adjustment.

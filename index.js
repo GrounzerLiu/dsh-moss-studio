@@ -241,44 +241,40 @@ export function apply(ctx, rawConfig) {
     return healthCache.value
   }
 
-  let running = 0
-  let runningSession = null
-  let runningRecordId = null
-  let runningProgress = null
-  let activeController = null
-  const busy = () => running > 0
-  /** Which draft holds the pipeline, so another session can explain its wait. */
-  const busySession = () => runningSession
-  const busyRecordId = () => runningRecordId
-  const generationProgress = () => runningProgress === null ? null : { ...runningProgress }
+  const jobs = new Map()
+  const busy = () => jobs.size > 0
+  /** Legacy single-job fields remain for older clients; new clients use generations. */
+  const firstJob = () => jobs.values().next().value ?? null
+  const busySession = () => firstJob()?.sessionId ?? null
+  const busyRecordId = () => firstJob()?.recordId ?? null
+  const generationProgress = () => firstJob()?.progress ?? null
+  const generations = () => [...jobs.values()].map((job) => ({ ...job.progress, recordId: job.recordId, sessionId: job.sessionId }))
 
   /** Abort only the generation owned by this session/record. */
   function cancelGeneration({ sessionId, recordId } = {}) {
-    if (running === 0 || activeController === null) return false
-    if (typeof sessionId === 'string' && sessionId !== runningSession) return false
-    if (typeof recordId === 'string' && recordId !== runningRecordId) return false
+    if (typeof recordId !== 'string' || recordId === '') return false
+    const job = jobs.get(recordId)
+    if (job === undefined) return false
+    if (typeof sessionId === 'string' && sessionId !== job.sessionId) return false
     const error = new Error('已取消')
     error.name = 'AbortError'
-    activeController.abort(error)
+    job.controller.abort(error)
     return true
   }
 
   /** Run one generation and persist it as a record. Shared by tools and routes. */
   async function generate({ sessionId, params, signal, source = 'user', onCreated }) {
-    if (running > 0) throw new Error('上一次生成还在进行，请稍后再试')
-    running += 1
-    runningSession = sessionId
     const controller = new AbortController()
-    activeController = controller
     const forwardAbort = () => controller.abort(signal?.reason ?? new Error('已取消'))
     if (signal?.aborted === true) forwardAbort()
     else signal?.addEventListener?.('abort', forwardAbort, { once: true })
     let record
+    let job
     const startedAt = Date.now()
     try {
       record = await store.createRecord({ sessionId, params })
-      runningRecordId = record.id
-      runningProgress = { recordId: record.id, sessionId, phase: 'probe', elapsed: 0 }
+      job = { recordId: record.id, sessionId, controller, progress: { phase: 'probe', elapsed: 0 } }
+      jobs.set(record.id, job)
       onCreated?.(record)
       store.emit({ kind: 'progress', recordId: record.id, sessionId, phase: 'probe', source })
 
@@ -290,7 +286,7 @@ export function apply(ctx, rawConfig) {
         pollMs: config.pollMs,
         signal: controller.signal,
         onProgress: (progress) => {
-          runningProgress = { ...runningProgress, ...progress, recordId: record.id, sessionId }
+          job.progress = { ...job.progress, ...progress }
           store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source })
         },
       })
@@ -361,11 +357,7 @@ export function apply(ctx, rawConfig) {
       throw error
     } finally {
       signal?.removeEventListener?.('abort', forwardAbort)
-      running -= 1
-      runningSession = null
-      runningRecordId = null
-      runningProgress = null
-      activeController = null
+      if (job !== undefined) jobs.delete(job.recordId)
     }
   }
 
@@ -383,7 +375,7 @@ export function apply(ctx, rawConfig) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ROUTE_PREFIX,
-    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, generationProgress, health, settings: settingsForPanel, saveSettings }),
+    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, generationProgress, generations, health, settings: settingsForPanel, saveSettings }),
   }), 'moss-studio: routes')
 
   ctx.logger?.info?.(`moss-studio: 数据目录 ${config.dataDir}，ComfyUI ${config.comfyUrl}`)

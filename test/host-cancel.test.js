@@ -87,6 +87,7 @@ test('host cancellation interrupts the submitted ComfyUI job and releases the pi
     return res
   }
 
+  let recordId
   try {
     const started = await call('POST', '/plugins/dsh-moss-studio/generate', {
       sessionId: 's1',
@@ -94,7 +95,7 @@ test('host cancellation interrupts the submitted ComfyUI job and releases the pi
     })
     assert.equal(started.out.status, 202)
     assert.equal(typeof started.body.recordId, 'string')
-    const recordId = started.body.recordId
+    recordId = started.body.recordId
     await wait(80)
     assert.equal(remoteActive, true, 'the fake ComfyUI job is running')
 
@@ -124,12 +125,12 @@ test('host cancellation interrupts the submitted ComfyUI job and releases the pi
     assert.equal(remoteActive, false)
 
     const health = await call('GET', '/plugins/dsh-moss-studio/health')
-    assert.equal(health.body.busy, false, 'the host pipeline lock is released')
+    assert.equal(health.body.busy, false, 'the finished job leaves the active set')
     assert.equal(health.body.busySession, null)
     assert.equal(health.body.busyRecordId, null)
   } finally {
     if (remoteActive) {
-      await call('POST', '/plugins/dsh-moss-studio/generate/cancel', { sessionId: 's1' })
+      await call('POST', '/plugins/dsh-moss-studio/generate/cancel', { sessionId: 's1', recordId })
     }
     await new Promise((resolve) => server.close(resolve))
     await rm(root, { recursive: true, force: true })

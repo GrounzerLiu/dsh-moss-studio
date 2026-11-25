@@ -38,7 +38,7 @@ __export(client_exports, {
   createPlugin: () => createPlugin
 });
 module.exports = __toCommonJS(client_exports);
-var import_react15 = __toESM(require("react"), 1);
+var import_react16 = __toESM(require("react"), 1);
 
 // src/i18n.js
 var NS = "moss-studio";
@@ -143,6 +143,8 @@ var ZH = {
   "params.steps": "\u6B65\u6570",
   "phase.download": "\u4E0B\u8F7D",
   "phase.probe": "\u63A2\u6D4B",
+  "phase.queued": "\u6392\u961F\u4E2D",
+  "phase.running": "\u8FD0\u884C\u4E2D",
   "phase.submit": "\u63D0\u4EA4",
   "phase.wait": "\u6392\u961F",
   "preview.collapse": "\u6298\u53E0\u9884\u89C8",
@@ -376,6 +378,8 @@ var EN = {
   "params.steps": "Steps",
   "phase.download": "Downloading",
   "phase.probe": "Probing",
+  "phase.queued": "Queued",
+  "phase.running": "Running",
   "phase.submit": "Submitting",
   "phase.wait": "Queued",
   "preview.collapse": "Collapse preview",
@@ -547,7 +551,7 @@ function currentLocale() {
 }
 
 // src/App.jsx
-var import_react14 = __toESM(require("react"), 1);
+var import_react15 = __toESM(require("react"), 1);
 
 // src/api.js
 var PREFIX = "/plugins/dsh-moss-studio";
@@ -4518,7 +4522,7 @@ function useLocaleRevision() {
 }
 
 // src/ResultPane.jsx
-var import_react9 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 
 // src/format.js
 function gigabytes(bytes) {
@@ -4535,8 +4539,8 @@ function downloadName(recordId, prompt = "", maxChars = 40) {
   return slug === "" ? `moss-${suffix}.png` : `${slug}-${suffix}.png`;
 }
 
-// src/ResultPane.jsx
-var dim2 = { color: "var(--dsw-alias-label-secondary, inherit)" };
+// src/GenerationProgress.jsx
+var import_react9 = __toESM(require("react"), 1);
 var button2 = {
   padding: "2px 8px",
   fontSize: 11,
@@ -4546,8 +4550,49 @@ var button2 = {
   borderRadius: 6,
   cursor: "pointer"
 };
+function generationText(progress) {
+  if (progress === null || progress === void 0) return "";
+  const position = typeof progress.queuePosition === "number" && progress.queuePosition > 0 ? progress.queuePosition : null;
+  if (position !== null) {
+    return t("generate.queuePosition", { position, pending: progress.queuePending ?? position });
+  }
+  if (typeof progress.percent === "number" && Number.isFinite(progress.percent)) {
+    const percent = Math.min(100, Math.max(0, progress.percent));
+    return t("generate.percent", { percent: Math.round(percent), step: progress.step ?? "\u2014", maxStep: progress.maxStep ?? "\u2014" });
+  }
+  const phase = progress.phase ?? "wait";
+  return t(`phase.${phase}`);
+}
+function GenerationProgress({ progress, onCancel, compact = false }) {
+  if (progress === null || progress === void 0) return null;
+  const percent = typeof progress.percent === "number" && Number.isFinite(progress.percent) ? Math.min(100, Math.max(0, progress.percent)) : null;
+  return /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, minWidth: 0, width: compact ? void 0 : "100%" } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-label-secondary, inherit)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, generationText(progress)), !compact && percent !== null ? /* @__PURE__ */ import_react9.default.createElement(
+    "div",
+    {
+      role: "progressbar",
+      "aria-label": t("generate.progressLabel"),
+      "aria-valuemin": 0,
+      "aria-valuemax": 100,
+      "aria-valuenow": Math.round(percent),
+      style: { flex: 1, minWidth: 40, height: 4, borderRadius: 2, overflow: "hidden", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.18))" }
+    },
+    /* @__PURE__ */ import_react9.default.createElement("div", { style: { width: `${percent}%`, height: "100%", background: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } })
+  ) : null, typeof onCancel === "function" ? /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", "aria-label": t("generate.cancel"), title: t("generate.cancel"), style: { ...button2, padding: compact ? "1px 5px" : "2px 8px" }, onClick: onCancel }, compact ? /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "close", size: 12 }) : t("generate.cancel")) : null);
+}
+
+// src/ResultPane.jsx
+var dim2 = { color: "var(--dsw-alias-label-secondary, inherit)" };
+var button3 = {
+  padding: "2px 8px",
+  fontSize: 11,
+  color: "inherit",
+  background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.14))",
+  border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))",
+  borderRadius: 6,
+  cursor: "pointer"
+};
 var iconOnly2 = {
-  ...button2,
+  ...button3,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -4561,6 +4606,8 @@ function ResultPane({
   shownRecordId,
   shownHasImage,
   shownRunning,
+  progress,
+  onCancel,
   imageBroken,
   onImageError,
   activeRecord,
@@ -4572,7 +4619,7 @@ function ResultPane({
   error
 }) {
   const meta = activeRecord?.result ?? null;
-  const actions = /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.retryTitle"), "aria-label": t("result.retry"), onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.loadTitle"), "aria-label": t("result.load"), disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react9.default.createElement(
+  const actions = /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", gap: 2, flexShrink: 0 } }, activeRecord?.status === "failed" ? /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.retryTitle"), "aria-label": t("result.retry"), onClick: () => onRetry?.(activeRecord) }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "refresh", size: 14 })) : null, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: iconOnly2, title: t("result.loadTitle"), "aria-label": t("result.load"), disabled: activeRecord === null, onClick: onLoad }, /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "settings_backup_restore", size: 14 })), /* @__PURE__ */ import_react10.default.createElement(
     "button",
     {
       type: "button",
@@ -4582,8 +4629,8 @@ function ResultPane({
       disabled: activeRecordId === null,
       onClick: onRemove
     },
-    /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "delete", size: 14 })
-  ), shownRecordId !== null ? /* @__PURE__ */ import_react9.default.createElement(
+    /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "delete", size: 14 })
+  ), shownRecordId !== null ? /* @__PURE__ */ import_react10.default.createElement(
     "a",
     {
       href: imageUrl(shownRecordId),
@@ -4592,9 +4639,9 @@ function ResultPane({
       "aria-label": t("result.download"),
       style: { ...iconOnly2, textDecoration: "none" }
     },
-    /* @__PURE__ */ import_react9.default.createElement(Icon, { name: "download", size: 14 })
+    /* @__PURE__ */ import_react10.default.createElement(Icon, { name: "download", size: 14 })
   ) : null);
-  const image = /* @__PURE__ */ import_react9.default.createElement(
+  const image = /* @__PURE__ */ import_react10.default.createElement(
     "div",
     {
       onClick: () => {
@@ -4618,7 +4665,7 @@ function ResultPane({
         cursor: shownHasImage ? "zoom-in" : "default"
       }
     },
-    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react9.default.createElement(
+    shownRecordId !== null && shownHasImage && !imageBroken ? /* @__PURE__ */ import_react10.default.createElement(
       "img",
       {
         src: imageUrl(shownRecordId),
@@ -4633,18 +4680,18 @@ function ResultPane({
           display: "block"
         }
       }
-    ) : shownRunning ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, t("generate.pending", { id: shownRecordId.slice(-4) })) : /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t("result.imageFailed") : t("result.empty"))
+    ) : shownRunning ? /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 12, ...dim2 } }, t("generate.pending", { id: shownRecordId.slice(-4) })) : /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim2 } }, imageBroken ? t("result.imageFailed") : t("result.empty"))
   );
-  const metaLine = /* @__PURE__ */ import_react9.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? t("result.noSelection"), meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
+  const metaLine = /* @__PURE__ */ import_react10.default.createElement("span", { style: { fontSize: 11, ...dim2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, activeRecord?.id ?? t("result.noSelection"), meta !== null ? ` \xB7 ${meta.width}\xD7${meta.height} \xB7 ${meta.seconds}s \xB7 seed ${activeRecord?.params?.seed}` : "");
   if (orientation === "column") {
-    return /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react9.default.createElement("span", { style: { flex: 1 } }), actions), image, error !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
+    return /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 6, padding: 8 } }, /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } }, metaLine, /* @__PURE__ */ import_react10.default.createElement("span", { style: { flex: 1 } }), actions), shownRunning ? /* @__PURE__ */ import_react10.default.createElement(GenerationProgress, { progress, onCancel: shownRecordId === null ? void 0 : () => onCancel?.(shownRecordId) }) : null, image, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null);
   }
-  return /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react9.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? t("result.noSelection")), meta !== null ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react9.default.createElement("div", { style: { marginTop: 2 } }, actions), activeRecord?.error?.message ? /* @__PURE__ */ import_react9.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react9.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
+  return /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", height: "100%", minHeight: 0, gap: 8, padding: 8 } }, image, /* @__PURE__ */ import_react10.default.createElement("div", { style: { width: 168, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 11 } }, /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim2 } }, activeRecord?.id ?? t("result.noSelection")), meta !== null ? /* @__PURE__ */ import_react10.default.createElement("span", { style: { ...dim2 } }, meta.width, "\xD7", meta.height, " \xB7 ", meta.seconds, "s \xB7 seed ", activeRecord?.params?.seed) : null, /* @__PURE__ */ import_react10.default.createElement("div", { style: { marginTop: 2 } }, actions), shownRunning ? /* @__PURE__ */ import_react10.default.createElement(GenerationProgress, { progress, onCancel: shownRecordId === null ? void 0 : () => onCancel?.(shownRecordId) }) : null, activeRecord?.error?.message ? /* @__PURE__ */ import_react10.default.createElement("span", { style: { color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, activeRecord.error.message) : null, error !== "" ? /* @__PURE__ */ import_react10.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null));
 }
 
 // src/ConfirmDialog.jsx
-var import_react10 = __toESM(require("react"), 1);
-var button3 = {
+var import_react11 = __toESM(require("react"), 1);
+var button4 = {
   padding: "5px 14px",
   fontSize: 12,
   color: "inherit",
@@ -4654,17 +4701,17 @@ var button3 = {
   cursor: "pointer"
 };
 var danger = {
-  ...button3,
+  ...button4,
   background: "var(--dsw-alias-state-error-primary, #d9534f)",
   borderColor: "transparent",
   color: "#fff",
   fontWeight: 600
 };
 function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete"), onConfirm, onCancel }) {
-  const cardRef = (0, import_react10.useRef)(null);
-  const cancelRef = (0, import_react10.useRef)(null);
+  const cardRef = (0, import_react11.useRef)(null);
+  const cancelRef = (0, import_react11.useRef)(null);
   useDialogFocus(cardRef, { initialFocus: cancelRef });
-  (0, import_react10.useEffect)(() => {
+  (0, import_react11.useEffect)(() => {
     cancelRef.current?.focus();
     function onKey(event) {
       if (event.key === "Escape") onCancel();
@@ -4672,7 +4719,7 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
-  return /* @__PURE__ */ import_react10.default.createElement(
+  return /* @__PURE__ */ import_react11.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -4689,8 +4736,8 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete
         if (event.target === event.currentTarget) onCancel();
       }
     },
-    /* @__PURE__ */ import_react10.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react10.default.createElement(
+    /* @__PURE__ */ import_react11.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         ref: cardRef,
@@ -4708,8 +4755,8 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react10.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { padding: "12px 14px 4px", fontSize: 13 } }, title),
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { padding: "0 14px", lineHeight: 1.7 } }, /* @__PURE__ */ import_react11.default.createElement("div", null, message), detail !== void 0 && detail !== "" ? /* @__PURE__ */ import_react11.default.createElement(
         "div",
         {
           style: {
@@ -4725,13 +4772,13 @@ function ConfirmDialog({ title, message, detail, confirmLabel = t("action.delete
         },
         detail
       ) : null),
-      /* @__PURE__ */ import_react10.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", ref: cancelRef, style: button3, onClick: onCancel }, t("action.cancel")), /* @__PURE__ */ import_react10.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
+      /* @__PURE__ */ import_react11.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 6, padding: "12px 14px" } }, /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", ref: cancelRef, style: button4, onClick: onCancel }, t("action.cancel")), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: danger, onClick: onConfirm }, confirmLabel))
     )
   );
 }
 
 // src/SettingsDialog.jsx
-var import_react11 = __toESM(require("react"), 1);
+var import_react12 = __toESM(require("react"), 1);
 var row2 = { display: "flex", alignItems: "center", gap: 6 };
 var dim3 = { color: "var(--dsw-alias-label-secondary, inherit)" };
 var input2 = {
@@ -4746,7 +4793,7 @@ var input2 = {
   borderRadius: 6,
   fontFamily: "inherit"
 };
-var button4 = {
+var button5 = {
   padding: "4px 12px",
   fontSize: 12,
   color: "inherit",
@@ -4756,27 +4803,27 @@ var button4 = {
   cursor: "pointer"
 };
 var primary = {
-  ...button4,
+  ...button5,
   background: "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))",
   borderColor: "transparent",
   color: "var(--dsw-alias-button-primary-label, #0d120f)",
   fontWeight: 600
 };
 function SettingsDialog({ onClose, onSaved }) {
-  const [loading, setLoading] = (0, import_react11.useState)(true);
-  const [comfyUrl, setComfyUrl] = (0, import_react11.useState)("");
-  const [retention, setRetention] = (0, import_react11.useState)("0");
-  const [defaults, setDefaults] = (0, import_react11.useState)({ size: "1024x1024", steps: "25", cfg: "2.5", negative: "" });
-  const [editable, setEditable] = (0, import_react11.useState)(false);
-  const [wiring, setWiring] = (0, import_react11.useState)(null);
-  const [saving, setSaving] = (0, import_react11.useState)(false);
-  const [error, setError] = (0, import_react11.useState)("");
-  const [notice, setNotice] = (0, import_react11.useState)("");
-  const titleId = (0, import_react11.useId)();
-  const cardRef = (0, import_react11.useRef)(null);
-  const urlRef = (0, import_react11.useRef)(null);
+  const [loading, setLoading] = (0, import_react12.useState)(true);
+  const [comfyUrl, setComfyUrl] = (0, import_react12.useState)("");
+  const [retention, setRetention] = (0, import_react12.useState)("0");
+  const [defaults, setDefaults] = (0, import_react12.useState)({ size: "1024x1024", steps: "25", cfg: "2.5", negative: "" });
+  const [editable, setEditable] = (0, import_react12.useState)(false);
+  const [wiring, setWiring] = (0, import_react12.useState)(null);
+  const [saving, setSaving] = (0, import_react12.useState)(false);
+  const [error, setError] = (0, import_react12.useState)("");
+  const [notice, setNotice] = (0, import_react12.useState)("");
+  const titleId = (0, import_react12.useId)();
+  const cardRef = (0, import_react12.useRef)(null);
+  const urlRef = (0, import_react12.useRef)(null);
   useDialogFocus(cardRef, { initialFocus: urlRef, ready: !loading && editable });
-  (0, import_react11.useEffect)(() => {
+  (0, import_react12.useEffect)(() => {
     let alive = true;
     void (async () => {
       try {
@@ -4803,14 +4850,14 @@ function SettingsDialog({ onClose, onSaved }) {
       alive = false;
     };
   }, []);
-  (0, import_react11.useEffect)(() => {
+  (0, import_react12.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const save = (0, import_react11.useCallback)(async () => {
+  const save = (0, import_react12.useCallback)(async () => {
     setSaving(true);
     setError("");
     setNotice("");
@@ -4839,7 +4886,7 @@ function SettingsDialog({ onClose, onSaved }) {
       setSaving(false);
     }
   }, [comfyUrl, retention, defaults, onSaved]);
-  return /* @__PURE__ */ import_react11.default.createElement(
+  return /* @__PURE__ */ import_react12.default.createElement(
     "div",
     {
       className: "moss-studio",
@@ -4856,8 +4903,8 @@ function SettingsDialog({ onClose, onSaved }) {
         if (event.target === event.currentTarget) onClose();
       }
     },
-    /* @__PURE__ */ import_react11.default.createElement(ScopeStyles, null),
-    /* @__PURE__ */ import_react11.default.createElement(
+    /* @__PURE__ */ import_react12.default.createElement(ScopeStyles, null),
+    /* @__PURE__ */ import_react12.default.createElement(
       "div",
       {
         ref: cardRef,
@@ -4878,8 +4925,8 @@ function SettingsDialog({ onClose, onSaved }) {
           fontSize: 12
         }
       },
-      /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react11.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("settings.title")), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: { ...button4, padding: 4, border: "none", background: "transparent" }, "aria-label": t("settings.close"), title: t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react11.default.createElement(Icon, { name: "close", size: 16 }))),
-      /* @__PURE__ */ import_react11.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...dim3 } }, t("settings.loading")) : null, /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.comfyUrl")), /* @__PURE__ */ import_react11.default.createElement(
+      /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row2, justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react12.default.createElement("span", { id: titleId, style: { fontSize: 13 } }, t("settings.title")), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: { ...button5, padding: 4, border: "none", background: "transparent" }, "aria-label": t("settings.close"), title: t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react12.default.createElement(Icon, { name: "close", size: 16 }))),
+      /* @__PURE__ */ import_react12.default.createElement("div", { style: { padding: "10px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, loading ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...dim3 } }, t("settings.loading")) : null, /* @__PURE__ */ import_react12.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.comfyUrl")), /* @__PURE__ */ import_react12.default.createElement(
         "input",
         {
           ref: urlRef,
@@ -4896,7 +4943,7 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.comfyUrl"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "stretch", height: 30 }
         }
-      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? t("settings.comfyUrlHint") : t("settings.comfyUrlReadOnly"))), /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retention")), /* @__PURE__ */ import_react11.default.createElement(
+      ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, editable ? t("settings.comfyUrlHint") : t("settings.comfyUrlReadOnly"))), /* @__PURE__ */ import_react12.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retention")), /* @__PURE__ */ import_react12.default.createElement(
         "input",
         {
           type: "number",
@@ -4911,7 +4958,7 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.retentionAria"),
           style: { ...input2, flex: "0 0 auto", alignSelf: "flex-start", width: 120, height: 28 }
         }
-      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retentionHint"))), /* @__PURE__ */ import_react11.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.defaults")), /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("size.label")), /* @__PURE__ */ import_react11.default.createElement(
+      ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.retentionHint"))), /* @__PURE__ */ import_react12.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.defaults")), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("size.label")), /* @__PURE__ */ import_react12.default.createElement(
         "input",
         {
           value: defaults.size,
@@ -4920,7 +4967,7 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.defaultSize"),
           style: { ...input2, flex: "0 0 120px", width: 120 }
         }
-      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.defaultSizeHint"))), /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("params.steps")), /* @__PURE__ */ import_react11.default.createElement(
+      ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("settings.defaultSizeHint"))), /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row2, gap: 6 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 56 } }, t("params.steps")), /* @__PURE__ */ import_react12.default.createElement(
         "input",
         {
           type: "number",
@@ -4932,7 +4979,7 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.defaultSteps"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
-      ), /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react11.default.createElement(
+      ), /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 32 } }, "CFG"), /* @__PURE__ */ import_react12.default.createElement(
         "input",
         {
           type: "number",
@@ -4945,7 +4992,7 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.defaultCfg"),
           style: { ...input2, flex: "0 0 90px", width: 90 }
         }
-      )), /* @__PURE__ */ import_react11.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("params.negative")), /* @__PURE__ */ import_react11.default.createElement(
+      )), /* @__PURE__ */ import_react12.default.createElement("label", { style: { display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11 } }, t("params.negative")), /* @__PURE__ */ import_react12.default.createElement(
         "textarea",
         {
           value: defaults.negative,
@@ -4955,13 +5002,13 @@ function SettingsDialog({ onClose, onSaved }) {
           "aria-label": t("settings.defaultNegative"),
           style: { ...input2, flex: "0 0 auto", resize: "vertical", fontFamily: "inherit" }
         }
-      ))), wiring !== null ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.wiring")), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.dataDir"), value: wiring.dataDir }), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.workflow"), value: wiring.workflowPath }), /* @__PURE__ */ import_react11.default.createElement(ReadOnly, { label: t("settings.timeouts"), value: t("settings.timeoutValue", { seconds: Math.round((wiring.timeoutMs ?? 0) / 1e3), ms: wiring.pollMs ?? 0 }) })) : null, notice !== "" ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react11.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
-      /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: button4, onClick: onClose }, t("action.close")), /* @__PURE__ */ import_react11.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? t("status.saving") : t("action.save")))
+      ))), wiring !== null ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", paddingTop: 8, display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, ...dim3 } }, t("settings.wiring")), /* @__PURE__ */ import_react12.default.createElement(ReadOnly, { label: t("settings.dataDir"), value: wiring.dataDir }), /* @__PURE__ */ import_react12.default.createElement(ReadOnly, { label: t("settings.workflow"), value: wiring.workflowPath }), /* @__PURE__ */ import_react12.default.createElement(ReadOnly, { label: t("settings.timeouts"), value: t("settings.timeoutValue", { seconds: Math.round((wiring.timeoutMs ?? 0) / 1e3), ms: wiring.pollMs ?? 0 }) })) : null, notice !== "" ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-success-primary, #5fbf7f)" } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react12.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null),
+      /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row2, justifyContent: "flex-end", gap: 6, padding: "8px 12px", borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: button5, onClick: onClose }, t("action.close")), /* @__PURE__ */ import_react12.default.createElement("button", { type: "button", style: primary, disabled: !editable || saving, onClick: () => void save() }, saving ? t("status.saving") : t("action.save")))
     )
   );
 }
 function ReadOnly({ label: label2, value }) {
-  return /* @__PURE__ */ import_react11.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react11.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label2), /* @__PURE__ */ import_react11.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
+  return /* @__PURE__ */ import_react12.default.createElement("div", { style: { ...row2, alignItems: "baseline" } }, /* @__PURE__ */ import_react12.default.createElement("span", { style: { ...dim3, fontSize: 11, minWidth: 84 } }, label2), /* @__PURE__ */ import_react12.default.createElement("span", { style: { fontSize: 11, wordBreak: "break-all", opacity: 0.85 } }, value ?? "\u2014"));
 }
 
 // src/ui-prefs.js
@@ -5037,11 +5084,11 @@ function sizeProblem(width, height, widthText, heightText) {
 }
 
 // src/ImageViewer.jsx
-var import_react13 = __toESM(require("react"), 1);
+var import_react14 = __toESM(require("react"), 1);
 var import_react_dom2 = require("react-dom");
 
 // node_modules/react-zoom-pan-pinch/dist/index.esm.js
-var import_react12 = __toESM(require("react"));
+var import_react13 = __toESM(require("react"));
 var import_jsx_runtime = require("react/jsx-runtime");
 var roundNumber = function(num, decimal) {
   return Number(num.toFixed(decimal));
@@ -6479,7 +6526,7 @@ function mergeRefs(refs) {
     });
   };
 }
-var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react12.useLayoutEffect : import_react12.useEffect;
+var useIsomorphicLayoutEffect2 = typeof window !== "undefined" ? import_react13.useLayoutEffect : import_react13.useEffect;
 var KEYBOARD_KEYS = {
   panLeft: ["ArrowLeft"],
   panRight: ["ArrowRight"],
@@ -7749,37 +7796,37 @@ var ZoomPanPinch = (
     return ZoomPanPinch2;
   })()
 );
-var Context = import_react12.default.createContext(null);
+var Context = import_react13.default.createContext(null);
 var getContent = function(children, ctx) {
   if (typeof children === "function") {
     return children(ctx);
   }
   return children;
 };
-var TransformWrapper = import_react12.default.forwardRef(function(props, ref) {
-  var instanceRef = (0, import_react12.useRef)(null);
+var TransformWrapper = import_react13.default.forwardRef(function(props, ref) {
+  var instanceRef = (0, import_react13.useRef)(null);
   if (instanceRef.current === null) {
     instanceRef.current = new ZoomPanPinch(props);
   }
   var instance = instanceRef.current;
   var content = getContent(props.children, getControls(instance));
-  (0, import_react12.useImperativeHandle)(ref, function() {
+  (0, import_react13.useImperativeHandle)(ref, function() {
     return getControls(instance);
   }, [instance]);
-  (0, import_react12.useEffect)(function() {
+  (0, import_react13.useEffect)(function() {
     instance.mount();
     return function() {
       instance.unmount();
     };
   }, [instance]);
-  (0, import_react12.useEffect)(function() {
+  (0, import_react13.useEffect)(function() {
     instance.update(props);
   }, [instance, props]);
   return (0, import_jsx_runtime.jsx)(Context.Provider, __assign({ value: instance }, { children: content }));
 });
-var KeepScale = import_react12.default.forwardRef(function(props, ref) {
-  var localRef = (0, import_react12.useRef)(null);
-  var instance = (0, import_react12.useContext)(Context);
+var KeepScale = import_react13.default.forwardRef(function(props, ref) {
+  var localRef = (0, import_react13.useRef)(null);
+  var instance = (0, import_react13.useContext)(Context);
   useIsomorphicLayoutEffect2(function() {
     var applyInverseScale = function(scale) {
       if (localRef.current) {
@@ -7802,11 +7849,11 @@ var stylesheet = stylesheet$1;
 var TransformComponent = function(_a) {
   var _b;
   var children = _a.children, _c = _a.wrapperClass, wrapperClass = _c === void 0 ? "" : _c, _d = _a.contentClass, contentClass = _d === void 0 ? "" : _d, wrapperStyle = _a.wrapperStyle, contentStyle = _a.contentStyle, _e = _a.wrapperProps, wrapperProps = _e === void 0 ? {} : _e, _f = _a.contentProps, contentProps = _f === void 0 ? {} : _f, _g = _a.infinite, infinite = _g === void 0 ? false : _g, nonce = _a.nonce, _h = _a.disableStyleInjection, disableStyleInjection = _h === void 0 ? false : _h;
-  var instance = (0, import_react12.useContext)(Context);
+  var instance = (0, import_react13.useContext)(Context);
   var init = instance.init, cleanupWindowEvents = instance.cleanupWindowEvents;
-  var wrapperRef = (0, import_react12.useRef)(null);
-  var contentRef = (0, import_react12.useRef)(null);
-  var gridRef = (0, import_react12.useRef)(null);
+  var wrapperRef = (0, import_react13.useRef)(null);
+  var contentRef = (0, import_react13.useRef)(null);
+  var gridRef = (0, import_react13.useRef)(null);
   useIsomorphicLayoutEffect2(function() {
     var wrapper = wrapperRef.current;
     var content = contentRef.current;
@@ -7820,7 +7867,7 @@ var TransformComponent = function(_a) {
       cleanupWindowEvents === null || cleanupWindowEvents === void 0 ? void 0 : cleanupWindowEvents();
     };
   }, []);
-  (0, import_react12.useEffect)(function() {
+  (0, import_react13.useEffect)(function() {
     if (!infinite)
       return;
     var grid = gridRef.current;
@@ -7874,9 +7921,9 @@ function isElementVisible(opts) {
   var overlap = getOverlapArea(viewport, element);
   return overlap / elementArea >= threshold;
 }
-var Virtualize = import_react12.default.forwardRef(function(_a, ref) {
+var Virtualize = import_react13.default.forwardRef(function(_a, ref) {
   var x = _a.x, y = _a.y, width = _a.width, height = _a.height, _b = _a.margin, margin = _b === void 0 ? 0 : _b, _c = _a.threshold, threshold = _c === void 0 ? 0 : _c, _d = _a.placeholder, placeholder = _d === void 0 ? null : _d, onShow = _a.onShow, onHide = _a.onHide, children = _a.children, className = _a.className, style = _a.style;
-  var instance = (0, import_react12.useContext)(Context);
+  var instance = (0, import_react13.useContext)(Context);
   var computeVisible = function() {
     var wrapper = instance.wrapperComponent;
     if (!wrapper)
@@ -7895,10 +7942,10 @@ var Virtualize = import_react12.default.forwardRef(function(_a, ref) {
       threshold
     });
   };
-  var _e = (0, import_react12.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
-  var visibleRef = (0, import_react12.useRef)(false);
-  var onShowRef = (0, import_react12.useRef)(onShow);
-  var onHideRef = (0, import_react12.useRef)(onHide);
+  var _e = (0, import_react13.useState)(computeVisible), visible = _e[0], setVisible = _e[1];
+  var visibleRef = (0, import_react13.useRef)(false);
+  var onShowRef = (0, import_react13.useRef)(onShow);
+  var onHideRef = (0, import_react13.useRef)(onHide);
   onShowRef.current = onShow;
   onHideRef.current = onHide;
   useIsomorphicLayoutEffect2(function() {
@@ -7956,8 +8003,8 @@ var chromeIcon = {
   padding: 0
 };
 function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
-  const [scale, setScale] = (0, import_react13.useState)(1);
-  const zoomRef = (0, import_react13.useRef)(null);
+  const [scale, setScale] = (0, import_react14.useState)(1);
+  const zoomRef = (0, import_react14.useRef)(null);
   const zoomBy = (method) => {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api[method] === "function") api[method](0.2);
@@ -7966,7 +8013,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     const api = zoomRef.current;
     if (api !== null && api !== void 0 && typeof api.resetTransform === "function") api.resetTransform();
   };
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     function onKey(event) {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft" && prevId !== null && prevId !== void 0) onNavigate?.(prevId);
@@ -7975,11 +8022,11 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onNavigate, prevId, nextId]);
-  const onTransformed = (0, import_react13.useCallback)((ref) => {
+  const onTransformed = (0, import_react14.useCallback)((ref) => {
     const next = ref?.state?.scale;
     if (typeof next === "number") setScale(next);
   }, []);
-  const node = /* @__PURE__ */ import_react13.default.createElement(
+  const node = /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       role: "dialog",
@@ -8001,7 +8048,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
         isolation: "isolate"
       }
     },
-    /* @__PURE__ */ import_react13.default.createElement(
+    /* @__PURE__ */ import_react14.default.createElement(
       "div",
       {
         style: {
@@ -8016,7 +8063,7 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           overflow: "hidden"
         }
       },
-      /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react13.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t("viewer.hint")), /* @__PURE__ */ import_react13.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement(
+      /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0b0d0c" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, recordId), /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.65)" } }, Math.round(scale * 100), "%"), /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t("viewer.hint")), /* @__PURE__ */ import_react14.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           type: "button",
@@ -8026,8 +8073,8 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           disabled: prevId === null || prevId === void 0,
           onClick: () => onNavigate?.(prevId)
         },
-        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
-      ), /* @__PURE__ */ import_react13.default.createElement(
+        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "keyboard_arrow_left", size: 18 })
+      ), /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           type: "button",
@@ -8037,9 +8084,9 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           disabled: nextId === null || nextId === void 0,
           onClick: () => onNavigate?.(nextId)
         },
-        /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
-      )), /* @__PURE__ */ import_react13.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomOut"), "aria-label": t("viewer.zoomOut"), onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomIn"), "aria-label": t("viewer.zoomIn"), onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.fit"), "aria-label": t("viewer.fit"), onClick: fit }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react13.default.createElement("button", { type: "button", style: chromeIcon, title: t("action.close"), "aria-label": t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react13.default.createElement(Icon, { name: "close", size: 18 })))),
-      /* @__PURE__ */ import_react13.default.createElement(
+        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "keyboard_arrow_right", size: 18 })
+      )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomOut"), "aria-label": t("viewer.zoomOut"), onClick: () => zoomBy("zoomOut") }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "zoom_out", size: 18 })), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.zoomIn"), "aria-label": t("viewer.zoomIn"), onClick: () => zoomBy("zoomIn") }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "zoom_in", size: 18 })), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: chromeIcon, title: t("viewer.fit"), "aria-label": t("viewer.fit"), onClick: fit }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "fit_screen", size: 18 })), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: chromeIcon, title: t("action.close"), "aria-label": t("action.close"), onClick: onClose }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "close", size: 18 })))),
+      /* @__PURE__ */ import_react14.default.createElement(
         TransformWrapper,
         {
           minScale: 0.5,
@@ -8055,13 +8102,13 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
           onTransformed,
           ref: zoomRef
         },
-        () => /* @__PURE__ */ import_react13.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react13.default.createElement(
+        () => /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react14.default.createElement(
           TransformComponent,
           {
             wrapperStyle: { width: "100%", height: "100%" },
             contentStyle: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }
           },
-          /* @__PURE__ */ import_react13.default.createElement(
+          /* @__PURE__ */ import_react14.default.createElement(
             "img",
             {
               src: imageUrl(recordId),
@@ -8080,7 +8127,6 @@ function ImageViewer({ recordId, onClose, onNavigate, prevId, nextId }) {
 
 // src/App.jsx
 var POLL_MS = 1500;
-var PHASE_KEY = { probe: "phase.probe", submit: "phase.submit", wait: "phase.wait", download: "phase.download" };
 var SAVE_DELAY_MS = 500;
 var panel = {
   display: "flex",
@@ -8109,7 +8155,7 @@ var input3 = {
   borderRadius: 6,
   fontFamily: "inherit"
 };
-var button5 = {
+var button6 = {
   padding: "4px 10px",
   fontSize: 12,
   color: "inherit",
@@ -8119,15 +8165,15 @@ var button5 = {
   cursor: "pointer"
 };
 var primary2 = {
-  ...button5,
+  ...button6,
   background: "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))",
   borderColor: "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))",
   color: "var(--dsw-alias-label-primary-inverted, #0d120f)",
   fontWeight: 600
 };
-var iconButton2 = { ...button5, padding: "2px 8px", fontSize: 11 };
+var iconButton2 = { ...button6, padding: "2px 8px", fontSize: 11 };
 var iconOnly3 = {
-  ...button5,
+  ...button6,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -8143,11 +8189,11 @@ var rowAction = {
   background: "var(--dsw-alias-bg-layer-2, rgba(40,42,40,0.96))",
   boxShadow: "0 1px 4px rgba(0,0,0,0.35)"
 };
-function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
-  const [hovered, setHovered] = (0, import_react14.useState)(false);
-  const [focused, setFocused] = (0, import_react14.useState)(false);
+function HistoryRow({ record, active, progress, onSelect, onDelete, onPin, onArchive, onCancel }) {
+  const [hovered, setHovered] = (0, import_react15.useState)(false);
+  const [focused, setFocused] = (0, import_react15.useState)(false);
   const revealed = hovered || focused;
-  return /* @__PURE__ */ import_react14.default.createElement(
+  return /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       role: "group",
@@ -8181,7 +8227,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
         opacity: record.archived ? 0.55 : 1
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(
       "span",
       {
         style: {
@@ -8197,10 +8243,10 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           ...record.hasImage ? {} : dim4
         }
       },
-      record.hasImage ? /* @__PURE__ */ import_react14.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
+      record.hasImage ? /* @__PURE__ */ import_react15.default.createElement("img", { src: imageUrl(record.id), alt: "", loading: "lazy", style: { width: "100%", height: "100%", objectFit: "cover" } }) : record.status
     ),
-    /* @__PURE__ */ import_react14.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? t("history.noPrompt") : record.prompt), /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", t("history.boxCount", { count: record.boxCount })), /* @__PURE__ */ import_react14.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status)),
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement("span", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { display: "block", fontSize: 11, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, record.prompt === "" ? t("history.noPrompt") : record.prompt), /* @__PURE__ */ import_react15.default.createElement("span", { style: { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...dim4 } }, timeOf(record.createdAt), " \xB7 ", record.size, " \xB7 ", t("history.boxCount", { count: record.boxCount })), /* @__PURE__ */ import_react15.default.createElement("span", { style: { display: "block", fontSize: 10, ...dim4 } }, record.status === "done" ? `${record.seconds}s` : record.status), record.status === "running" && progress !== void 0 ? /* @__PURE__ */ import_react15.default.createElement("span", { style: { display: "block", marginTop: 2 }, onClick: (event) => event.stopPropagation() }, /* @__PURE__ */ import_react15.default.createElement(GenerationProgress, { progress, compact: true, onCancel: () => onCancel?.(record.id) })) : null),
+    /* @__PURE__ */ import_react15.default.createElement(
       "div",
       {
         style: {
@@ -8214,7 +8260,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
           transition: "opacity 120ms ease"
         }
       },
-      /* @__PURE__ */ import_react14.default.createElement(
+      /* @__PURE__ */ import_react15.default.createElement(
         "button",
         {
           type: "button",
@@ -8226,9 +8272,9 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onPin?.(record);
           }
         },
-        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
+        /* @__PURE__ */ import_react15.default.createElement(Icon, { name: record.pinned ? "keep_off" : "push_pin", size: 14 })
       ),
-      /* @__PURE__ */ import_react14.default.createElement(
+      /* @__PURE__ */ import_react15.default.createElement(
         "button",
         {
           type: "button",
@@ -8240,9 +8286,9 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onArchive?.(record);
           }
         },
-        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
+        /* @__PURE__ */ import_react15.default.createElement(Icon, { name: record.archived ? "unarchive" : "archive", size: 14 })
       ),
-      /* @__PURE__ */ import_react14.default.createElement(
+      /* @__PURE__ */ import_react15.default.createElement(
         "button",
         {
           type: "button",
@@ -8255,7 +8301,7 @@ function HistoryRow({ record, active, onSelect, onDelete, onPin, onArchive }) {
             onDelete(record.id);
           }
         },
-        /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "delete", size: 14 })
+        /* @__PURE__ */ import_react15.default.createElement(Icon, { name: "delete", size: 14 })
       )
     )
   );
@@ -8271,67 +8317,62 @@ function toCharacterSet(value) {
 }
 function StudioPanel({ sessionId = "global", wide = false }) {
   useLocaleRevision();
-  const [params, setParams] = (0, import_react14.useState)(null);
-  const [records, setRecords] = (0, import_react14.useState)([]);
-  const [activeRecordId, setActiveRecordId] = (0, import_react14.useState)(null);
-  const [activeRecord, setActiveRecord] = (0, import_react14.useState)(null);
-  const [notice, setNotice] = (0, import_react14.useState)("");
-  const [error, setError] = (0, import_react14.useState)("");
-  const [saving, setSaving] = (0, import_react14.useState)(false);
-  const [busy, setBusy] = (0, import_react14.useState)(false);
-  const [generationRecordId, setGenerationRecordId] = (0, import_react14.useState)(null);
-  const [elapsed, setElapsed] = (0, import_react14.useState)(0);
-  const [phase, setPhase] = (0, import_react14.useState)("");
-  const [progress, setProgress] = (0, import_react14.useState)(null);
-  const [flagLocalOnly, setLocalOnly] = (0, import_react14.useState)(false);
-  const [query, setQuery] = (0, import_react14.useState)("");
-  const [showArchived, setShowArchived] = (0, import_react14.useState)(false);
-  const [comfy, setComfy] = (0, import_react14.useState)(null);
-  const [settingsOpen, setSettingsOpen] = (0, import_react14.useState)(false);
-  const [pendingDelete, setPendingDelete] = (0, import_react14.useState)(null);
-  const [queue, setQueue] = (0, import_react14.useState)({ busy: false, sessionId: null });
-  const [pinnedRecords, setPinnedRecords] = (0, import_react14.useState)([]);
-  const [pinnedTruncated, setPinnedTruncated] = (0, import_react14.useState)(false);
-  const [matches, setMatches] = (0, import_react14.useState)(null);
-  const [older, setOlder] = (0, import_react14.useState)([]);
-  const [nextBefore, setNextBefore] = (0, import_react14.useState)(void 0);
-  const [loadingMore, setLoadingMore] = (0, import_react14.useState)(false);
-  const historyRef = (0, import_react14.useRef)(null);
-  const [showCanvas, setShowCanvas] = (0, import_react14.useState)(true);
-  const [zoom, setZoom] = (0, import_react14.useState)(false);
-  const openViewer = (0, import_react14.useCallback)(() => setZoom(true), []);
-  const [editorOpen, setEditorOpen] = (0, import_react14.useState)(false);
-  const initialUiRef = (0, import_react14.useRef)(null);
+  const [params, setParams] = (0, import_react15.useState)(null);
+  const [records, setRecords] = (0, import_react15.useState)([]);
+  const [activeRecordId, setActiveRecordId] = (0, import_react15.useState)(null);
+  const [activeRecord, setActiveRecord] = (0, import_react15.useState)(null);
+  const [notice, setNotice] = (0, import_react15.useState)("");
+  const [error, setError] = (0, import_react15.useState)("");
+  const [saving, setSaving] = (0, import_react15.useState)(false);
+  const [generations, setGenerations] = (0, import_react15.useState)({});
+  const [flagLocalOnly, setLocalOnly] = (0, import_react15.useState)(false);
+  const [query, setQuery] = (0, import_react15.useState)("");
+  const [showArchived, setShowArchived] = (0, import_react15.useState)(false);
+  const [comfy, setComfy] = (0, import_react15.useState)(null);
+  const [settingsOpen, setSettingsOpen] = (0, import_react15.useState)(false);
+  const [pendingDelete, setPendingDelete] = (0, import_react15.useState)(null);
+  const [pinnedRecords, setPinnedRecords] = (0, import_react15.useState)([]);
+  const [pinnedTruncated, setPinnedTruncated] = (0, import_react15.useState)(false);
+  const [matches, setMatches] = (0, import_react15.useState)(null);
+  const [older, setOlder] = (0, import_react15.useState)([]);
+  const [nextBefore, setNextBefore] = (0, import_react15.useState)(void 0);
+  const [loadingMore, setLoadingMore] = (0, import_react15.useState)(false);
+  const historyRef = (0, import_react15.useRef)(null);
+  const [showCanvas, setShowCanvas] = (0, import_react15.useState)(true);
+  const [zoom, setZoom] = (0, import_react15.useState)(false);
+  const openViewer = (0, import_react15.useCallback)(() => setZoom(true), []);
+  const [editorOpen, setEditorOpen] = (0, import_react15.useState)(false);
+  const initialUiRef = (0, import_react15.useRef)(null);
   if (initialUiRef.current === null) initialUiRef.current = loadUiPrefs();
   const initialUi = initialUiRef.current;
-  const [resultHeight, setResultHeight] = (0, import_react14.useState)(initialUi.resultHeight);
-  const [resultCollapsed, setResultCollapsed] = (0, import_react14.useState)(initialUi.resultCollapsed);
-  const [historyWidth, setHistoryWidth] = (0, import_react14.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
-  const [historyResizing, setHistoryResizing] = (0, import_react14.useState)(false);
-  const [historyOpen, setHistoryOpen] = (0, import_react14.useState)(wide ? initialUi.historyOpen.wide : initialUi.historyOpen.narrow);
-  const [promptHeight, setPromptHeight] = (0, import_react14.useState)(initialUi.promptHeight);
-  const promptRef = (0, import_react14.useRef)(null);
-  const historyResizeRef = (0, import_react14.useRef)(null);
-  const [resizing, setResizing] = (0, import_react14.useState)(false);
-  const resizeRef = (0, import_react14.useRef)(null);
-  const revisionRef = (0, import_react14.useRef)(0);
-  const [revision, setRevision] = (0, import_react14.useState)(0);
-  const dirtyRef = (0, import_react14.useRef)(false);
-  const saveTimer = (0, import_react14.useRef)(null);
-  const pendingPatchRef = (0, import_react14.useRef)({});
-  const savingRef = (0, import_react14.useRef)(false);
-  const savePromiseRef = (0, import_react14.useRef)(null);
-  const conflictRef = (0, import_react14.useRef)(false);
-  const [conflict, setConflict] = (0, import_react14.useState)(false);
-  const conflictParamsRef = (0, import_react14.useRef)(null);
-  const latestServerRef = (0, import_react14.useRef)(null);
-  const localEpochRef = (0, import_react14.useRef)(0);
-  const paramsRef = (0, import_react14.useRef)(null);
-  const editorSnapshot = (0, import_react14.useRef)(null);
-  const pinnedRef = (0, import_react14.useRef)(false);
-  const [imageBroken, setImageBroken] = (0, import_react14.useState)(false);
+  const [resultHeight, setResultHeight] = (0, import_react15.useState)(initialUi.resultHeight);
+  const [resultCollapsed, setResultCollapsed] = (0, import_react15.useState)(initialUi.resultCollapsed);
+  const [historyWidth, setHistoryWidth] = (0, import_react15.useState)(wide ? initialUi.historyWidth.wide : initialUi.historyWidth.narrow);
+  const [historyResizing, setHistoryResizing] = (0, import_react15.useState)(false);
+  const [historyOpen, setHistoryOpen] = (0, import_react15.useState)(wide ? initialUi.historyOpen.wide : initialUi.historyOpen.narrow);
+  const [promptHeight, setPromptHeight] = (0, import_react15.useState)(initialUi.promptHeight);
+  const promptRef = (0, import_react15.useRef)(null);
+  const historyResizeRef = (0, import_react15.useRef)(null);
+  const [resizing, setResizing] = (0, import_react15.useState)(false);
+  const resizeRef = (0, import_react15.useRef)(null);
+  const revisionRef = (0, import_react15.useRef)(0);
+  const [revision, setRevision] = (0, import_react15.useState)(0);
+  const dirtyRef = (0, import_react15.useRef)(false);
+  const saveTimer = (0, import_react15.useRef)(null);
+  const pendingPatchRef = (0, import_react15.useRef)({});
+  const savingRef = (0, import_react15.useRef)(false);
+  const savePromiseRef = (0, import_react15.useRef)(null);
+  const conflictRef = (0, import_react15.useRef)(false);
+  const [conflict, setConflict] = (0, import_react15.useState)(false);
+  const conflictParamsRef = (0, import_react15.useRef)(null);
+  const latestServerRef = (0, import_react15.useRef)(null);
+  const localEpochRef = (0, import_react15.useRef)(0);
+  const paramsRef = (0, import_react15.useRef)(null);
+  const editorSnapshot = (0, import_react15.useRef)(null);
+  const pinnedRef = (0, import_react15.useRef)(false);
+  const [imageBroken, setImageBroken] = (0, import_react15.useState)(false);
   paramsRef.current = params;
-  const applyServerState = (0, import_react14.useCallback)((state) => {
+  const applyServerState = (0, import_react15.useCallback)((state) => {
     if (!dirtyRef.current) {
       revisionRef.current = state.revision;
       paramsRef.current = state.params;
@@ -8339,12 +8380,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }
     setRevision(state.revision);
     latestServerRef.current = { revision: state.revision, params: state.params };
-    setProgress(state.generation?.sessionId === sessionId ? state.generation.progress ?? null : null);
-    setQueue({
-      busy: state.generation !== null && state.generation !== void 0,
-      sessionId: state.generation?.sessionId ?? null,
-      recordId: state.generation?.recordId ?? null
-    });
+    setGenerations(Object.fromEntries((state.generations ?? []).map((entry) => [entry.recordId, entry])));
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
@@ -8356,7 +8392,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setActiveRecordId((current) => current === target ? current : target);
     }
   }, [sessionId]);
-  const refresh = (0, import_react14.useCallback)(async () => {
+  const refresh = (0, import_react15.useCallback)(async () => {
     try {
       const state = await fetchState(sessionId, 40, showArchived);
       applyServerState(state);
@@ -8365,28 +8401,27 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [sessionId, applyServerState, showArchived]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     void refresh();
   }, [refresh]);
-  const checkHealth = (0, import_react14.useCallback)(async () => {
+  const checkHealth = (0, import_react15.useCallback)(async () => {
     try {
       const health = await fetchHealth();
       setComfy(health.comfy ?? { ok: false });
-      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null, recordId: health.busyRecordId ?? null });
-      setProgress(health.busy === true && health.busySession === sessionId ? health.progress ?? null : null);
+      setGenerations(Object.fromEntries((health.generations ?? []).map((entry) => [entry.recordId, entry])));
     } catch {
       setComfy({ ok: false });
     }
-  }, [sessionId]);
-  (0, import_react14.useEffect)(() => {
+  }, []);
+  (0, import_react15.useEffect)(() => {
     void checkHealth();
     const timer = setInterval(() => {
       void checkHealth();
     }, 5e3);
     return () => clearInterval(timer);
   }, [checkHealth]);
-  const [pushed, setPushed] = (0, import_react14.useState)(() => typeof EventSource === "function");
-  (0, import_react14.useEffect)(() => {
+  const [pushed, setPushed] = (0, import_react15.useState)(() => typeof EventSource === "function");
+  (0, import_react15.useEffect)(() => {
     if (!pushed) {
       const timer = setInterval(() => {
         void refresh();
@@ -8416,10 +8451,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         } catch {
         }
         if (payload?.kind === "progress" && typeof payload.phase === "string") {
-          if (payload.sessionId === void 0 || payload.sessionId === sessionId) {
-            setPhase(payload.phase);
-            setProgress(payload);
-            setQueue({ busy: true, sessionId: payload.sessionId ?? sessionId, recordId: payload.recordId ?? null });
+          if (typeof payload.recordId === "string" && payload.recordId !== "") {
+            setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }));
           }
         }
         if (payload?.kind === "error" && typeof payload.message === "string") {
@@ -8450,18 +8483,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       source?.close();
     };
   }, [pushed, sessionId, refresh]);
-  (0, import_react14.useEffect)(() => {
-    const externalBusy = queue.busy && queue.sessionId === sessionId;
-    if (!busy && !externalBusy) {
-      setElapsed(0);
-      setPhase("");
-      return void 0;
-    }
-    const started = Date.now();
-    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1e3)), 500);
-    return () => clearInterval(timer);
-  }, [busy, queue.busy, queue.sessionId, sessionId]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     saveUiPrefs({
       resultHeight,
       resultCollapsed,
@@ -8470,7 +8492,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       historyWidth: wide ? { ...loadUiPrefs().historyWidth, wide: historyWidth } : { ...loadUiPrefs().historyWidth, narrow: historyWidth }
     });
   }, [resultHeight, resultCollapsed, historyWidth, historyOpen, promptHeight, wide]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     const element = promptRef.current;
     if (element === null || typeof ResizeObserver === "undefined") return void 0;
     const observer = new ResizeObserver((entries) => {
@@ -8482,7 +8504,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     if (!historyResizing) return void 0;
     function onMove(event) {
       const drag = historyResizeRef.current;
@@ -8500,7 +8522,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [historyResizing]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     if (!resizing) return void 0;
     function onMove(event) {
       const drag = resizeRef.current;
@@ -8519,7 +8541,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       window.removeEventListener("pointerup", onUp);
     };
   }, [resizing]);
-  const flush = (0, import_react14.useCallback)(async () => {
+  const flush = (0, import_react15.useCallback)(async () => {
     if (saveTimer.current !== null) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
@@ -8583,12 +8605,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setSaving(false);
     }
   }, [sessionId]);
-  const flushAll = (0, import_react14.useCallback)(async () => {
+  const flushAll = (0, import_react15.useCallback)(async () => {
     let saved = await flush();
     while (saved && Object.keys(pendingPatchRef.current).length > 0) saved = await flush();
     return saved;
   }, [flush]);
-  const adoptServerDraft = (0, import_react14.useCallback)(() => {
+  const adoptServerDraft = (0, import_react15.useCallback)(() => {
     const server = latestServerRef.current?.params ?? conflictParamsRef.current;
     if (server === null || server === void 0) return;
     if (saveTimer.current !== null) {
@@ -8608,7 +8630,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setError("");
     setNotice(t("notice.serverDraftAdopted"));
   }, []);
-  const overwriteServerDraft = (0, import_react14.useCallback)(async () => {
+  const overwriteServerDraft = (0, import_react15.useCallback)(async () => {
     if (!conflictRef.current) return;
     conflictRef.current = false;
     conflictParamsRef.current = null;
@@ -8620,7 +8642,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const saved = await flushAll();
     if (saved) setNotice(t("notice.localDraftSaved"));
   }, [flushAll]);
-  const update = (0, import_react14.useCallback)((patch) => {
+  const update = (0, import_react15.useCallback)((patch) => {
     const next = { ...paramsRef.current ?? {}, ...patch };
     paramsRef.current = next;
     setParams(next);
@@ -8632,7 +8654,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       void flush();
     }, SAVE_DELAY_MS);
   }, [flush]);
-  const replaceDraft = (0, import_react14.useCallback)((next, message) => {
+  const replaceDraft = (0, import_react15.useCallback)((next, message) => {
     paramsRef.current = next;
     setParams(next);
     pendingPatchRef.current = { ...next };
@@ -8647,17 +8669,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }, SAVE_DELAY_MS);
     if (message !== void 0) setNotice(message);
   }, [flush]);
-  const [widthText, setWidthText] = (0, import_react14.useState)("1024");
-  const [heightText, setHeightText] = (0, import_react14.useState)("1024");
-  const [sizeHint, setSizeHint] = (0, import_react14.useState)(null);
-  (0, import_react14.useEffect)(() => {
+  const [widthText, setWidthText] = (0, import_react15.useState)("1024");
+  const [heightText, setHeightText] = (0, import_react15.useState)("1024");
+  const [sizeHint, setSizeHint] = (0, import_react15.useState)(null);
+  (0, import_react15.useEffect)(() => {
     const parts = String(params?.size ?? "").split("x");
     if (parts.length !== 2) return;
     setWidthText(parts[0]);
     setHeightText(parts[1]);
     setSizeHint(null);
   }, [params?.size]);
-  const commitSize = (0, import_react14.useCallback)((widthSource, heightSource) => {
+  const commitSize = (0, import_react15.useCallback)((widthSource, heightSource) => {
     const width = Number(widthSource);
     const height = Number(heightSource);
     const problem = sizeProblem(width, height, widthSource, heightSource);
@@ -8669,7 +8691,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const next = formatSize(width, height);
     if (next !== paramsRef.current?.size) update({ size: next });
   }, [update]);
-  const addBox = (0, import_react14.useCallback)((geometry) => {
+  const addBox = (0, import_react15.useCallback)((geometry) => {
     const current = paramsRef.current ?? {};
     const boxes2 = [...current.boxes ?? []];
     boxes2.push(geometry === void 0 ? defaultBox() : { ...defaultBox(), ...geometry });
@@ -8677,64 +8699,34 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setShowCanvas(true);
     return { index: boxes2.length - 1, boxes: boxes2, characters: current.characterBoxes ?? "" };
   }, [update]);
-  const applyBoxes = (0, import_react14.useCallback)((nextBoxes, characters) => {
+  const applyBoxes = (0, import_react15.useCallback)((nextBoxes, characters) => {
     const patch = { boxes: nextBoxes };
     if (characters !== void 0) patch.characterBoxes = characters;
     update(patch);
   }, [update]);
-  const newDraft = (0, import_react14.useCallback)(() => {
+  const newDraft = (0, import_react15.useCallback)(() => {
     update({ prompt: "", boxes: [], seed: -1, characterBoxes: "", enhance: false });
     setNotice(t("notice.newDraft"));
   }, [update]);
-  const openEditor = (0, import_react14.useCallback)(() => {
+  const openEditor = (0, import_react15.useCallback)(() => {
     editorSnapshot.current = structuredClone(paramsRef.current ?? {});
     setZoom(false);
     setEditorOpen(true);
   }, []);
-  const closeEditor = (0, import_react14.useCallback)(() => setEditorOpen(false), []);
-  const cancelEditor = (0, import_react14.useCallback)(() => {
+  const closeEditor = (0, import_react15.useCallback)(() => setEditorOpen(false), []);
+  const cancelEditor = (0, import_react15.useCallback)(() => {
     const snapshot = editorSnapshot.current;
     setEditorOpen(false);
     if (snapshot === null) return;
     replaceDraft(snapshot, t("notice.layoutReverted"));
   }, [replaceDraft]);
-  const waitForCompletion = (0, import_react14.useCallback)(async (recordId) => {
-    const started = Date.now();
-    while (Date.now() - started < 6e5) {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      const state = await fetchState(sessionId);
-      applyServerState(state);
-      const record = typeof recordId === "string" ? state.records.find((entry) => entry.id === recordId) : state.records.find((entry) => entry.sessionId === sessionId && entry.status === "running") ?? state.records.find((entry) => entry.sessionId === sessionId);
-      if (record !== void 0 && record.status !== "running") {
-        if (record.status === "failed") {
-          if (record.error?.message === "\u5DF2\u53D6\u6D88") {
-            setError("");
-            setNotice(t("notice.generationCancelled"));
-          } else {
-            setError(record.error?.message ?? t("error.generation"));
-            setNotice("");
-          }
-        } else {
-          pinnedRef.current = false;
-          setImageBroken(false);
-          setActiveRecordId(record.id);
-          setNotice(t("notice.generationDone", { width: record.width, height: record.height, seconds: record.seconds }));
-        }
-        return;
-      }
-    }
-    setNotice(t("notice.generationTimeout"));
-  }, [sessionId, applyServerState]);
-  const runGenerate = (0, import_react14.useCallback)(async () => {
-    if (busy) return;
+  const runGenerate = (0, import_react15.useCallback)(async () => {
     const problem = boxesProblem(paramsRef.current?.boxes);
     if (problem !== void 0) {
       setError(problem.reason === "count" ? t("error.tooManyBoxes", { max: MAX_BOXES }) : t(problem.reason === "text" ? "error.emptyText" : "error.emptyDesc", { index: problem.index + 1 }));
       setNotice("");
       return;
     }
-    setBusy(true);
-    setProgress({ phase: "submit", elapsed: 0 });
     setError("");
     setNotice(t("notice.generationSubmitted"));
     try {
@@ -8749,29 +8741,20 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setNotice(t("notice.draftChanged"));
         return;
       }
-      if (status === 429) {
-        setNotice(t("notice.generationBusy"));
-        return;
-      }
       if (status !== 202) {
         setError(body?.message ?? t("error.generateRequest", { status }));
         return;
       }
-      setGenerationRecordId(body.recordId ?? null);
-      await waitForCompletion(body.recordId);
+      if (typeof body.recordId === "string") {
+        setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: "queued", elapsed: 0 } }));
+        setActiveRecordId(body.recordId);
+      }
     } catch (problem2) {
       setError(problem2 instanceof Error ? problem2.message : String(problem2));
-    } finally {
-      setBusy(false);
-      setGenerationRecordId(null);
-      setProgress(null);
     }
-  }, [busy, flushAll, sessionId, waitForCompletion]);
-  const cancelCurrentGeneration = (0, import_react14.useCallback)(async () => {
-    const sameSessionBusy = queue.busy && queue.sessionId === sessionId;
-    if (!busy && !sameSessionBusy) return;
-    const recordId = generationRecordId ?? queue.recordId ?? null;
-    if (recordId === null) return;
+  }, [flushAll, sessionId]);
+  const cancelJob = (0, import_react15.useCallback)(async (recordId) => {
+    if (typeof recordId !== "string" || recordId === "") return;
     try {
       const { status, body } = await cancelGeneration(sessionId, recordId);
       if (status !== 200) {
@@ -8782,40 +8765,32 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
-  }, [busy, generationRecordId, queue, sessionId]);
-  const retryRecord = (0, import_react14.useCallback)(async (record) => {
-    if (busy || record === null || record === void 0) return;
-    setBusy(true);
-    setProgress({ phase: "submit", elapsed: 0 });
+  }, [sessionId]);
+  const retryRecord = (0, import_react15.useCallback)(async (record) => {
+    if (record === null || record === void 0) return;
     setError("");
     setNotice(t("notice.retrySubmitted"));
     try {
       const { status, body } = await generate(sessionId, void 0, record.params);
-      if (status === 429) {
-        setNotice(t("notice.generationBusy"));
-        return;
-      }
       if (status !== 202) {
         setError(body?.message ?? t("error.retry", { status }));
         return;
       }
-      setGenerationRecordId(body.recordId ?? null);
-      await waitForCompletion(body.recordId);
+      if (typeof body.recordId === "string") {
+        setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: "queued", elapsed: 0 } }));
+        setActiveRecordId(body.recordId);
+      }
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
-    } finally {
-      setBusy(false);
-      setGenerationRecordId(null);
-      setProgress(null);
     }
-  }, [busy, sessionId, waitForCompletion]);
-  const generateRandom = (0, import_react14.useCallback)(() => {
+  }, [sessionId]);
+  const generateRandom = (0, import_react15.useCallback)(() => {
     update({ seed: -1 });
     setTimeout(() => {
       void runGenerate();
     }, SAVE_DELAY_MS + 80);
   }, [update, runGenerate]);
-  const selectRecord = (0, import_react14.useCallback)(async (id) => {
+  const selectRecord = (0, import_react15.useCallback)(async (id) => {
     pinnedRef.current = true;
     setImageBroken(false);
     setActiveRecordId(id);
@@ -8825,7 +8800,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setActiveRecord(null);
     }
   }, []);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     if (activeRecordId === null) {
       setActiveRecord(null);
       return void 0;
@@ -8839,14 +8814,14 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       alive = false;
     };
   }, [activeRecordId]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     setImageBroken(false);
   }, [activeRecordId]);
-  const loadRecord = (0, import_react14.useCallback)(() => {
+  const loadRecord = (0, import_react15.useCallback)(() => {
     if (activeRecord === null) return;
     replaceDraft(activeRecord.params, t("notice.recordLoaded", { id: activeRecord.id }));
   }, [activeRecord, replaceDraft]);
-  const removeRecordById = (0, import_react14.useCallback)(async (id) => {
+  const removeRecordById = (0, import_react15.useCallback)(async (id) => {
     try {
       const { status, body } = await deleteRecord(id);
       if (status === 409) {
@@ -8867,7 +8842,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [activeRecordId, refresh]);
-  const toggleFlag = (0, import_react14.useCallback)(async (record, flags) => {
+  const toggleFlag = (0, import_react15.useCallback)(async (record, flags) => {
     try {
       const { status, body } = await patchRecord(record.id, flags);
       if (status === 405) {
@@ -8884,17 +8859,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [refresh]);
-  const removeRecord = (0, import_react14.useCallback)(async () => {
+  const removeRecord = (0, import_react15.useCallback)(async () => {
     if (activeRecordId === null) return;
     await removeRecordById(activeRecordId);
   }, [activeRecordId, removeRecordById]);
-  const characterSet = (0, import_react14.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
+  const characterSet = (0, import_react15.useMemo)(() => toCharacterSet(params?.characterBoxes), [params?.characterBoxes]);
   const mergedRecords = (() => {
     const seen = new Set(records.map((record) => record.id));
     return [...records, ...older.filter((record) => !seen.has(record.id))];
   })();
   const needle = query.trim().toLowerCase();
-  (0, import_react14.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     if (needle === "") {
       setMatches(null);
       return void 0;
@@ -8916,7 +8891,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     };
   }, [needle, showArchived]);
   const visibleRecords = (needle === "" ? mergedRecords : matches ?? []).filter((record) => flagLocalOnly ? record.sessionId === sessionId : true);
-  const loadMore = (0, import_react14.useCallback)(async () => {
+  const loadMore = (0, import_react15.useCallback)(async () => {
     if (loadingMore || nextBefore === null || nextBefore === void 0 || query.trim() !== "") return;
     setLoadingMore(true);
     try {
@@ -8939,17 +8914,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     overscan: 6
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const onHistoryScroll = (0, import_react14.useCallback)((event) => {
+  const onHistoryScroll = (0, import_react15.useCallback)((event) => {
     const element = event.currentTarget;
     if (element.scrollHeight - element.scrollTop - element.clientHeight < 120) void loadMore();
   }, [loadMore]);
-  const selectForDelete = (0, import_react14.useCallback)((id) => {
+  const selectForDelete = (0, import_react15.useCallback)((id) => {
     if (id === null || id === void 0) return;
     const found = mergedRecords.find((record) => record.id === id) ?? (activeRecord?.id === id ? activeRecord : { id });
     setPendingDelete(found);
   }, [mergedRecords, activeRecord]);
   if (params === null) {
-    return /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? t("error.read", { error }) : t("status.loading"));
+    return /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...panel, padding: 16, ...dim4 } }, error !== "" ? t("error.read", { error }) : t("status.loading"));
   }
   const boxes = params.boxes ?? [];
   const shownRecordId = activeRecordId ?? records.find((record) => record.hasImage)?.id ?? null;
@@ -8958,16 +8933,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const viewIndex = shownRecordId === null ? -1 : viewableIds.indexOf(shownRecordId);
   const previousId = viewIndex > 0 ? viewableIds[viewIndex - 1] : null;
   const followingId = viewIndex >= 0 && viewIndex + 1 < viewableIds.length ? viewableIds[viewIndex + 1] : null;
-  const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== sessionId;
-  const sessionBusy = busy || queue.busy && queue.sessionId === sessionId;
-  const activeGenerationRecordId = generationRecordId ?? queue.recordId ?? null;
-  const progressPercent = typeof progress?.percent === "number" && Number.isFinite(progress.percent) ? Math.min(100, Math.max(0, progress.percent)) : null;
-  const queuePosition = typeof progress?.queuePosition === "number" && progress.queuePosition > 0 ? progress.queuePosition : null;
-  const progressText = queuePosition !== null ? t("generate.queuePosition", { position: queuePosition, pending: progress.queuePending ?? queuePosition }) : progressPercent !== null ? t("generate.percent", { percent: Math.round(progressPercent), step: progress.step ?? "\u2014", maxStep: progress.maxStep ?? "\u2014" }) : (progress?.phase ?? phase) === "" ? "" : t(PHASE_KEY[progress?.phase ?? phase] ?? (progress?.phase ?? phase));
-  const shownHasImage = shownSummary === void 0 ? shownRecordId !== null : shownSummary.hasImage;
-  const shownRunning = shownSummary?.status === "running";
-  const running = records.find((record) => record.status === "running");
-  return /* @__PURE__ */ import_react14.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react14.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.newDraftTitle"), "aria-label": t("action.newDraft"), onClick: newDraft }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react14.default.createElement(
+  const shownHasImage = shownSummary?.hasImage === true;
+  const shownProgress = shownRecordId === null ? void 0 : generations[shownRecordId];
+  const shownRunning = shownSummary?.status === "running" || shownProgress !== void 0;
+  return /* @__PURE__ */ import_react15.default.createElement("div", { className: "moss-studio", style: panel }, /* @__PURE__ */ import_react15.default.createElement(ScopeStyles, null), /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, justifyContent: "space-between", gap: 8, padding: "6px 8px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, gap: 6, minWidth: 0 } }, /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.newDraftTitle"), "aria-label": t("action.newDraft"), onClick: newDraft }, /* @__PURE__ */ import_react15.default.createElement(Icon, { name: "add" })), /* @__PURE__ */ import_react15.default.createElement(
     "button",
     {
       type: "button",
@@ -8992,7 +8961,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.ok ? "inherit" : "var(--dsw-alias-state-error-primary, #ff8f7a)"
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(
       "span",
       {
         "aria-hidden": "true",
@@ -9005,7 +8974,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       }
     ),
     comfy === null ? t("status.connecting") : comfy.ok ? t("status.comfyVersion", { version: comfy.version }) : t("status.comfyOffline")
-  ), /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: t("status.draftSession", { sessionId }) }, sessionId === "root" ? t("status.draftRoot") : sessionId === "global" ? t("status.draftUnbound") : t("status.draftConversation")), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 10, ...dim4, whiteSpace: "nowrap" }, title: t("status.draftSession", { sessionId }) }, sessionId === "root" ? t("status.draftRoot") : sessionId === "global" ? t("status.draftUnbound") : t("status.draftConversation")), /* @__PURE__ */ import_react15.default.createElement(
     "span",
     {
       title: t("status.memoryTitle", { total: gigabytes(comfy?.gpu?.vramTotal), ram: gigabytes(comfy?.ramTotal) }),
@@ -9017,15 +8986,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         color: comfy?.gpu !== void 0 && usedPercent(comfy.gpu.vramTotal, comfy.gpu.vramFree) >= 90 ? "var(--dsw-alias-state-error-primary, #ff8f7a)" : "var(--dsw-alias-label-secondary, inherit)"
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement("span", null, t("status.vram", {
+    /* @__PURE__ */ import_react15.default.createElement("span", null, t("status.vram", {
       used: gigabytes(comfy?.gpu?.vramTotal === void 0 ? void 0 : comfy.gpu.vramTotal - (comfy.gpu.vramFree ?? 0)),
       total: gigabytes(comfy?.gpu?.vramTotal)
     })),
-    /* @__PURE__ */ import_react14.default.createElement("span", null, t("status.ram", {
+    /* @__PURE__ */ import_react15.default.createElement("span", null, t("status.ram", {
       used: gigabytes(comfy?.ramTotal === void 0 ? void 0 : comfy.ramTotal - (comfy.ramFree ?? 0)),
       total: gigabytes(comfy?.ramTotal)
     }))
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("status.saving") : `revision ${revision}`), /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, gap: 4, flexShrink: 0 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 10, ...dim4 } }, saving ? t("status.saving") : `revision ${revision}`), /* @__PURE__ */ import_react15.default.createElement(
     "button",
     {
       type: "button",
@@ -9035,8 +9004,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-pressed": historyOpen,
       onClick: () => setHistoryOpen((value) => !value)
     },
-    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "history" })
-  ), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.settings"), "aria-label": t("action.settings"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, historyOpen ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(Icon, { name: "history" })
+  ), /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: iconOnly3, title: t("action.settings"), "aria-label": t("action.settings"), onClick: () => setSettingsOpen(true) }, /* @__PURE__ */ import_react15.default.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ import_react15.default.createElement("div", { style: { display: "flex", flex: 1, minHeight: 0 } }, historyOpen ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       className: "moss-scroller",
@@ -9049,7 +9018,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         minHeight: 0
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("history.title", { count: visibleRecords.length }), mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, justifyContent: "space-between", padding: "6px 6px 4px", gap: 4 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("history.title", { count: visibleRecords.length }), mergedRecords.length > visibleRecords.length ? ` / ${mergedRecords.length}` : ""), /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, gap: 4 } }, /* @__PURE__ */ import_react15.default.createElement(
       FilterChip,
       {
         selected: flagLocalOnly,
@@ -9057,7 +9026,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         title: flagLocalOnly ? t("history.showAllSessions") : t("history.onlyThisSession"),
         onClick: () => setLocalOnly((value) => !value)
       }
-    ), /* @__PURE__ */ import_react14.default.createElement(
+    ), /* @__PURE__ */ import_react15.default.createElement(
       FilterChip,
       {
         selected: showArchived,
@@ -9070,7 +9039,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
       }
     ))),
-    /* @__PURE__ */ import_react14.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement("div", { style: { padding: "0 6px 6px" } }, /* @__PURE__ */ import_react15.default.createElement(
       "input",
       {
         value: query,
@@ -9079,7 +9048,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         style: { ...input3, width: "100%", boxSizing: "border-box", fontSize: 11 }
       }
     )),
-    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? t("history.pinnedTruncated") : void 0 }, t("history.pinnedTitle", { count: pinnedRecords.length }), pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react14.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react14.default.createElement(
+    pinnedRecords.length > 0 ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { padding: "0 6px 6px", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", marginBottom: 6 } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { fontSize: 10, ...dim4, marginBottom: 4 }, title: pinnedTruncated ? t("history.pinnedTruncated") : void 0 }, t("history.pinnedTitle", { count: pinnedRecords.length }), pinnedTruncated ? " +" : ""), pinnedRecords.map((record) => /* @__PURE__ */ import_react15.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react15.default.createElement(
       HistoryRow,
       {
         record,
@@ -9090,15 +9059,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
       }
     )))) : null,
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(
       "div",
       {
         ref: historyRef,
         onScroll: onHistoryScroll,
         style: { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 6px" }
       },
-      visibleRecords.length === 0 ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? t("history.noMatches", { query: query.trim() }) : flagLocalOnly ? t("history.emptySession") : t("history.empty")) : null,
-      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react14.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react14.default.createElement(
+      visibleRecords.length === 0 ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...dim4, padding: 8, lineHeight: 1.6 } }, needle !== "" ? t("history.noMatches", { query: query.trim() }) : flagLocalOnly ? t("history.emptySession") : t("history.empty")) : null,
+      virtualRows.length === 0 ? visibleRecords.map((record) => /* @__PURE__ */ import_react15.default.createElement("div", { key: record.id, style: { paddingBottom: 5 } }, /* @__PURE__ */ import_react15.default.createElement(
         HistoryRow,
         {
           record,
@@ -9108,10 +9077,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           onPin: (row4) => void toggleFlag(row4, { pinned: !row4.pinned }),
           onArchive: (row4) => void toggleFlag(row4, { archived: !row4.archived })
         }
-      ))) : /* @__PURE__ */ import_react14.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
+      ))) : /* @__PURE__ */ import_react15.default.createElement("div", { style: { height: rowVirtualizer.getTotalSize(), position: "relative" } }, virtualRows.map((item) => {
         const record = visibleRecords[item.index];
         if (record === void 0) return null;
-        return /* @__PURE__ */ import_react14.default.createElement(
+        return /* @__PURE__ */ import_react15.default.createElement(
           "div",
           {
             key: record.id,
@@ -9119,11 +9088,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
             ref: rowVirtualizer.measureElement,
             style: { position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${item.start}px)`, paddingBottom: 5 }
           },
-          /* @__PURE__ */ import_react14.default.createElement(
+          /* @__PURE__ */ import_react15.default.createElement(
             HistoryRow,
             {
               record,
               active: record.id === activeRecordId,
+              progress: generations[record.id],
+              onCancel: cancelJob,
               onSelect: (id) => void selectRecord(id),
               onDelete: (id) => selectForDelete(id),
               onPin: (row4) => void toggleFlag(row4, { pinned: !row4.pinned }),
@@ -9132,9 +9103,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           )
         );
       })),
-      nextBefore !== null && nextBefore !== void 0 && needle === "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("history.loading") : t("history.loadMore"))) : null
+      nextBefore !== null && nextBefore !== void 0 && needle === "" ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("history.loading") : t("history.loadMore"))) : null
     )
-  ), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       onPointerDown: (event) => {
@@ -9151,7 +9122,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: historyResizing ? "var(--dsw-alias-button-primary-fill, rgba(120,190,145,0.92))" : "transparent"
       }
     }
-  )) : null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("prompt.label"))), /* @__PURE__ */ import_react14.default.createElement(
+  )) : null, /* @__PURE__ */ import_react15.default.createElement("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { flex: 1, minHeight: 0, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react15.default.createElement("div", null, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, t("prompt.label"))), /* @__PURE__ */ import_react15.default.createElement(
     "textarea",
     {
       ref: promptRef,
@@ -9171,7 +9142,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         fontFamily: "inherit"
       }
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...label, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react15.default.createElement("div", null, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { ...label, minWidth: 0 } }, t("preview.boxes", { count: boxes.length })), /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3 } }, /* @__PURE__ */ import_react15.default.createElement(
     "button",
     {
       type: "button",
@@ -9180,8 +9151,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": showCanvas ? t("preview.collapse") : t("preview.expand"),
       onClick: () => setShowCanvas((value) => !value)
     },
-    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
-  ), /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(Icon, { name: showCanvas ? "unfold_less" : "unfold_more" })
+  ), /* @__PURE__ */ import_react15.default.createElement(
     "button",
     {
       type: "button",
@@ -9190,15 +9161,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": t("preview.editLayout"),
       onClick: openEditor
     },
-    /* @__PURE__ */ import_react14.default.createElement(Icon, { name: "dashboard_customize" })
-  ))), showCanvas ? /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(Icon, { name: "dashboard_customize" })
+  ))), showCanvas ? /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       onClick: openEditor,
       title: t("preview.openEditor"),
       style: { cursor: "zoom-in" }
     },
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(
       BoxCanvas,
       {
         boxes,
@@ -9212,7 +9183,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         compact: boxes.length === 0
       }
     )
-  ) : null), /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("size.label")), /* @__PURE__ */ import_react14.default.createElement(
+  ) : null), /* @__PURE__ */ import_react15.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, gap: 4, alignItems: "center" } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, t("size.label")), /* @__PURE__ */ import_react15.default.createElement(
     "input",
     {
       type: "number",
@@ -9224,7 +9195,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": t("size.width"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react14.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react15.default.createElement("span", { style: { ...dim4, fontSize: 11 } }, "\xD7"), /* @__PURE__ */ import_react15.default.createElement(
     "input",
     {
       type: "number",
@@ -9236,7 +9207,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": t("size.height"),
       style: { ...input3, flex: "0 0 64px", width: 64, textAlign: "right" }
     }
-  ), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react15.default.createElement(
     "select",
     {
       value: SIZE_PRESETS.includes(params.size) ? params.size : "",
@@ -9250,9 +9221,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       "aria-label": t("size.presets"),
       style: { ...input3, flex: "0 0 96px", width: 96 }
     },
-    /* @__PURE__ */ import_react14.default.createElement("option", { value: "", style: optionStyle2 }, t("size.presetPlaceholder")),
-    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react14.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
-  )), sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("params.steps")), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, "CFG"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react14.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, "seed"), /* @__PURE__ */ import_react14.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react14.default.createElement("div", null, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: label }, t("params.negative"))), /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement("option", { value: "", style: optionStyle2 }, t("size.presetPlaceholder")),
+    SIZE_PRESETS.map((size) => /* @__PURE__ */ import_react15.default.createElement("option", { key: size, value: size, style: optionStyle2 }, size))
+  )), sizeHint !== null ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { fontSize: 10, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", margin: "2px 0 0 34px" } }, sizeHint) : null), /* @__PURE__ */ import_react15.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, t("params.steps")), /* @__PURE__ */ import_react15.default.createElement("input", { type: "number", min: 1, max: 200, value: params.steps, onChange: (event) => update({ steps: Number(event.target.value) || 1 }), style: input3 })), /* @__PURE__ */ import_react15.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, "CFG"), /* @__PURE__ */ import_react15.default.createElement("input", { type: "number", min: 0, max: 30, step: 0.1, value: params.cfg, onChange: (event) => update({ cfg: Number(event.target.value) || 0 }), style: input3 })), /* @__PURE__ */ import_react15.default.createElement("label", { style: row3 }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, "seed"), /* @__PURE__ */ import_react15.default.createElement("input", { type: "number", value: params.seed, onChange: (event) => update({ seed: Number(event.target.value) }), style: input3 }))), /* @__PURE__ */ import_react15.default.createElement("div", null, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: label }, t("params.negative"))), /* @__PURE__ */ import_react15.default.createElement(
     "textarea",
     {
       value: params.negative,
@@ -9261,7 +9232,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       rows: 2,
       style: { ...input3, width: "100%", display: "block", resize: "vertical", lineHeight: 1.5 }
     }
-  )), /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react15.default.createElement(
     IconCheckbox,
     {
       checked: params.enhance,
@@ -9269,18 +9240,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onChange: (event) => update({ enhance: event.target.checked }),
       label: t("params.enhanceHint")
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: sessionBusy || otherBusy || sizeHint !== null, onClick: generateRandom }, sessionBusy ? `${t("generate.running", { seconds: elapsed })}${progressText === "" ? "" : ` \xB7 ${progressText}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: sessionBusy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), sessionBusy && activeGenerationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !sessionBusy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sessionBusy && progressPercent !== null ? /* @__PURE__ */ import_react14.default.createElement(
-    "div",
-    {
-      role: "progressbar",
-      "aria-label": t("generate.progressLabel"),
-      "aria-valuemin": 0,
-      "aria-valuemax": 100,
-      "aria-valuenow": Math.round(progressPercent),
-      style: { width: "100%", height: 4, borderRadius: 2, overflow: "hidden", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.18))" }
-    },
-    /* @__PURE__ */ import_react14.default.createElement("div", { style: { width: `${progressPercent}%`, height: "100%", background: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } })
-  ) : null, sessionBusy && progressText !== "" ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, progressText) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), conflict ? /* @__PURE__ */ import_react14.default.createElement("div", { role: "alert", style: { display: "flex", flexDirection: "column", gap: 4, padding: 6, borderRadius: 8, border: "1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11 } }, t("notice.draftConflict")), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: conflictParamsRef.current === null, onClick: adoptServerDraft }, t("action.adoptServer")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, onClick: () => void overwriteServerDraft() }, t("action.overwriteServer")))) : null, notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react15.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: primary2, disabled: sizeHint !== null, onClick: generateRandom }, t("generate.random")), /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: button6, disabled: sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), sizeHint !== null ? /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), conflict ? /* @__PURE__ */ import_react15.default.createElement("div", { role: "alert", style: { display: "flex", flexDirection: "column", gap: 4, padding: 6, borderRadius: 8, border: "1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))" } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 11 } }, t("notice.draftConflict")), /* @__PURE__ */ import_react15.default.createElement("div", { style: { ...row3, flexWrap: "wrap", gap: 4 } }, /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: button6, disabled: conflictParamsRef.current === null, onClick: adoptServerDraft }, t("action.adoptServer")), /* @__PURE__ */ import_react15.default.createElement("button", { type: "button", style: primary2, onClick: () => void overwriteServerDraft() }, t("action.overwriteServer")))) : null, notice !== "" ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react15.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       style: {
@@ -9292,13 +9252,15 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         display: "flex"
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement(
       ResultPane,
       {
         orientation: "column",
         shownRecordId,
         shownHasImage,
         shownRunning,
+        progress: shownProgress,
+        onCancel: cancelJob,
         imageBroken,
         onImageError: () => setImageBroken(true),
         activeRecord,
@@ -9310,7 +9272,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     )
-  ) : null), wide ? null : /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement(
+  ) : null), wide ? null : /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       onPointerDown: (event) => {
@@ -9328,7 +9290,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"
       }
     }
-  ), /* @__PURE__ */ import_react14.default.createElement(
+  ), /* @__PURE__ */ import_react15.default.createElement(
     "div",
     {
       style: {
@@ -9351,7 +9313,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.06))"
       }
     },
-    /* @__PURE__ */ import_react14.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("result.label")), /* @__PURE__ */ import_react14.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react14.default.createElement(
+    /* @__PURE__ */ import_react15.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, padding: "2px 8px 0", flexShrink: 0 } }, /* @__PURE__ */ import_react15.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("result.label")), /* @__PURE__ */ import_react15.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react15.default.createElement(
       "button",
       {
         type: "button",
@@ -9360,15 +9322,17 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         "aria-label": resultCollapsed ? t("result.expand") : t("result.collapseShort"),
         onClick: () => setResultCollapsed((value) => !value)
       },
-      /* @__PURE__ */ import_react14.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
+      /* @__PURE__ */ import_react15.default.createElement(Icon, { name: resultCollapsed ? "keyboard_arrow_up" : "keyboard_arrow_down" })
     )),
-    resultCollapsed ? null : /* @__PURE__ */ import_react14.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react14.default.createElement(
+    resultCollapsed ? null : /* @__PURE__ */ import_react15.default.createElement("div", { style: { flex: 1, minHeight: 0 } }, /* @__PURE__ */ import_react15.default.createElement(
       ResultPane,
       {
         orientation: "row",
         shownRecordId,
         shownHasImage,
         shownRunning,
+        progress: shownProgress,
+        onCancel: cancelJob,
         imageBroken,
         onImageError: () => setImageBroken(true),
         activeRecord,
@@ -9380,7 +9344,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         error
       }
     ))
-  )), editorOpen ? /* @__PURE__ */ import_react14.default.createElement(
+  )), editorOpen ? /* @__PURE__ */ import_react15.default.createElement(
     BoxEditor,
     {
       params,
@@ -9389,7 +9353,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onClose: closeEditor,
       onCancel: cancelEditor
     }
-  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react14.default.createElement(
+  ) : null, pendingDelete !== null ? /* @__PURE__ */ import_react15.default.createElement(
     ConfirmDialog,
     {
       title: t("confirm.deleteTitle"),
@@ -9402,7 +9366,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         void removeRecordById(id);
       }
     }
-  ) : null, settingsOpen ? /* @__PURE__ */ import_react14.default.createElement(
+  ) : null, settingsOpen ? /* @__PURE__ */ import_react15.default.createElement(
     SettingsDialog,
     {
       onClose: () => setSettingsOpen(false),
@@ -9410,7 +9374,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setComfy(null);
       }
     }
-  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement(
+  ) : null, zoom && shownRecordId !== null ? /* @__PURE__ */ import_react15.default.createElement(
     ImageViewer,
     {
       recordId: shownRecordId,
@@ -9430,7 +9394,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
 var PANEL_ID = "moss-studio";
 var TAB_ID = "dsh-moss-studio";
 var TAB_KIND = "moss-studio";
-var PanelBoundary = class extends import_react15.default.Component {
+var PanelBoundary = class extends import_react16.default.Component {
   constructor(props) {
     super(props);
     this.state = { error: null };
@@ -9440,12 +9404,12 @@ var PanelBoundary = class extends import_react15.default.Component {
   }
   render() {
     if (this.state.error !== null) {
-      return import_react15.default.createElement(
+      return import_react16.default.createElement(
         "div",
         { style: { padding: 16, fontSize: 12, opacity: 0.8, lineHeight: 1.6 } },
-        import_react15.default.createElement("div", null, t("panel.errorTitle")),
-        import_react15.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
-        import_react15.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, t("panel.errorHint"))
+        import_react16.default.createElement("div", null, t("panel.errorTitle")),
+        import_react16.default.createElement("div", { style: { opacity: 0.7, marginTop: 6 } }, String(this.state.error?.message ?? this.state.error)),
+        import_react16.default.createElement("div", { style: { opacity: 0.55, marginTop: 6 } }, t("panel.errorHint"))
       );
     }
     return this.props.children;
@@ -9455,7 +9419,7 @@ function createPlugin() {
   function PanelIcon({ size = 16, active = false }) {
     const edge = typeof size === "number" && size > 0 ? size : 16;
     const brand = active ? "var(--dsw-alias-brand-primary, #78be91)" : "currentColor";
-    return import_react15.default.createElement(
+    return import_react16.default.createElement(
       "span",
       {
         style: {
@@ -9467,7 +9431,7 @@ function createPlugin() {
           flexShrink: 0
         }
       },
-      import_react15.default.createElement(
+      import_react16.default.createElement(
         "svg",
         {
           xmlns: "http://www.w3.org/2000/svg",
@@ -9479,9 +9443,9 @@ function createPlugin() {
           focusable: "false",
           style: { display: "block" }
         },
-        import_react15.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
-        import_react15.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
-        import_react15.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
+        import_react16.default.createElement("rect", { x: 2, y: 3, width: 9, height: 18, rx: 2, fill: brand, opacity: 0.9 }),
+        import_react16.default.createElement("rect", { x: 13, y: 3, width: 9, height: 7, rx: 2, fill: brand, opacity: 0.55 }),
+        import_react16.default.createElement("rect", { x: 13, y: 12, width: 9, height: 9, rx: 2, fill: brand, opacity: 0.3 })
       )
     );
   }
@@ -9492,12 +9456,12 @@ function createPlugin() {
     } catch {
     }
     const sessionId = typeof props?.sessionId === "string" && props.sessionId !== "" ? props.sessionId : typeof fromTab === "string" && fromTab !== "" ? fromTab : "global";
-    return import_react15.default.createElement(StudioPanel, { sessionId });
+    return import_react16.default.createElement(StudioPanel, { sessionId });
   }
   const ROOT_SESSION = "root";
   function StudioMainPanel() {
     function Main() {
-      return import_react15.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
+      return import_react16.default.createElement(StudioPanel, { sessionId: ROOT_SESSION, wide: true });
     }
     return Main;
   }

@@ -101,18 +101,22 @@ async function harness(run, extra = {}) {
   }
 }
 
-test('state and health expose the active generation progress snapshot', async () => {
-  const progress = { recordId: 'rec-1', sessionId: 's1', phase: 'wait', percent: 40, step: 10, maxStep: 25, queuePosition: 2 }
+test('state and health expose every active generation snapshot', async () => {
+  const first = { recordId: 'rec-1', sessionId: 's1', phase: 'running', percent: 40, step: 10, maxStep: 25 }
+  const second = { recordId: 'rec-2', sessionId: 's2', phase: 'queued', queuePosition: 2, queuePending: 2 }
   await harness(async ({ call }) => {
     const state = await call({ url: '/plugins/dsh-moss-studio/state?sessionId=s1' })
-    assert.deepEqual(state.body.generation, { recordId: 'rec-1', sessionId: 's1', progress })
+    assert.deepEqual(state.body.generations, [first, second])
+    assert.deepEqual(state.body.generation, { recordId: 'rec-1', sessionId: 's1', progress: first })
     const health = await call({ url: '/plugins/dsh-moss-studio/health' })
-    assert.deepEqual(health.body.progress, progress)
+    assert.deepEqual(health.body.generations, [first, second])
+    assert.deepEqual(health.body.progress, first)
   }, {
     isGenerating: () => true,
     busySession: () => 's1',
     busyRecordId: () => 'rec-1',
-    generationProgress: () => progress,
+    generationProgress: () => first,
+    generations: () => [first, second],
   })
 })
 
@@ -140,7 +144,7 @@ test('draft writes bump the revision and stale writes answer 409', async () => {
   })
 })
 
-test('generate refuses a stale revision and a busy pipeline', async () => {
+test('generate refuses a stale revision but accepts more jobs while one is running', async () => {
   await harness(async ({ store, call, started, setGenerating }) => {
     await store.putDraft('s1', { prompt: 'a' }, 0)
     const stale = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 0 } })
@@ -148,15 +152,13 @@ test('generate refuses a stale revision and a busy pipeline', async () => {
     assert.equal(started.length, 0)
 
     setGenerating(true)
-    const busy = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 1 } })
-    assert.equal(busy.out.status, 429)
-
-    setGenerating(false)
-    const accepted = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 1 } })
-    assert.equal(accepted.out.status, 202)
-    assert.equal(accepted.body.recordId, 'rec', 'the client receives the exact record to wait for')
+    const first = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 1 } })
+    const second = await call({ method: 'POST', url: '/plugins/dsh-moss-studio/generate', body: { sessionId: 's1', revision: 1 } })
+    assert.equal(first.out.status, 202)
+    assert.equal(second.out.status, 202)
+    assert.equal(first.body.recordId, 'rec')
     await new Promise((resolve) => setTimeout(resolve, 10))
-    assert.equal(started.length, 1)
+    assert.equal(started.length, 2, 'both submissions reach the queue')
     assert.equal(started[0].params.prompt, 'a')
   })
 })
@@ -385,15 +387,15 @@ test('generate cancellation is scoped to the requested session and record', asyn
   assert.deepEqual(calls, [{ sessionId: 's1', recordId: 'rec-1' }])
 })
 
-test('a session-scoped stream ignores progress and errors from other sessions', async () => {
+test('a session-scoped stream keeps errors private but progress global for history', async () => {
   await harness(async ({ stream, store }) => {
     const res = await stream({ sessionId: 's1' })
-    store.emit({ kind: 'progress', sessionId: 'other', recordId: 'r-other', phase: 'wait' })
+    store.emit({ kind: 'progress', sessionId: 'other', recordId: 'r-other', phase: 'queued' })
     store.emit({ kind: 'error', sessionId: 'other', recordId: 'r-other', message: 'other failed' })
     assert.doesNotMatch(res.text(), /other failed/)
-    assert.doesNotMatch(res.text(), /r-other/)
+    assert.match(res.text(), /r-other/, 'global history can render another session job progress')
 
-    store.emit({ kind: 'progress', sessionId: 's1', recordId: 'r-mine', phase: 'wait' })
+    store.emit({ kind: 'progress', sessionId: 's1', recordId: 'r-mine', phase: 'running' })
     store.emit({ kind: 'error', sessionId: 's1', recordId: 'r-mine', message: 'mine failed' })
     assert.match(res.text(), /r-mine/)
     assert.match(res.text(), /mine failed/)
