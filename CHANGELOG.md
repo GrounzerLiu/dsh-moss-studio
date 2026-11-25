@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.7.4
+
+Boundary repair batch: history pagination, hand-edited configuration and
+session draft isolation.
+
+**History pagination**
+
+- Loading more while the archive filter is active now sends `archived=1`, so
+  older archived records are no longer silently skipped.
+- The cursor distinguishes "first page not loaded" (`undefined`) from "list
+  exhausted" (`null`). Once exhausted, later state refreshes cannot resurrect a
+  stale cursor and make the load-more control reappear.
+
+**Configuration validation**
+
+- The row schema constrains retention, steps, CFG, timeouts and polling to their
+  supported ranges and integer steps.
+- Runtime normalization reuses the settings validators for ComfyUI URLs,
+  retention and size, and validates legacy/default steps, CFG, negative prompt
+  length and timeout values. Invalid YAML now fails at activation instead of
+  creating unusable defaults or pruning with a fractional retention count.
+
+**Session draft keys**
+
+- Already-safe session ids keep their historical filenames. Other ids use a
+  reserved base64url namespace, and very long ids use a SHA-256 namespace.
+- The old lossy sanitize-and-truncate mapping is not reused for unsafe ids: it
+  cannot distinguish `sess:abc/def` from `sess_abc_def`, so a fallback could read
+  another session's draft. Existing safe-id drafts remain compatible.
+
+Regression coverage grew from 171 to 177 tests.
+
 ## 0.7.3
 
 Second repair batch: external editor state, cross-session generation, remote

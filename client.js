@@ -8083,7 +8083,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [pinnedTruncated, setPinnedTruncated] = (0, import_react14.useState)(false);
   const [matches, setMatches] = (0, import_react14.useState)(null);
   const [older, setOlder] = (0, import_react14.useState)([]);
-  const [nextBefore, setNextBefore] = (0, import_react14.useState)(null);
+  const [nextBefore, setNextBefore] = (0, import_react14.useState)(void 0);
   const [loadingMore, setLoadingMore] = (0, import_react14.useState)(false);
   const historyRef = (0, import_react14.useRef)(null);
   const [showCanvas, setShowCanvas] = (0, import_react14.useState)(true);
@@ -8127,7 +8127,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
-    setNextBefore((current) => current !== null ? current : state.nextBefore ?? null);
+    setNextBefore((current) => current === null ? null : state.nextBefore ?? null);
     if (!pinnedRef.current) {
       const newest = state.records[0];
       const latestDone = state.records.find((record) => record.hasImage);
@@ -8644,10 +8644,10 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   }, [needle, showArchived]);
   const visibleRecords = (needle === "" ? mergedRecords : matches ?? []).filter((record) => flagLocalOnly ? record.sessionId === sessionId : true);
   const loadMore = (0, import_react14.useCallback)(async () => {
-    if (loadingMore || nextBefore === null || query.trim() !== "") return;
+    if (loadingMore || nextBefore === null || nextBefore === void 0 || query.trim() !== "") return;
     setLoadingMore(true);
     try {
-      const page = await fetchRecords(40, nextBefore);
+      const page = await fetchRecords(40, nextBefore, showArchived);
       setOlder((current) => {
         const seen = new Set(current.map((record) => record.id));
         return [...current, ...page.records.filter((record) => !seen.has(record.id))];
@@ -8658,7 +8658,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, nextBefore]);
+  }, [loadingMore, nextBefore, showArchived]);
   const rowVirtualizer = useVirtualizer({
     count: visibleRecords.length,
     getScrollElement: () => historyRef.current,
@@ -8788,7 +8788,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         onClick: () => {
           setShowArchived((value) => !value);
           setOlder([]);
-          setNextBefore(null);
+          setNextBefore(void 0);
         }
       }
     ))),
@@ -8854,7 +8854,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           )
         );
       })),
-      nextBefore !== null && needle === "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("history.loading") : t("history.loadMore"))) : null
+      nextBefore !== null && nextBefore !== void 0 && needle === "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { textAlign: "center", padding: "4px 0 8px" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: iconButton2, onClick: () => void loadMore(), disabled: loadingMore }, loadingMore ? t("history.loading") : t("history.loadMore"))) : null
     )
   ), /* @__PURE__ */ import_react14.default.createElement(
     "div",

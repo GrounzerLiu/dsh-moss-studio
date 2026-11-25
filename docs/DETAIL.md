@@ -139,6 +139,13 @@ records/<id>/image.png
 - 记录索引首次扫描期间 journal 增量变更，扫描完成后再合并，避免并发新增/更新/删除丢失。
 - 测试从 157 增至 171 项，含真实宿主激活 + 假 ComfyUI 服务的取消与锁释放验证。
 
+## 0.7.4：边界修复
+
+- 历史分页：`nextBefore` 用 `undefined` 表示首屏未到、`null` 表示已耗尽；耗尽后不再被后续 state 刷新回填。归档筛选下加载更多会携带 `archived=1`，不再漏旧归档记录。
+- 配置校验：`Config` 对 retention、steps、CFG、timeout、poll 增加范围与步长约束；`normalizeConfig` 复用 URL/retention/size 校验，并校验默认步数、CFG、负向长度与超时。手改 YAML 的非法值会在激活时拒绝。
+- 会话草稿键：安全 ID 保留旧文件名；不安全 ID 使用保留命名空间 base64url，超长 ID 使用 SHA-256 命名空间。旧有损映射不再回退，因为它无法区分 `sess:abc/def` 与 `sess_abc_def`，回退可能误读另一会话草稿。
+- 测试从 171 增至 177 项。
+
 ## 已知限制
 
 - 缩略图直接用原图（已懒加载），记录多了费带宽；未做服务端 256px 缓存。

@@ -76,9 +76,38 @@ test('an invalid box patch is rejected before it reaches disk', async () => {
   })
 })
 
-test('sessionKey is filesystem safe', () => {
-  assert.equal(sessionKey('sess:abc/def'), 'sess_abc_def')
+test('sessionKey is filesystem safe and collision-free for distinct ids', () => {
+  assert.equal(sessionKey('s1'), 's1')
   assert.equal(sessionKey(''), 'global')
+  assert.notEqual(sessionKey('sess:abc/def'), sessionKey('sess_abc_def'))
+  assert.notEqual(sessionKey('a'.repeat(120) + ':x'), sessionKey('a'.repeat(120) + ':y'))
+  for (const id of ['sess:abc/def', '会话/一', 'a'.repeat(200)]) {
+    assert.doesNotMatch(sessionKey(id), /[\\/]/)
+    assert.ok(sessionKey(id).length <= 180)
+  }
+})
+
+test('drafts with formerly colliding session ids stay isolated', async () => {
+  await withStore(async (store) => {
+    await store.putDraft('sess:abc/def', { prompt: 'A' }, 0)
+    await store.putDraft('sess_abc_def', { prompt: 'B' }, 0)
+    assert.equal((await store.draft('sess:abc/def')).params.prompt, 'A')
+    assert.equal((await store.draft('sess_abc_def')).params.prompt, 'B')
+  })
+})
+
+test('unsafe ids never fall back to an ambiguous legacy filename', async () => {
+  await withStore(async (store) => {
+    await store.ensure()
+    await store.writeJson(join(store.draftsDir, 'sess_abc_def.json'), {
+      sessionId: 'sess_abc_def', revision: 4, updatedAt: 123,
+      params: { prompt: 'belongs to the safe id' },
+    })
+    const draft = await store.draft('sess:abc/def')
+    assert.equal(draft.revision, 0)
+    assert.equal(draft.params.prompt, '')
+    assert.equal(draft.sessionId, 'sess:abc/def')
+  })
 })
 
 test('drafts start empty and increment their revision on every write', async () => {

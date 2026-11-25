@@ -12,9 +12,10 @@ import { fileURLToPath } from 'node:url'
 import { probe } from './lib/comfy.js'
 import { runGeneration } from './lib/engine.js'
 import { ROUTE_PREFIX, studioRoutes } from './lib/routes.js'
-import { readSettingsPatch, settingsState } from './lib/settings.js'
+import { readSettingsPatch, settingsState, normalizeComfyUrl, normalizeRetention, RETENTION_MAX } from './lib/settings.js'
 import { DEFAULT_NEGATIVE, DEFAULT_PARAMS, StudioError, StudioStore, defaultDataRoot } from './lib/storage.js'
 import { studioTools } from './lib/tools.js'
+import { parseSize } from './lib/workflow.js'
 
 export const name = 'dsh-moss-studio'
 
@@ -31,16 +32,16 @@ export const Config = z.object({
   comfyUrl: z.string().default('http://127.0.0.1:8188').description('ComfyUI API 基址，例如 http://127.0.0.1:8188').volatile(),
   workflowPath: z.string().default('').description('API 工作流 JSON 的绝对路径；留空用包内模板'),
   dataDir: z.string().default('').description('记录与草稿的根目录；留空用 ~/.dsh/moss-studio'),
-  steps: z.number().default(25).description('新草稿的默认步数'),
-  cfg: z.number().default(2.5).description('新草稿的默认 CFG'),
-  negative: z.string().default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词'),
-  retention: z.number().default(0).description('最多保留多少条记录；0 表示不限制。置顶与生成中的记录不会被清理').volatile(),
+  steps: z.number().min(1).max(200).step(1).default(25).description('新草稿的默认步数'),
+  cfg: z.number().min(0).max(30).default(2.5).description('新草稿的默认 CFG'),
+  negative: z.string().max(2000).default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词'),
+  retention: z.number().min(0).max(RETENTION_MAX).step(1).default(0).description('最多保留多少条记录；0 表示不限制。置顶与生成中的记录不会被清理').volatile(),
   defaultSize: z.string().default('1024x1024').description('新草稿的默认尺寸').volatile(),
-  defaultSteps: z.number().default(25).description('新草稿的默认步数').volatile(),
-  defaultCfg: z.number().default(2.5).description('新草稿的默认 CFG').volatile(),
-  defaultNegative: z.string().default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词').volatile(),
-  timeoutMs: z.number().default(600000).description('单次生成的超时毫秒数'),
-  pollMs: z.number().default(1000).description('轮询 ComfyUI 的间隔毫秒数'),
+  defaultSteps: z.number().min(1).max(200).step(1).default(25).description('新草稿的默认步数').volatile(),
+  defaultCfg: z.number().min(0).max(30).default(2.5).description('新草稿的默认 CFG').volatile(),
+  defaultNegative: z.string().max(2000).default(DEFAULT_NEGATIVE).description('新草稿的默认负向提示词').volatile(),
+  timeoutMs: z.number().min(1000).step(1).default(600000).description('单次生成的超时毫秒数'),
+  pollMs: z.number().min(20).max(60000).step(1).default(1000).description('轮询 ComfyUI 的间隔毫秒数'),
 })
 
 /** Volatile fields arrive as live refs; plain ones as values. */
@@ -57,22 +58,53 @@ function derefConfig(raw) {
 
 function normalizeConfig(raw) {
   const config = raw !== null && typeof raw === 'object' ? raw : {}
-  const number = (value, fallback) => (typeof value === 'number' && Number.isFinite(value) ? value : fallback)
   const text = (value, fallback) => (typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback)
+  const steps = (value, fallback) => {
+    if (value === undefined) return fallback
+    if (!Number.isInteger(value) || value < 1 || value > 200) {
+      throw new StudioError('INVALID_CONFIG', 'steps/defaultSteps must be an integer between 1 and 200')
+    }
+    return value
+  }
+  const cfg = (value, fallback) => {
+    if (value === undefined) return fallback
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 30) {
+      throw new StudioError('INVALID_CONFIG', 'cfg/defaultCfg must be between 0 and 30')
+    }
+    return value
+  }
+  const negative = (value, fallback) => {
+    if (value === undefined) return fallback
+    if (typeof value !== 'string' || value.length > 2000) {
+      throw new StudioError('INVALID_CONFIG', 'negative/defaultNegative must be a string of at most 2000 characters')
+    }
+    return value
+  }
+  const positiveInteger = (value, fallback, name, min, max = Number.MAX_SAFE_INTEGER) => {
+    if (value === undefined) return fallback
+    if (!Number.isInteger(value) || value < min || value > max) {
+      throw new StudioError('INVALID_CONFIG', `${name} must be an integer between ${min} and ${max}`)
+    }
+    return value
+  }
+  const defaultSize = config.defaultSize === undefined ? '1024x1024' : config.defaultSize
+  if (typeof defaultSize !== 'string') throw new StudioError('INVALID_CONFIG', 'defaultSize must be a string')
+  parseSize(defaultSize)
+
   return {
-    comfyUrl: text(config.comfyUrl, 'http://127.0.0.1:8188'),
+    comfyUrl: config.comfyUrl === undefined ? 'http://127.0.0.1:8188' : normalizeComfyUrl(config.comfyUrl),
     workflowPath: text(config.workflowPath, ''),
     dataDir: text(config.dataDir, defaultDataRoot()),
-    retention: number(config.retention, 0),
-    defaultSize: text(config.defaultSize, '1024x1024'),
-    defaultSteps: number(config.defaultSteps, 25),
-    defaultCfg: number(config.defaultCfg, 2.5),
-    defaultNegative: typeof config.defaultNegative === 'string' ? config.defaultNegative : DEFAULT_NEGATIVE,
-    steps: number(config.steps, 25),
-    cfg: number(config.cfg, 2.5),
-    negative: typeof config.negative === 'string' && config.negative !== '' ? config.negative : DEFAULT_NEGATIVE,
-    timeoutMs: number(config.timeoutMs, 600_000),
-    pollMs: number(config.pollMs, 1000),
+    retention: config.retention === undefined ? 0 : normalizeRetention(config.retention),
+    defaultSize: defaultSize.trim(),
+    defaultSteps: steps(config.defaultSteps, 25),
+    defaultCfg: cfg(config.defaultCfg, 2.5),
+    defaultNegative: negative(config.defaultNegative, DEFAULT_NEGATIVE),
+    steps: steps(config.steps, 25),
+    cfg: cfg(config.cfg, 2.5),
+    negative: negative(config.negative, DEFAULT_NEGATIVE),
+    timeoutMs: positiveInteger(config.timeoutMs, 600_000, 'timeoutMs', 1000),
+    pollMs: positiveInteger(config.pollMs, 1000, 'pollMs', 20, 60_000),
   }
 }
 

@@ -258,7 +258,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [pinnedTruncated, setPinnedTruncated] = useState(false)
   const [matches, setMatches] = useState(null)
   const [older, setOlder] = useState([])
-  const [nextBefore, setNextBefore] = useState(null)
+  const [nextBefore, setNextBefore] = useState(undefined)
   const [loadingMore, setLoadingMore] = useState(false)
   const historyRef = useRef(null)
   const [showCanvas, setShowCanvas] = useState(true)
@@ -319,9 +319,9 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
-    // The newest page also tells us where the next one starts; once the user has
-    // scrolled further, keep that deeper cursor instead of resetting it.
-    setNextBefore((current) => (current !== null ? current : state.nextBefore ?? null))
+    // undefined means the first page has not arrived; null means the list is
+    // exhausted. Only an explicit filter reset may move an exhausted cursor.
+    setNextBefore((current) => (current === null ? null : state.nextBefore ?? null))
     // Follow the newest finished record unless the user pinned one by clicking it,
     // so a generation started elsewhere (an AI tool call) still shows up here.
     // While the newest record is still running, follow that one to show progress.
@@ -934,10 +934,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
   /** One page further back; the cursor is the oldest id already shown. */
   const loadMore = useCallback(async () => {
-    if (loadingMore || nextBefore === null || query.trim() !== '') return
+    if (loadingMore || nextBefore === null || nextBefore === undefined || query.trim() !== '') return
     setLoadingMore(true)
     try {
-      const page = await fetchRecords(40, nextBefore)
+      const page = await fetchRecords(40, nextBefore, showArchived)
       setOlder((current) => {
         const seen = new Set(current.map((record) => record.id))
         return [...current, ...page.records.filter((record) => !seen.has(record.id))]
@@ -948,7 +948,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } finally {
       setLoadingMore(false)
     }
-  }, [loadingMore, nextBefore])
+  }, [loadingMore, nextBefore, showArchived])
 
   // The virtualizer needs a measured viewport; without one (SSR, tests) the list
   // renders plainly instead of showing nothing.
@@ -1130,7 +1130,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                   onClick={() => {
                     setShowArchived((value) => !value)
                     setOlder([])
-                    setNextBefore(null)
+                    setNextBefore(undefined)
                   }}
                 />
               </div>
@@ -1219,7 +1219,7 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
                 </div>
               )}
 
-              {nextBefore !== null && needle === '' ? (
+              {nextBefore !== null && nextBefore !== undefined && needle === '' ? (
                 <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
                   <button type="button" style={iconButton} onClick={() => void loadMore()} disabled={loadingMore}>
                     {loadingMore ? t('history.loading') : t('history.loadMore')}

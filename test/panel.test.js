@@ -539,6 +539,54 @@ test('the cancel button sends the active record id and reports cancellation', as
   assert.equal([...container.querySelectorAll('button')].some((node) => node.textContent === '取消生成'), false)
 })
 
+test('archived load-more keeps the archive filter and an exhausted cursor stays exhausted', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const record = { id: 'rec-1', sessionId: 'sess-1', status: 'done', hasImage: false, prompt: 'p', size: '512x512', archived: true }
+  let nextBefore = 'cursor-1'
+  const requests = []
+  let source
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse({ ...panelState(server, 1), records: [record], nextBefore })
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.includes('/records?')) {
+      requests.push(target)
+      return jsonResponse({ ok: true, records: [], nextBefore: null })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  const openHistory = container.querySelector('[aria-label^="显示历史"]')
+  await act(async () => { openHistory.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  const archive = [...container.querySelectorAll('button')].find((node) => node.textContent === '归档')
+  await act(async () => {
+    archive.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  })
+  const more = [...container.querySelectorAll('button')].find((node) => node.textContent === '加载更多')
+  assert.ok(more !== undefined)
+  await act(async () => {
+    more.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  })
+  assert.equal(requests.length, 1)
+  assert.match(requests[0], /archived=1/)
+  assert.match(requests[0], /before=cursor-1/)
+
+  // A later state response may contain a fresh cursor; null is terminal until
+  // the user explicitly changes filters.
+  nextBefore = 'cursor-2'
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'records' }) })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  })
+  assert.equal([...container.querySelectorAll('button')].some((node) => node.textContent === '加载更多'), false)
+})
+
 test('the wide layout puts the result in its own column', async (t) => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:57529/' })
   const saved = {}
