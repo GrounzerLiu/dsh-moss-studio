@@ -8325,6 +8325,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [error, setError] = (0, import_react15.useState)("");
   const [saving, setSaving] = (0, import_react15.useState)(false);
   const [generations, setGenerations] = (0, import_react15.useState)({});
+  const generationVersionRef = (0, import_react15.useRef)(0);
+  const stateRequestRef = (0, import_react15.useRef)(0);
+  const healthRequestRef = (0, import_react15.useRef)(0);
   const [flagLocalOnly, setLocalOnly] = (0, import_react15.useState)(false);
   const [query, setQuery] = (0, import_react15.useState)("");
   const [showArchived, setShowArchived] = (0, import_react15.useState)(false);
@@ -8372,6 +8375,13 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const pinnedRef = (0, import_react15.useRef)(false);
   const [imageBroken, setImageBroken] = (0, import_react15.useState)(false);
   paramsRef.current = params;
+  const applyGenerationSnapshot = (0, import_react15.useCallback)((snapshot) => {
+    const version = Number.isFinite(snapshot?.version) ? snapshot.version : 0;
+    if (version < generationVersionRef.current) return false;
+    generationVersionRef.current = version;
+    setGenerations(Object.fromEntries((snapshot.generations ?? []).map((entry) => [entry.recordId, entry])));
+    return true;
+  }, []);
   const applyServerState = (0, import_react15.useCallback)((state) => {
     if (!dirtyRef.current) {
       revisionRef.current = state.revision;
@@ -8380,7 +8390,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }
     setRevision(state.revision);
     latestServerRef.current = { revision: state.revision, params: state.params };
-    setGenerations(Object.fromEntries((state.generations ?? []).map((entry) => [entry.recordId, entry])));
+    applyGenerationSnapshot(state);
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
@@ -8391,28 +8401,32 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       const target = newest?.status === "running" ? newest.id : latestDone?.id ?? null;
       setActiveRecordId((current) => current === target ? current : target);
     }
-  }, [sessionId]);
+  }, [sessionId, applyGenerationSnapshot]);
   const refresh = (0, import_react15.useCallback)(async () => {
+    const request2 = ++stateRequestRef.current;
     try {
       const state = await fetchState(sessionId, 40, showArchived);
+      if (request2 !== stateRequestRef.current) return;
       applyServerState(state);
       setError("");
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : String(problem));
+      if (request2 === stateRequestRef.current) setError(problem instanceof Error ? problem.message : String(problem));
     }
   }, [sessionId, applyServerState, showArchived]);
   (0, import_react15.useEffect)(() => {
     void refresh();
   }, [refresh]);
   const checkHealth = (0, import_react15.useCallback)(async () => {
+    const request2 = ++healthRequestRef.current;
     try {
       const health = await fetchHealth();
+      if (request2 !== healthRequestRef.current) return;
       setComfy(health.comfy ?? { ok: false });
-      setGenerations(Object.fromEntries((health.generations ?? []).map((entry) => [entry.recordId, entry])));
+      applyGenerationSnapshot(health);
     } catch {
-      setComfy({ ok: false });
+      if (request2 === healthRequestRef.current) setComfy({ ok: false });
     }
-  }, []);
+  }, [applyGenerationSnapshot]);
   (0, import_react15.useEffect)(() => {
     void checkHealth();
     const timer = setInterval(() => {
@@ -8452,7 +8466,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         }
         if (payload?.kind === "progress" && typeof payload.phase === "string") {
           if (typeof payload.recordId === "string" && payload.recordId !== "") {
-            setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }));
+            const version = Number.isFinite(payload.version) ? payload.version : 0;
+            if (version >= generationVersionRef.current) {
+              generationVersionRef.current = version;
+              setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }));
+            }
           }
         }
         if (payload?.kind === "error" && typeof payload.message === "string") {
@@ -8746,6 +8764,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         return;
       }
       if (typeof body.recordId === "string") {
+        if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion);
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: "queued", elapsed: 0 } }));
         setActiveRecordId(body.recordId);
       }
@@ -8777,6 +8796,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         return;
       }
       if (typeof body.recordId === "string") {
+        if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion);
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: "queued", elapsed: 0 } }));
         setActiveRecordId(body.recordId);
       }

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.1
+
+Fix flickering queue status and cancel controls under concurrent refreshes.
+
+- Every job creation, progress update and removal advances a monotonic
+  `generationVersion`. `/generate`, `/state`, `/health` and progress SSE events
+  carry the version.
+- The panel ignores snapshots older than the latest live event instead of
+  replacing `generations` wholesale. A delayed `/state` or `/health` response can
+  no longer clear a running record's percentage, queue position or cancel button.
+- State and health requests also use request sequence numbers, so an older
+  response cannot overwrite a newer refresh.
+- Added a regression test that delivers stale state and health snapshots after a
+  newer SSE progress event and verifies the live status remains visible.
+
+Regression coverage grew from 195 to 196 tests.
+
 ## 0.8.0
 
 Multiple queued generations and per-record progress controls.

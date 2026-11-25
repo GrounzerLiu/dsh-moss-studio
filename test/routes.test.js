@@ -107,16 +107,18 @@ test('state and health expose every active generation snapshot', async () => {
   await harness(async ({ call }) => {
     const state = await call({ url: '/plugins/dsh-moss-studio/state?sessionId=s1' })
     assert.deepEqual(state.body.generations, [first, second])
+    assert.equal(state.body.generationVersion, 7)
     assert.deepEqual(state.body.generation, { recordId: 'rec-1', sessionId: 's1', progress: first })
     const health = await call({ url: '/plugins/dsh-moss-studio/health' })
     assert.deepEqual(health.body.generations, [first, second])
+    assert.equal(health.body.generationVersion, 7)
     assert.deepEqual(health.body.progress, first)
   }, {
     isGenerating: () => true,
     busySession: () => 's1',
     busyRecordId: () => 'rec-1',
     generationProgress: () => first,
-    generations: () => [first, second],
+    generationSnapshot: () => ({ version: 7, generations: [first, second] }),
   })
 })
 

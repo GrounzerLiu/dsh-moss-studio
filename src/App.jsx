@@ -249,6 +249,9 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [generations, setGenerations] = useState({})
+  const generationVersionRef = useRef(0)
+  const stateRequestRef = useRef(0)
+  const healthRequestRef = useRef(0)
   const [flagLocalOnly, setLocalOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
@@ -310,6 +313,14 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
 
   paramsRef.current = params
 
+  const applyGenerationSnapshot = useCallback((snapshot) => {
+    const version = Number.isFinite(snapshot?.version) ? snapshot.version : 0
+    if (version < generationVersionRef.current) return false
+    generationVersionRef.current = version
+    setGenerations(Object.fromEntries((snapshot.generations ?? []).map((entry) => [entry.recordId, entry])))
+    return true
+  }, [])
+
   const applyServerState = useCallback((state) => {
     // While the user has unsaved edits, the server revision belongs to a draft
     // we are not showing. Advancing revisionRef here would let the next save
@@ -321,7 +332,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     }
     setRevision(state.revision)
     latestServerRef.current = { revision: state.revision, params: state.params }
-    setGenerations(Object.fromEntries((state.generations ?? []).map((entry) => [entry.recordId, entry])))
+    applyGenerationSnapshot(state)
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
@@ -337,15 +348,17 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       const target = newest?.status === 'running' ? newest.id : latestDone?.id ?? null
       setActiveRecordId((current) => (current === target ? current : target))
     }
-  }, [sessionId])
+  }, [sessionId, applyGenerationSnapshot])
 
   const refresh = useCallback(async () => {
+    const request = ++stateRequestRef.current
     try {
       const state = await fetchState(sessionId, 40, showArchived)
+      if (request !== stateRequestRef.current) return
       applyServerState(state)
       setError('')
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : String(problem))
+      if (request === stateRequestRef.current) setError(problem instanceof Error ? problem.message : String(problem))
     }
   }, [sessionId, applyServerState, showArchived])
 
@@ -358,14 +371,16 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
    * "check now" control, which is where people look when it says offline.
    */
   const checkHealth = useCallback(async () => {
+    const request = ++healthRequestRef.current
     try {
       const health = await fetchHealth()
+      if (request !== healthRequestRef.current) return
       setComfy(health.comfy ?? { ok: false })
-      setGenerations(Object.fromEntries((health.generations ?? []).map((entry) => [entry.recordId, entry])))
+      applyGenerationSnapshot(health)
     } catch {
-      setComfy({ ok: false })
+      if (request === healthRequestRef.current) setComfy({ ok: false })
     }
-  }, [])
+  }, [applyGenerationSnapshot])
 
   useEffect(() => {
     void checkHealth()
@@ -405,7 +420,11 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         } catch { /* a heartbeat or a truncated frame */ }
         if (payload?.kind === 'progress' && typeof payload.phase === 'string') {
           if (typeof payload.recordId === 'string' && payload.recordId !== '') {
-            setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }))
+            const version = Number.isFinite(payload.version) ? payload.version : 0
+            if (version >= generationVersionRef.current) {
+              generationVersionRef.current = version
+              setGenerations((current) => ({ ...current, [payload.recordId]: { ...current[payload.recordId], ...payload } }))
+            }
           }
         }
         if (payload?.kind === 'error' && typeof payload.message === 'string') {
@@ -762,6 +781,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         return
       }
       if (typeof body.recordId === 'string') {
+        if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion)
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: 'queued', elapsed: 0 } }))
         setActiveRecordId(body.recordId)
       }
@@ -798,6 +818,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         return
       }
       if (typeof body.recordId === 'string') {
+        if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion)
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: 'queued', elapsed: 0 } }))
         setActiveRecordId(body.recordId)
       }

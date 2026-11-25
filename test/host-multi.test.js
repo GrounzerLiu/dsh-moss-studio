@@ -117,6 +117,8 @@ test('host accepts concurrent submissions and cancels only the requested record'
     const health = await call('GET', '/plugins/dsh-moss-studio/health')
     assert.equal(health.body.busy, true)
     assert.deepEqual(health.body.generations.map((entry) => entry.recordId), [recordIds[1]])
+    assert.ok(Number.isInteger(health.body.generationVersion))
+    assert.ok(health.body.generationVersion >= 3, 'job creation, progress and removal advance the snapshot version')
   } finally {
     for (const recordId of recordIds) await call('POST', '/plugins/dsh-moss-studio/generate/cancel', { sessionId: 's1', recordId })
     await new Promise((resolve) => server.close(resolve))

@@ -242,13 +242,17 @@ export function apply(ctx, rawConfig) {
   }
 
   const jobs = new Map()
+  let generationVersion = 0
   const busy = () => jobs.size > 0
   /** Legacy single-job fields remain for older clients; new clients use generations. */
   const firstJob = () => jobs.values().next().value ?? null
   const busySession = () => firstJob()?.sessionId ?? null
   const busyRecordId = () => firstJob()?.recordId ?? null
   const generationProgress = () => firstJob()?.progress ?? null
-  const generations = () => [...jobs.values()].map((job) => ({ ...job.progress, recordId: job.recordId, sessionId: job.sessionId }))
+  const generationSnapshot = () => ({
+    version: generationVersion,
+    generations: [...jobs.values()].map((job) => ({ ...job.progress, recordId: job.recordId, sessionId: job.sessionId })),
+  })
 
   /** Abort only the generation owned by this session/record. */
   function cancelGeneration({ sessionId, recordId } = {}) {
@@ -275,8 +279,9 @@ export function apply(ctx, rawConfig) {
       record = await store.createRecord({ sessionId, params })
       job = { recordId: record.id, sessionId, controller, progress: { phase: 'probe', elapsed: 0 } }
       jobs.set(record.id, job)
+      generationVersion += 1
       onCreated?.(record)
-      store.emit({ kind: 'progress', recordId: record.id, sessionId, phase: 'probe', source })
+      store.emit({ kind: 'progress', recordId: record.id, sessionId, phase: 'probe', source, version: generationVersion })
 
       const result = await runGeneration({
         baseUrl: live().comfyUrl,
@@ -287,7 +292,8 @@ export function apply(ctx, rawConfig) {
         signal: controller.signal,
         onProgress: (progress) => {
           job.progress = { ...job.progress, ...progress }
-          store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source })
+          generationVersion += 1
+          store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source, version: generationVersion })
         },
       })
 
@@ -357,7 +363,10 @@ export function apply(ctx, rawConfig) {
       throw error
     } finally {
       signal?.removeEventListener?.('abort', forwardAbort)
-      if (job !== undefined) jobs.delete(job.recordId)
+      if (job !== undefined) {
+        jobs.delete(job.recordId)
+        generationVersion += 1
+      }
     }
   }
 
@@ -375,7 +384,7 @@ export function apply(ctx, rawConfig) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ROUTE_PREFIX,
-    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, generationProgress, generations, health, settings: settingsForPanel, saveSettings }),
+    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, generationProgress, generationSnapshot, health, settings: settingsForPanel, saveSettings }),
   }), 'moss-studio: routes')
 
   ctx.logger?.info?.(`moss-studio: 数据目录 ${config.dataDir}，ComfyUI ${config.comfyUrl}`)

@@ -574,6 +574,57 @@ test('progress events render percentage, step count and queue position', async (
   assert.match(container.textContent, /队列第 2 位 · 共 3 个/)
 })
 
+test('stale state and health snapshots cannot clear newer live progress', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const running = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
+  let source
+  let resolveState
+  let resolveHealth
+  let stateCalls = 0
+  let healthCalls = 0
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) {
+      stateCalls += 1
+      if (stateCalls > 1) return new Promise((resolve) => { resolveState = resolve })
+      return jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1, generations: [{ ...running, phase: 'queued' }] })
+    }
+    if (target.includes('/health')) {
+      healthCalls += 1
+      if (healthCalls > 1) return new Promise((resolve) => { resolveHealth = resolve })
+      return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: true, generationVersion: 1, generations: [{ ...running, phase: 'queued' }] })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'running', percent: 40, step: 10, maxStep: 25, version: 2 }) })
+  })
+  assert.match(container.textContent, /生成 40% · 10\/25 步/)
+  assert.ok(container.querySelector('button[aria-label="取消生成"]'))
+
+  // The SSE-triggered refresh and a manual health check are deliberately held
+  // back, then answered with snapshots produced before the live event.
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 180)) })
+  assert.equal(typeof resolveState, 'function')
+  await act(async () => {
+    container.querySelector('button[aria-label="重新检测 ComfyUI"]').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+  assert.equal(typeof resolveHealth, 'function')
+  await act(async () => {
+    resolveState(jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1, generations: [] }))
+    resolveHealth(jsonResponse({ ok: true, comfy: { ok: true, version: 'x' }, busy: false, generationVersion: 1, generations: [] }))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+  assert.match(container.textContent, /生成 40% · 10\/25 步/)
+  assert.ok(container.querySelector('button[aria-label="取消生成"]'), 'the stale snapshots do not remove cancel')
+})
+
 test('the cancel button sends the active record id and reports cancellation', async (t) => {
   const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
   let record = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
