@@ -101,6 +101,21 @@ async function harness(run, extra = {}) {
   }
 }
 
+test('state and health expose the active generation progress snapshot', async () => {
+  const progress = { recordId: 'rec-1', sessionId: 's1', phase: 'wait', percent: 40, step: 10, maxStep: 25, queuePosition: 2 }
+  await harness(async ({ call }) => {
+    const state = await call({ url: '/plugins/dsh-moss-studio/state?sessionId=s1' })
+    assert.deepEqual(state.body.generation, { recordId: 'rec-1', sessionId: 's1', progress })
+    const health = await call({ url: '/plugins/dsh-moss-studio/health' })
+    assert.deepEqual(health.body.progress, progress)
+  }, {
+    isGenerating: () => true,
+    busySession: () => 's1',
+    busyRecordId: () => 'rec-1',
+    generationProgress: () => progress,
+  })
+})
+
 test('state reports the draft and the records', async () => {
   await harness(async ({ store, call }) => {
     await store.putDraft('s1', { prompt: 'p' }, 0)

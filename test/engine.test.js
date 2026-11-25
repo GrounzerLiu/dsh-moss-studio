@@ -57,6 +57,7 @@ test('aborting a submitted prompt interrupts that prompt through ComfyUI', async
   const controller = new AbortController()
   const running = runGeneration({
     baseUrl: 'http://127.0.0.1:8188', template, params, signal: controller.signal, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => ({ close() {} }),
   })
   await promptSubmitted
   controller.abort()
@@ -90,6 +91,7 @@ test('aborting before submission does not call the interrupt endpoint', async (t
   const controller = new AbortController()
   const running = runGeneration({
     baseUrl: 'http://127.0.0.1:8188', template, params, signal: controller.signal, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => ({ close() {} }),
   })
   await probeStarted
   controller.abort()
@@ -116,6 +118,7 @@ test('a failed interrupt is reported instead of pretending cancellation complete
   const controller = new AbortController()
   const running = runGeneration({
     baseUrl: 'http://127.0.0.1:8188', template, params, signal: controller.signal, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => ({ close() {} }),
   })
   await promptSubmitted
   controller.abort()
@@ -149,6 +152,7 @@ test('older ComfyUI versions fall back to targeted /interrupt', async (t) => {
   const controller = new AbortController()
   const running = runGeneration({
     baseUrl: 'http://127.0.0.1:8188', template, params, signal: controller.signal, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => ({ close() {} }),
   })
   await promptSubmitted
   controller.abort()
@@ -156,6 +160,36 @@ test('older ComfyUI versions fall back to targeted /interrupt', async (t) => {
   const legacy = requests.find((request) => request.path === '/interrupt')
   assert.ok(legacy)
   assert.deepEqual(JSON.parse(legacy.body), { prompt_id: 'prompt-1' })
+})
+
+test('generation reports sampler progress and queue position without failing the run', async (t) => {
+  const updates = []
+  let historyChecks = 0
+  installFetch(t, async (input, init = {}) => {
+    const url = new URL(String(input))
+    if (url.pathname === '/system_stats') return json({ system: { comfyui_version: 'test' }, devices: [] })
+    if (url.pathname === '/prompt') return json({ prompt_id: 'prompt-1', number: 1 })
+    if (url.pathname === '/history/prompt-1') {
+      historyChecks += 1
+      if (historyChecks === 1) return json({})
+      return json({ 'prompt-1': { status: { completed: true }, outputs: { '9': { images: [{ filename: 'x.png', subfolder: '', type: 'output' }] } } } })
+    }
+    if (url.pathname === '/queue') return json({ queue_running: [], queue_pending: [[1, 'prompt-1', {}, [], []]] })
+    if (url.pathname === '/view') return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'image/png' } })
+    throw new Error(`unexpected request ${url.pathname}`)
+  })
+
+  const result = await runGeneration({
+    baseUrl: 'http://127.0.0.1:8188', template, params, timeoutMs: 5000, pollMs: 20,
+    socketFactory: (_baseUrl, _clientId, _signal, onProgress) => {
+      onProgress({ percent: 50, step: 5, maxStep: 10, node: '18' })
+      return { close() {} }
+    },
+    onProgress: (progress) => updates.push(progress),
+  })
+  assert.equal(result.promptId, 'prompt-1')
+  assert.ok(updates.some((entry) => entry.percent === 50 && entry.step === 5 && entry.maxStep === 10))
+  assert.ok(updates.some((entry) => entry.queuePosition === 1 && entry.queuePending === 1))
 })
 
 test('a non-cancellation execution failure does not interrupt another prompt', async (t) => {
@@ -173,6 +207,7 @@ test('a non-cancellation execution failure does not interrupt another prompt', a
 
   await assert.rejects(runGeneration({
     baseUrl: 'http://127.0.0.1:8188', template, params, signal: new AbortController().signal, timeoutMs: 5000, pollMs: 20,
+    socketFactory: () => ({ close() {} }),
   }), (error) => error instanceof ComfyError && error.code === 'COMFY_EXECUTION')
   assert.equal(requests.some((request) => request.path.startsWith('/api/jobs/')), false)
 })

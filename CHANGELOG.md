@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.6
+
+Layout ordering and live ComfyUI progress.
+
+**Drag to reorder**
+
+- Each box row has a drag handle with a clear insertion marker. Reordering is
+  undoable and keeps 1-based character marks attached to the same boxes.
+- `Alt+↑/↓` provides the same operation from the keyboard. Pointer dragging the
+  handle neither focuses nor selects the row, so the description editor does not
+  expand underneath the pointer.
+
+**Percentage and queue position**
+
+- A best-effort ComfyUI websocket reports sampler percentage and step count.
+  Both legacy `progress` and current `progress_state` messages are supported;
+  finished model-load nodes no longer flash 100% while sampling starts.
+- `/queue` polling reports the exact 1-based pending position. Older servers
+  without `/queue` simply omit it.
+- The host exposes the current snapshot through SSE, `/state` and `/health`.
+  The panel shows a progress bar, percentage/step text or queue position, and
+  can cancel a same-session job started by the panel or an AI tool.
+
+Regression coverage grew from 181 to 192 tests, including a real local
+websocket round trip and protocol/queue compatibility cases.
+
 ## 0.7.5
 
 Editing reliability: explicit draft-conflict resolution, consistent lock/hide

@@ -542,6 +542,38 @@ test('generation waits for its own record even when another session has a newer 
   assert.equal(container.querySelector('img[alt="生成结果"]')?.getAttribute('src'), '/plugins/dsh-moss-studio/image/rec-mine')
 })
 
+test('progress events render percentage, step count and queue position', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  let source
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, 1))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/generate') && init.method === 'POST') return jsonResponse({ ok: true, recordId: 'rec-mine' }, 202)
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  const generate = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
+  await act(async () => {
+    generate.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 80))
+  })
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'wait', percent: 40, step: 10, maxStep: 25 }) })
+  })
+  assert.match(container.textContent, /生成 40% · 10\/25 步/)
+  assert.equal(container.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow'), '40')
+
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', sessionId: 'sess-1', recordId: 'rec-mine', phase: 'wait', queuePosition: 2, queuePending: 3 }) })
+  })
+  assert.match(container.textContent, /队列第 2 位 · 共 3 个/)
+})
+
 test('the cancel button sends the active record id and reports cancellation', async (t) => {
   const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
   let record = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }

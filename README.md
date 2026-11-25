@@ -24,7 +24,9 @@ client.js                built bundle (run scripts/build-client.mjs)
 scripts/build-client.mjs esbuild wrapper that emits the ModuleLoader shape
 ```
 
-Only Node built-ins are imported by the host half. The plugin lives outside the profile tree, where bare `@deepseek-ai/*` specifiers do not resolve.
+The host half uses Node built-ins plus the small runtime dependency `ws` for
+ComfyUI progress events. The plugin lives outside the profile tree, where bare
+`@deepseek-ai/*` specifiers do not resolve.
 
 ## What it does
 
@@ -33,9 +35,12 @@ Only Node built-ins are imported by the host half. The plugin lives outside the 
 - Layout editor with the gestures bounding-box annotators use: drag on empty
   canvas to draw a box, eight resize handles, shift-click and shift-drag for
   multi-selection, smart guides that snap edges and centres, align/distribute,
-  a numeric X/Y/W/H inspector, duplicate, and undo/redo. A box can be locked
-  (visible and sent, but not draggable/resizable on the canvas) or hidden (kept
-  in the draft, left out of the request).
+  a numeric X/Y/W/H inspector, duplicate, undo/redo, and drag/`Alt+↑/↓` list
+  reordering that keeps character marks attached. A box can be locked
+  (geometry protected, content editable) or hidden (kept in the draft, left out
+  of generation, snapping and group moves).
+- Live generation progress: sampler percentage/step count from ComfyUI's
+  websocket and exact queue position from `/queue`, with graceful fallback.
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
@@ -85,7 +90,8 @@ node --test test/
 
 Covers the store (revisions, conflicts, records), the tools and their output
 schemas, every route, client registration, jsdom panel save/generate
-transactions, and the canvas geometry. No test talks to ComfyUI.
+transactions, canvas geometry, and a local websocket round trip. No test talks
+to a real ComfyUI server.
 
 ## Install (manual)
 

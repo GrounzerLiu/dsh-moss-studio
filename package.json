@@ -1,6 +1,6 @@
 {
   "name": "dsh-moss-studio",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "private": true,
   "type": "module",
   "description": "MOSS-Image studio: a sidebar workbench for local ComfyUI layout generation, with history and AI-readable drafts.",
@@ -44,11 +44,11 @@
     }
   },
   "devDependencies": {
+    "@tanstack/react-virtual": "^3.14.28",
     "esbuild": "^0.28.2",
     "jsdom": "^25.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@tanstack/react-virtual": "^3.14.28",
     "react-zoom-pan-pinch": "^4.4.0"
   },
   "engines": {
@@ -56,6 +56,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/schemastery": "3.20.0-alpha.1"
+    "@deepseek-ai/schemastery": "3.20.0-alpha.1",
+    "ws": "^8.23.0"
   }
 }

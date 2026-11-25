@@ -91,6 +91,9 @@ var ZH = {
   "generate.cancel": "\u53D6\u6D88\u751F\u6210",
   "generate.otherSession": "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210",
   "generate.pending": "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09",
+  "generate.percent": "\u751F\u6210 {percent}% \xB7 {step}/{maxStep} \u6B65",
+  "generate.progressLabel": "\u751F\u6210\u8FDB\u5EA6",
+  "generate.queuePosition": "\u961F\u5217\u7B2C {position} \u4F4D \xB7 \u5171 {pending} \u4E2A",
   "generate.queued": "\u961F\u5217\u4E2D \xB7 {id}",
   "generate.random": "\u968F\u673A seed \u751F\u6210",
   "generate.running": "\u751F\u6210\u4E2D {seconds}s",
@@ -226,6 +229,7 @@ var ZH = {
   "viewer.zoomOut": "\u7F29\u5C0F",
   "editor.drawHint": "\u5728\u753B\u5E03\u4E0A\u62D6\u51FA\u4E00\u4E2A\u6846\uFF1B\u6309\u4F4F Shift \u62D6\u62FD\u662F\u6846\u9009",
   "editor.keyboardHint": "Tab \u805A\u7126\u6846\uFF0CEnter \u9009\u62E9\uFF0C\u65B9\u5411\u952E\u79FB\u52A8\uFF0CDelete \u5220\u9664\uFF0CShift \u591A\u9009",
+  "editor.reorder": "\u62D6\u52A8\u8C03\u5E8F\uFF1BAlt+\u2191/\u2193 \u4E5F\u53EF\u8C03\u6574\u987A\u5E8F",
   "editor.canvasLabel": "\u5E03\u5C40\u753B\u5E03",
   "editor.boxLabel": "\u5E03\u5C40\u6846 {index}\uFF1A{caption}{flags}",
   "editor.boxListLabel": "\u5E03\u5C40\u6846\u5217\u8868",
@@ -320,6 +324,9 @@ var EN = {
   "generate.cancel": "Cancel generation",
   "generate.otherSession": "Another session is generating",
   "generate.pending": "Generating\u2026 ({id})",
+  "generate.percent": "Generating {percent}% \xB7 step {step}/{maxStep}",
+  "generate.progressLabel": "Generation progress",
+  "generate.queuePosition": "Queue position {position} \xB7 {pending} total",
   "generate.queued": "Queued \xB7 {id}",
   "generate.random": "Generate with a random seed",
   "generate.running": "Generating {seconds}s",
@@ -455,6 +462,7 @@ var EN = {
   "viewer.zoomOut": "Zoom out",
   "editor.drawHint": "Drag on the canvas to draw a box; hold Shift and drag to marquee-select",
   "editor.keyboardHint": "Tab focuses boxes, Enter selects, arrows move, Delete removes, Shift multi-selects",
+  "editor.reorder": "Drag to reorder; Alt+\u2191/\u2193 also changes the order",
   "editor.canvasLabel": "Layout canvas",
   "editor.boxLabel": "Layout box {index}: {caption}{flags}",
   "editor.boxListLabel": "Layout box list",
@@ -639,6 +647,36 @@ function parseRatio(size) {
   const height = Number(match[2]);
   if (!(width > 0) || !(height > 0)) return 1;
   return width / height;
+}
+function reorderBoxes(boxes, from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length || from === to) {
+    return boxes;
+  }
+  const next = [...boxes];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+function indexAfterReorder(index, from, to) {
+  if (index === from) return to;
+  if (from < to && index > from && index <= to) return index - 1;
+  if (from > to && index >= to && index < from) return index + 1;
+  return index;
+}
+function reorderLayout(boxes, characters, from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length || from === to) {
+    return { boxes, characters: String(characters ?? "") };
+  }
+  const marks = new Set(String(characters ?? "").match(/\d+/g)?.map(Number) ?? []);
+  const remapped = /* @__PURE__ */ new Set();
+  for (const mark of marks) {
+    if (mark < 1 || mark > boxes.length) continue;
+    remapped.add(indexAfterReorder(mark - 1, from, to) + 1);
+  }
+  return {
+    boxes: reorderBoxes(boxes, from, to),
+    characters: [...remapped].sort((a, b) => a - b).join(",")
+  };
 }
 function moveBox(box, dx, dy) {
   return {
@@ -1427,7 +1465,8 @@ var PATHS = {
   "settings": "m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z",
   "keep_off": "M680-840v80h-40v327l-80-80v-247H400v87l-87-87-33-33v-47h400ZM480-40l-40-40v-240H240v-80l80-80v-46L56-792l56-56 736 736-58 56-264-264h-6v240l-40 40ZM354-400h92l-44-44-2-2-46 46Zm126-193Zm-78 149Z",
   "archive": "m480-240 160-160-56-56-64 64v-168h-80v168l-64-64-56 56 160 160ZM200-640v440h560v-440H200Zm0 520q-33 0-56.5-23.5T120-200v-499q0-14 4.5-27t13.5-24l50-61q11-14 27.5-21.5T250-840h460q18 0 34.5 7.5T772-811l50 61q9 11 13.5 24t4.5 27v499q0 33-23.5 56.5T760-120H200Zm16-600h528l-34-40H250l-34 40Zm264 300Z",
-  "unarchive": "M480-560 320-400l56 56 64-64v168h80v-168l64 64 56-56-160-160Zm-280-80v440h560v-440H200Zm0 520q-33 0-56.5-23.5T120-200v-499q0-14 4.5-27t13.5-24l50-61q11-14 27.5-21.5T250-840h460q18 0 34.5 7.5T772-811l50 61q9 11 13.5 24t4.5 27v499q0 33-23.5 56.5T760-120H200Zm16-600h528l-34-40H250l-34 40Zm264 300Z"
+  "unarchive": "M480-560 320-400l56 56 64-64v168h80v-168l64 64 56-56-160-160Zm-280-80v440h560v-440H200Zm0 520q-33 0-56.5-23.5T120-200v-499q0-14 4.5-27t13.5-24l50-61q11-14 27.5-21.5T250-840h460q18 0 34.5 7.5T772-811l50 61q9 11 13.5 24t4.5 27v499q0 33-23.5 56.5T760-120H200Zm16-600h528l-34-40H250l-34 40Zm264 300Z",
+  "drag_indicator": "M120-600v-80h720v80H120Zm0 200v-80h720v80H120Zm0 200v-80h720v80H120Z"
 };
 function Icon({ name, size = 16, style }) {
   const d = PATHS[name];
@@ -1692,6 +1731,9 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight;
   const budget = Number.isFinite(viewportHeight) ? Math.min(560, Math.max(260, Math.round(viewportHeight * 0.58))) : 520;
   const [selection, setSelection] = (0, import_react6.useState)([]);
+  const [draggingIndex, setDraggingIndex] = (0, import_react6.useState)(null);
+  const [dropTarget, setDropTarget] = (0, import_react6.useState)(null);
+  const pointerDragRef = (0, import_react6.useRef)(false);
   const [lockAspect, setLockAspect] = (0, import_react6.useState)(false);
   const [notice, setNotice] = (0, import_react6.useState)("");
   const charactersRef = (0, import_react6.useRef)(characterBoxes);
@@ -1811,6 +1853,14 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     setSelection(result.added);
   }, [boxes, commit, selection]);
   const selectAll = (0, import_react6.useCallback)(() => setSelection(boxes.map((_, index) => index)), [boxes]);
+  const reorder = (0, import_react6.useCallback)((from, to) => {
+    if (from === to || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length) return;
+    const result = reorderLayout(boxes, charactersRef.current, from, to);
+    commit(result.boxes, { characters: result.characters });
+    setSelection((current) => [...new Set(current.map((index) => indexAfterReorder(index, from, to)))].sort((a, b) => a - b));
+    setDraggingIndex(null);
+    setDropTarget(null);
+  }, [boxes, commit]);
   const record = (0, import_react6.useCallback)((result) => {
     resetCoalesce();
     if (result === void 0 || result === null || !Array.isArray(result.boxes)) return;
@@ -2094,7 +2144,29 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             flags: `${box.locked === true ? t("editor.lockedFlag") : ""}${box.hidden === true ? t("editor.hiddenFlag") : ""}`
           }),
           "aria-current": selection.includes(index) ? "true" : void 0,
-          onFocus: () => {
+          onDragOver: (event) => {
+            if (draggingIndex === null) return;
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+            const rect = event.currentTarget.getBoundingClientRect();
+            const after = event.clientY > rect.top + rect.height / 2;
+            setDropTarget({ index, after });
+          },
+          onDrop: (event) => {
+            if (draggingIndex === null) return;
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            const after = event.clientY > rect.top + rect.height / 2;
+            const target = after ? index + 1 : index;
+            reorder(draggingIndex, target > draggingIndex ? target - 1 : target);
+          },
+          onDragEnd: () => {
+            pointerDragRef.current = false;
+            setDraggingIndex(null);
+            setDropTarget(null);
+          },
+          onFocus: (event) => {
+            if (event.target !== event.currentTarget || pointerDragRef.current) return;
             if (!selection.includes(index)) setSelection([index]);
           },
           onKeyDown: (event) => {
@@ -2108,6 +2180,10 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
             event.preventDefault();
             event.stopPropagation();
+            if (event.altKey) {
+              reorder(index, index + (event.key === "ArrowDown" ? 1 : -1));
+              return;
+            }
             const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')];
             const position = rows.indexOf(event.currentTarget);
             const next = position + (event.key === "ArrowDown" ? 1 : -1);
@@ -2128,10 +2204,61 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             borderRadius: 8,
             cursor: "pointer",
             background: selection.includes(index) ? selectionFill(14) : "transparent",
-            border: `1px solid ${selection.includes(index) ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`
+            border: `1px solid ${selection.includes(index) ? "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" : "var(--dsw-alias-border-l1, rgba(127,127,127,0.22))"}`,
+            opacity: draggingIndex === null || draggingIndex === index ? 1 : 0.55,
+            boxShadow: dropTarget?.index === index ? `inset 0 ${dropTarget.after ? -2 : 2}px 0 var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))` : void 0
           }
         },
-        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 16, ...dim, opacity: box.hidden ? 0.4 : 1 } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none", opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? "line-through" : "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement(
+          "button",
+          {
+            type: "button",
+            draggable: true,
+            tabIndex: 0,
+            "data-box-index": index,
+            onPointerDown: () => {
+              pointerDragRef.current = true;
+            },
+            onPointerUp: () => {
+              pointerDragRef.current = false;
+            },
+            onPointerCancel: () => {
+              pointerDragRef.current = false;
+            },
+            onBlur: () => {
+              pointerDragRef.current = false;
+            },
+            onFocus: (event) => {
+              if (pointerDragRef.current) event.currentTarget.blur();
+            },
+            onClick: (event) => event.stopPropagation(),
+            onDragStart: (event) => {
+              if (!event.dataTransfer) return;
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", String(index));
+              setDraggingIndex(index);
+            },
+            onDragEnd: () => {
+              setDraggingIndex(null);
+              setDropTarget(null);
+            },
+            onKeyDown: (event) => {
+              if (!event.altKey || event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              event.stopPropagation();
+              const next = index + (event.key === "ArrowDown" ? 1 : -1);
+              const list = event.currentTarget.closest('[role="list"]');
+              reorder(index, next);
+              setTimeout(() => {
+                list?.querySelector(`[data-box-index="${next}"]`)?.focus();
+              }, 0);
+            },
+            title: t("editor.reorder"),
+            "aria-label": t("editor.reorder"),
+            style: { ...iconButton, padding: 2, cursor: "grab" }
+          },
+          /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "drag_indicator", size: 14 })
+        ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { width: 12, ...dim, opacity: box.hidden ? 0.4 : 1 } }, index + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { ...input, flex: 1, padding: "2px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "transparent", border: "none", opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? "line-through" : "none" } }, box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc")), /* @__PURE__ */ import_react6.default.createElement(
           "span",
           {
             title: boxProblem(box) === void 0 ? void 0 : t(boxProblem(box) === "text" ? "editor.needsText" : "editor.needsDesc"),
@@ -8165,6 +8292,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [generationRecordId, setGenerationRecordId] = (0, import_react14.useState)(null);
   const [elapsed, setElapsed] = (0, import_react14.useState)(0);
   const [phase, setPhase] = (0, import_react14.useState)("");
+  const [progress, setProgress] = (0, import_react14.useState)(null);
   const [flagLocalOnly, setLocalOnly] = (0, import_react14.useState)(false);
   const [query, setQuery] = (0, import_react14.useState)("");
   const [showArchived, setShowArchived] = (0, import_react14.useState)(false);
@@ -8221,6 +8349,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     }
     setRevision(state.revision);
     latestServerRef.current = { revision: state.revision, params: state.params };
+    setProgress(state.generation?.sessionId === sessionId ? state.generation.progress ?? null : null);
+    setQueue({
+      busy: state.generation !== null && state.generation !== void 0,
+      sessionId: state.generation?.sessionId ?? null,
+      recordId: state.generation?.recordId ?? null
+    });
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
@@ -8231,7 +8365,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       const target = newest?.status === "running" ? newest.id : latestDone?.id ?? null;
       setActiveRecordId((current) => current === target ? current : target);
     }
-  }, []);
+  }, [sessionId]);
   const refresh = (0, import_react14.useCallback)(async () => {
     try {
       const state = await fetchState(sessionId, 40, showArchived);
@@ -8248,11 +8382,12 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     try {
       const health = await fetchHealth();
       setComfy(health.comfy ?? { ok: false });
-      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null });
+      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null, recordId: health.busyRecordId ?? null });
+      setProgress(health.busy === true && health.busySession === sessionId ? health.progress ?? null : null);
     } catch {
       setComfy({ ok: false });
     }
-  }, []);
+  }, [sessionId]);
   (0, import_react14.useEffect)(() => {
     void checkHealth();
     const timer = setInterval(() => {
@@ -8291,7 +8426,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         } catch {
         }
         if (payload?.kind === "progress" && typeof payload.phase === "string") {
-          if (payload.sessionId === void 0 || payload.sessionId === sessionId) setPhase(payload.phase);
+          if (payload.sessionId === void 0 || payload.sessionId === sessionId) {
+            setPhase(payload.phase);
+            setProgress(payload);
+            setQueue({ busy: true, sessionId: payload.sessionId ?? sessionId, recordId: payload.recordId ?? null });
+          }
         }
         if (payload?.kind === "error" && typeof payload.message === "string") {
           if (payload.sessionId === void 0 || payload.sessionId === sessionId) setError(payload.message);
@@ -8322,7 +8461,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     };
   }, [pushed, sessionId, refresh]);
   (0, import_react14.useEffect)(() => {
-    if (!busy) {
+    const externalBusy = queue.busy && queue.sessionId === sessionId;
+    if (!busy && !externalBusy) {
       setElapsed(0);
       setPhase("");
       return void 0;
@@ -8330,7 +8470,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     const started = Date.now();
     const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1e3)), 500);
     return () => clearInterval(timer);
-  }, [busy]);
+  }, [busy, queue.busy, queue.sessionId, sessionId]);
   (0, import_react14.useEffect)(() => {
     saveUiPrefs({
       resultHeight,
@@ -8604,6 +8744,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       return;
     }
     setBusy(true);
+    setProgress({ phase: "submit", elapsed: 0 });
     setError("");
     setNotice(t("notice.generationSubmitted"));
     try {
@@ -8633,12 +8774,16 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } finally {
       setBusy(false);
       setGenerationRecordId(null);
+      setProgress(null);
     }
   }, [busy, flushAll, sessionId, waitForCompletion]);
   const cancelCurrentGeneration = (0, import_react14.useCallback)(async () => {
-    if (!busy || generationRecordId === null) return;
+    const sameSessionBusy = queue.busy && queue.sessionId === sessionId;
+    if (!busy && !sameSessionBusy) return;
+    const recordId = generationRecordId ?? queue.recordId ?? null;
+    if (recordId === null) return;
     try {
-      const { status, body } = await cancelGeneration(sessionId, generationRecordId);
+      const { status, body } = await cancelGeneration(sessionId, recordId);
       if (status !== 200) {
         setError(body?.message ?? t("error.cancelGeneration", { status }));
         return;
@@ -8647,10 +8792,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem));
     }
-  }, [busy, generationRecordId, sessionId]);
+  }, [busy, generationRecordId, queue, sessionId]);
   const retryRecord = (0, import_react14.useCallback)(async (record) => {
     if (busy || record === null || record === void 0) return;
     setBusy(true);
+    setProgress({ phase: "submit", elapsed: 0 });
     setError("");
     setNotice(t("notice.retrySubmitted"));
     try {
@@ -8670,6 +8816,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     } finally {
       setBusy(false);
       setGenerationRecordId(null);
+      setProgress(null);
     }
   }, [busy, sessionId, waitForCompletion]);
   const generateRandom = (0, import_react14.useCallback)(() => {
@@ -8822,6 +8969,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const previousId = viewIndex > 0 ? viewableIds[viewIndex - 1] : null;
   const followingId = viewIndex >= 0 && viewIndex + 1 < viewableIds.length ? viewableIds[viewIndex + 1] : null;
   const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== sessionId;
+  const sessionBusy = busy || queue.busy && queue.sessionId === sessionId;
+  const activeGenerationRecordId = generationRecordId ?? queue.recordId ?? null;
+  const progressPercent = typeof progress?.percent === "number" && Number.isFinite(progress.percent) ? Math.min(100, Math.max(0, progress.percent)) : null;
+  const queuePosition = typeof progress?.queuePosition === "number" && progress.queuePosition > 0 ? progress.queuePosition : null;
+  const progressText = queuePosition !== null ? t("generate.queuePosition", { position: queuePosition, pending: progress.queuePending ?? queuePosition }) : progressPercent !== null ? t("generate.percent", { percent: Math.round(progressPercent), step: progress.step ?? "\u2014", maxStep: progress.maxStep ?? "\u2014" }) : (progress?.phase ?? phase) === "" ? "" : t(PHASE_KEY[progress?.phase ?? phase] ?? (progress?.phase ?? phase));
   const shownHasImage = shownSummary === void 0 ? shownRecordId !== null : shownSummary.hasImage;
   const shownRunning = shownSummary?.status === "running";
   const running = records.find((record) => record.status === "running");
@@ -9127,7 +9279,18 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onChange: (event) => update({ enhance: event.target.checked }),
       label: t("params.enhanceHint")
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), busy && generationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), conflict ? /* @__PURE__ */ import_react14.default.createElement("div", { role: "alert", style: { display: "flex", flexDirection: "column", gap: 4, padding: 6, borderRadius: 8, border: "1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11 } }, t("notice.draftConflict")), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: conflictParamsRef.current === null, onClick: adoptServerDraft }, t("action.adoptServer")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, onClick: () => void overwriteServerDraft() }, t("action.overwriteServer")))) : null, notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: sessionBusy || otherBusy || sizeHint !== null, onClick: generateRandom }, sessionBusy ? `${t("generate.running", { seconds: elapsed })}${progressText === "" ? "" : ` \xB7 ${progressText}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: sessionBusy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), sessionBusy && activeGenerationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !sessionBusy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sessionBusy && progressPercent !== null ? /* @__PURE__ */ import_react14.default.createElement(
+    "div",
+    {
+      role: "progressbar",
+      "aria-label": t("generate.progressLabel"),
+      "aria-valuemin": 0,
+      "aria-valuemax": 100,
+      "aria-valuenow": Math.round(progressPercent),
+      style: { width: "100%", height: 4, borderRadius: 2, overflow: "hidden", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.18))" }
+    },
+    /* @__PURE__ */ import_react14.default.createElement("div", { style: { width: `${progressPercent}%`, height: "100%", background: "var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))" } })
+  ) : null, sessionBusy && progressText !== "" ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, progressText) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), conflict ? /* @__PURE__ */ import_react14.default.createElement("div", { role: "alert", style: { display: "flex", flexDirection: "column", gap: 4, padding: 6, borderRadius: 8, border: "1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11 } }, t("notice.draftConflict")), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: conflictParamsRef.current === null, onClick: adoptServerDraft }, t("action.adoptServer")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, onClick: () => void overwriteServerDraft() }, t("action.overwriteServer")))) : null, notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       style: {

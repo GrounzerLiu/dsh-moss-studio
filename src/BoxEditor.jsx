@@ -10,7 +10,9 @@ import {
   boxProblem,
   distributeBoxes,
   duplicateBoxes,
+  indexAfterReorder,
   moveBoxes,
+  reorderLayout,
   updateBoxGeometry,
 } from './box-math.js'
 import { ScopeStyles } from './ScopeStyles.jsx'
@@ -125,6 +127,9 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     : 520
 
   const [selection, setSelection] = useState([])
+  const [draggingIndex, setDraggingIndex] = useState(null)
+  const [dropTarget, setDropTarget] = useState(null)
+  const pointerDragRef = useRef(false)
   const [lockAspect, setLockAspect] = useState(false)
   const [notice, setNotice] = useState('')
   /**
@@ -277,6 +282,15 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   }, [boxes, commit, selection])
 
   const selectAll = useCallback(() => setSelection(boxes.map((_, index) => index)), [boxes])
+
+  const reorder = useCallback((from, to) => {
+    if (from === to || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length) return
+    const result = reorderLayout(boxes, charactersRef.current, from, to)
+    commit(result.boxes, { characters: result.characters })
+    setSelection((current) => [...new Set(current.map((index) => indexAfterReorder(index, from, to)))].sort((a, b) => a - b))
+    setDraggingIndex(null)
+    setDropTarget(null)
+  }, [boxes, commit])
 
   /**
    * Adding a box happens in the panel, which owns the draft, so the new list
@@ -691,7 +705,27 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   flags: `${box.locked === true ? t('editor.lockedFlag') : ''}${box.hidden === true ? t('editor.hiddenFlag') : ''}`,
                 })}
                 aria-current={selection.includes(index) ? 'true' : undefined}
-                onFocus={() => { if (!selection.includes(index)) setSelection([index]) }}
+                onDragOver={(event) => {
+                  if (draggingIndex === null) return
+                  event.preventDefault()
+                  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const after = event.clientY > rect.top + rect.height / 2
+                  setDropTarget({ index, after })
+                }}
+                onDrop={(event) => {
+                  if (draggingIndex === null) return
+                  event.preventDefault()
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const after = event.clientY > rect.top + rect.height / 2
+                  const target = after ? index + 1 : index
+                  reorder(draggingIndex, target > draggingIndex ? target - 1 : target)
+                }}
+                onDragEnd={() => { pointerDragRef.current = false; setDraggingIndex(null); setDropTarget(null) }}
+                onFocus={(event) => {
+                  if (event.target !== event.currentTarget || pointerDragRef.current) return
+                  if (!selection.includes(index)) setSelection([index])
+                }}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -705,6 +739,10 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
                   event.preventDefault()
                   event.stopPropagation()
+                  if (event.altKey) {
+                    reorder(index, index + (event.key === 'ArrowDown' ? 1 : -1))
+                    return
+                  }
                   const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')]
                   const position = rows.indexOf(event.currentTarget)
                   const next = position + (event.key === 'ArrowDown' ? 1 : -1)
@@ -728,10 +766,51 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                   cursor: 'pointer',
                   background: selection.includes(index) ? selectionFill(14) : 'transparent',
                   border: `1px solid ${selection.includes(index) ? 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))' : 'var(--dsw-alias-border-l1, rgba(127,127,127,0.22))'}`,
+                  opacity: draggingIndex === null || draggingIndex === index ? 1 : 0.55,
+                  boxShadow: dropTarget?.index === index
+                    ? `inset 0 ${dropTarget.after ? -2 : 2}px 0 var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))`
+                    : undefined,
                 }}
               >
                 <div style={{ ...row }}>
-                  <span style={{ width: 16, ...dim, opacity: box.hidden ? 0.4 : 1 }}>{index + 1}</span>
+                  <button
+                    type="button"
+                    draggable
+                    tabIndex={0}
+                    data-box-index={index}
+                    onPointerDown={() => { pointerDragRef.current = true }}
+                    onPointerUp={() => { pointerDragRef.current = false }}
+                    onPointerCancel={() => { pointerDragRef.current = false }}
+                    onBlur={() => { pointerDragRef.current = false }}
+                    onFocus={(event) => {
+                      if (pointerDragRef.current) event.currentTarget.blur()
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                    onDragStart={(event) => {
+                      if (!event.dataTransfer) return
+                      event.dataTransfer.effectAllowed = 'move'
+                      event.dataTransfer.setData('text/plain', String(index))
+                      setDraggingIndex(index)
+                    }}
+                    onDragEnd={() => { setDraggingIndex(null); setDropTarget(null) }}
+                    onKeyDown={(event) => {
+                      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const next = index + (event.key === 'ArrowDown' ? 1 : -1)
+                      const list = event.currentTarget.closest('[role="list"]')
+                      reorder(index, next)
+                      setTimeout(() => {
+                        list?.querySelector(`[data-box-index="${next}"]`)?.focus()
+                      }, 0)
+                    }}
+                    title={t('editor.reorder')}
+                    aria-label={t('editor.reorder')}
+                    style={{ ...iconButton, padding: 2, cursor: 'grab' }}
+                  >
+                    <Icon name="drag_indicator" size={14} />
+                  </button>
+                  <span style={{ width: 12, ...dim, opacity: box.hidden ? 0.4 : 1 }}>{index + 1}</span>
                   <span style={{ ...input, flex: 1, padding: '2px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'transparent', border: 'none', opacity: box.hidden ? 0.45 : 1, textDecoration: box.hidden ? 'line-through' : 'none' }}>
                     {box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc'))}
                   </span>

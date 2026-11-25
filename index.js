@@ -244,11 +244,13 @@ export function apply(ctx, rawConfig) {
   let running = 0
   let runningSession = null
   let runningRecordId = null
+  let runningProgress = null
   let activeController = null
   const busy = () => running > 0
   /** Which draft holds the pipeline, so another session can explain its wait. */
   const busySession = () => runningSession
   const busyRecordId = () => runningRecordId
+  const generationProgress = () => runningProgress === null ? null : { ...runningProgress }
 
   /** Abort only the generation owned by this session/record. */
   function cancelGeneration({ sessionId, recordId } = {}) {
@@ -276,6 +278,7 @@ export function apply(ctx, rawConfig) {
     try {
       record = await store.createRecord({ sessionId, params })
       runningRecordId = record.id
+      runningProgress = { recordId: record.id, sessionId, phase: 'probe', elapsed: 0 }
       onCreated?.(record)
       store.emit({ kind: 'progress', recordId: record.id, sessionId, phase: 'probe', source })
 
@@ -286,7 +289,10 @@ export function apply(ctx, rawConfig) {
         timeoutMs: config.timeoutMs,
         pollMs: config.pollMs,
         signal: controller.signal,
-        onProgress: (progress) => store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source }),
+        onProgress: (progress) => {
+          runningProgress = { ...runningProgress, ...progress, recordId: record.id, sessionId }
+          store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source })
+        },
       })
 
       const attachments = ctx.get('attachments')
@@ -358,6 +364,7 @@ export function apply(ctx, rawConfig) {
       running -= 1
       runningSession = null
       runningRecordId = null
+      runningProgress = null
       activeController = null
     }
   }
@@ -376,7 +383,7 @@ export function apply(ctx, rawConfig) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: ROUTE_PREFIX,
-    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, health, settings: settingsForPanel, saveSettings }),
+    handler: studioRoutes({ store, generate, cancelGeneration, isGenerating: busy, busySession, busyRecordId, generationProgress, health, settings: settingsForPanel, saveSettings }),
   }), 'moss-studio: routes')
 
   ctx.logger?.info?.(`moss-studio: 数据目录 ${config.dataDir}，ComfyUI ${config.comfyUrl}`)

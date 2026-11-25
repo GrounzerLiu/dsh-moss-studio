@@ -32,6 +32,45 @@ export function parseRatio(size) {
   return width / height
 }
 
+/** Move one box to a new final index without changing any box geometry. */
+export function reorderBoxes(boxes, from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length || from === to) {
+    return boxes
+  }
+  const next = [...boxes]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
+
+/** Map an old selection index through a completed reorder. */
+export function indexAfterReorder(index, from, to) {
+  if (index === from) return to
+  if (from < to && index > from && index <= to) return index - 1
+  if (from > to && index >= to && index < from) return index + 1
+  return index
+}
+
+/**
+ * Reorder boxes and keep 1-based character marks attached to the same boxes.
+ * Invalid indexes are a no-op, matching reorderBoxes.
+ */
+export function reorderLayout(boxes, characters, from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= boxes.length || to >= boxes.length || from === to) {
+    return { boxes, characters: String(characters ?? '') }
+  }
+  const marks = new Set(String(characters ?? '').match(/\d+/g)?.map(Number) ?? [])
+  const remapped = new Set()
+  for (const mark of marks) {
+    if (mark < 1 || mark > boxes.length) continue
+    remapped.add(indexAfterReorder(mark - 1, from, to) + 1)
+  }
+  return {
+    boxes: reorderBoxes(boxes, from, to),
+    characters: [...remapped].sort((a, b) => a - b).join(','),
+  }
+}
+
 /** Shift one box, keeping it inside the frame. */
 export function moveBox(box, dx, dy) {
   return {

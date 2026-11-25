@@ -18,6 +18,8 @@ import {
   moveBox,
   moveBoxes,
   parseRatio,
+  reorderBoxes,
+  reorderLayout,
   resizeBox,
   resizeByHandle,
   selectionBounds,
@@ -28,6 +30,25 @@ import {
 import { normalizeBoxes } from '../lib/workflow.js'
 
 const box = { x: 0.2, y: 0.2, width: 0.4, height: 0.4, type: 'obj', desc: 'x' }
+
+test('reorderLayout moves boxes and keeps character marks attached to their boxes', () => {
+  const boxes = [
+    { ...box, desc: 'a' },
+    { ...box, desc: 'b' },
+    { ...box, desc: 'c' },
+  ]
+  const down = reorderLayout(boxes, '1,3', 0, 2)
+  assert.deepEqual(down.boxes.map((entry) => entry.desc), ['b', 'c', 'a'])
+  assert.equal(down.characters, '2,3')
+
+  const up = reorderLayout(boxes, '1,3', 2, 0)
+  assert.deepEqual(up.boxes.map((entry) => entry.desc), ['c', 'a', 'b'])
+  assert.equal(up.characters, '1,2')
+
+  assert.equal(reorderLayout(boxes, '1', 1, 1).characters, '1')
+  assert.equal(reorderLayout(boxes, '1', -1, 2).boxes, boxes)
+  assert.equal(reorderLayout(boxes, '1', -1, 2).characters, '1')
+})
 
 test('moveBox shifts inside the frame and stops at the edges', () => {
   assert.deepEqual(

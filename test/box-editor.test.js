@@ -422,6 +422,48 @@ test('canvas boxes and list rows are reachable and operable from the keyboard', 
   assert.ok(calls.length >= 2, 'keyboard selection and deletion reached the host')
 })
 
+test('list drag and Alt+Arrow reorder boxes while preserving character marks', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.2, height: 0.2, desc: 'a', palette: [] },
+    { type: 'obj', x: 0.4, y: 0.1, width: 0.2, height: 0.2, desc: 'b', palette: [] },
+    { type: 'obj', x: 0.7, y: 0.1, width: 0.2, height: 0.2, desc: 'c', palette: [] },
+  ]
+  const { dom, act, calls, getParams } = await mountControlledEditor(t, editorParams(boxes, '1,3'))
+  const handles = () => [...dom.window.document.querySelectorAll('button[aria-label="拖动调序；Alt+↑/↓ 也可调整顺序"]')]
+  const rows = () => [...dom.window.document.querySelectorAll('[role="listitem"]')]
+
+  const transfer = { effectAllowed: '', dropEffect: '', setData() {} }
+  await act(async () => {
+    handles()[0].dispatchEvent(new dom.window.MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0 }))
+    handles()[0].focus()
+  })
+  assert.equal(dom.window.document.activeElement, dom.window.document.body, 'pointer drag does not focus the handle')
+  assert.equal(rows().some((row) => row.getAttribute('aria-current') === 'true'), false, 'pointer drag does not select or expand a row')
+  assert.equal(dom.window.document.querySelectorAll('textarea').length, 0)
+  await act(async () => {
+    handles()[0].dispatchEvent(new dom.window.MouseEvent('pointerup', { bubbles: true, cancelable: true, button: 0 }))
+  })
+
+  const dragStart = new dom.window.Event('dragstart', { bubbles: true, cancelable: true })
+  Object.defineProperty(dragStart, 'dataTransfer', { value: transfer })
+  await act(async () => { handles()[0].dispatchEvent(dragStart) })
+  const drop = new dom.window.MouseEvent('drop', { bubbles: true, cancelable: true, clientY: 100 })
+  Object.defineProperty(drop, 'dataTransfer', { value: transfer })
+  await act(async () => { rows()[2].dispatchEvent(drop) })
+  assert.deepEqual(getParams().boxes.map((entry) => entry.desc), ['b', 'c', 'a'])
+  assert.equal(getParams().characterBoxes, '2,3')
+
+  await act(async () => {
+    handles()[0].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }))
+  })
+  assert.deepEqual(getParams().boxes.map((entry) => entry.desc), ['c', 'b', 'a'])
+  assert.equal(getParams().characterBoxes, '1,3')
+  assert.ok(calls.length >= 2, 'both reorder paths are undoable host commits')
+  await act(async () => { press(dom, 'z', { ctrlKey: true }) })
+  assert.deepEqual(getParams().boxes.map((entry) => entry.desc), ['b', 'c', 'a'])
+  assert.equal(getParams().characterBoxes, '2,3', 'undo restores the marks with the previous order')
+})
+
 // --- undo, lock and keyboard ----------------------------------------------
 
 const editorParams = (boxes, characters = '') => ({

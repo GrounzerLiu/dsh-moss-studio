@@ -247,6 +247,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const [generationRecordId, setGenerationRecordId] = useState(null)
   const [elapsed, setElapsed] = useState(0)
   const [phase, setPhase] = useState('')
+  const [progress, setProgress] = useState(null)
   const [flagLocalOnly, setLocalOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
@@ -320,6 +321,12 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     }
     setRevision(state.revision)
     latestServerRef.current = { revision: state.revision, params: state.params }
+    setProgress(state.generation?.sessionId === sessionId ? state.generation.progress ?? null : null)
+    setQueue({
+      busy: state.generation !== null && state.generation !== undefined,
+      sessionId: state.generation?.sessionId ?? null,
+      recordId: state.generation?.recordId ?? null,
+    })
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
@@ -335,7 +342,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       const target = newest?.status === 'running' ? newest.id : latestDone?.id ?? null
       setActiveRecordId((current) => (current === target ? current : target))
     }
-  }, [])
+  }, [sessionId])
 
   const refresh = useCallback(async () => {
     try {
@@ -359,11 +366,12 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     try {
       const health = await fetchHealth()
       setComfy(health.comfy ?? { ok: false })
-      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null })
+      setQueue({ busy: health.busy === true, sessionId: health.busySession ?? null, recordId: health.busyRecordId ?? null })
+      setProgress(health.busy === true && health.busySession === sessionId ? health.progress ?? null : null)
     } catch {
       setComfy({ ok: false })
     }
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     void checkHealth()
@@ -402,7 +410,11 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
           payload = JSON.parse(event.data)
         } catch { /* a heartbeat or a truncated frame */ }
         if (payload?.kind === 'progress' && typeof payload.phase === 'string') {
-          if (payload.sessionId === undefined || payload.sessionId === sessionId) setPhase(payload.phase)
+          if (payload.sessionId === undefined || payload.sessionId === sessionId) {
+            setPhase(payload.phase)
+            setProgress(payload)
+            setQueue({ busy: true, sessionId: payload.sessionId ?? sessionId, recordId: payload.recordId ?? null })
+          }
         }
         if (payload?.kind === 'error' && typeof payload.message === 'string') {
           if (payload.sessionId === undefined || payload.sessionId === sessionId) setError(payload.message)
@@ -436,7 +448,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   }, [pushed, sessionId, refresh])
 
   useEffect(() => {
-    if (!busy) {
+    const externalBusy = queue.busy && queue.sessionId === sessionId
+    if (!busy && !externalBusy) {
       setElapsed(0)
       setPhase('')
       return undefined
@@ -444,7 +457,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     const started = Date.now()
     const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 500)
     return () => clearInterval(timer)
-  }, [busy])
+  }, [busy, queue.busy, queue.sessionId, sessionId])
 
   // Write the layout preferences back whenever they change.
   useEffect(() => {
@@ -781,6 +794,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       return
     }
     setBusy(true)
+    setProgress({ phase: 'submit', elapsed: 0 })
     setError('')
     setNotice(t('notice.generationSubmitted'))
     try {
@@ -812,13 +826,17 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } finally {
       setBusy(false)
       setGenerationRecordId(null)
+      setProgress(null)
     }
   }, [busy, flushAll, sessionId, waitForCompletion])
 
   const cancelCurrentGeneration = useCallback(async () => {
-    if (!busy || generationRecordId === null) return
+    const sameSessionBusy = queue.busy && queue.sessionId === sessionId
+    if (!busy && !sameSessionBusy) return
+    const recordId = generationRecordId ?? queue.recordId ?? null
+    if (recordId === null) return
     try {
-      const { status, body } = await cancelGeneration(sessionId, generationRecordId)
+      const { status, body } = await cancelGeneration(sessionId, recordId)
       if (status !== 200) {
         setError(body?.message ?? t('error.cancelGeneration', { status }))
         return
@@ -827,12 +845,13 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
     }
-  }, [busy, generationRecordId, sessionId])
+  }, [busy, generationRecordId, queue, sessionId])
 
   /** Re-run a failed record with the parameters it was created with. */
   const retryRecord = useCallback(async (record) => {
     if (busy || record === null || record === undefined) return
     setBusy(true)
+    setProgress({ phase: 'submit', elapsed: 0 })
     setError('')
     setNotice(t('notice.retrySubmitted'))
     try {
@@ -854,6 +873,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     } finally {
       setBusy(false)
       setGenerationRecordId(null)
+      setProgress(null)
     }
   }, [busy, sessionId, waitForCompletion])
 
@@ -1039,7 +1059,20 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const previousId = viewIndex > 0 ? viewableIds[viewIndex - 1] : null
   const followingId = viewIndex >= 0 && viewIndex + 1 < viewableIds.length ? viewableIds[viewIndex + 1] : null
 
-const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== sessionId
+  const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== sessionId
+  const sessionBusy = busy || (queue.busy && queue.sessionId === sessionId)
+  const activeGenerationRecordId = generationRecordId ?? queue.recordId ?? null
+  const progressPercent = typeof progress?.percent === 'number' && Number.isFinite(progress.percent)
+    ? Math.min(100, Math.max(0, progress.percent))
+    : null
+  const queuePosition = typeof progress?.queuePosition === 'number' && progress.queuePosition > 0
+    ? progress.queuePosition
+    : null
+  const progressText = queuePosition !== null
+    ? t('generate.queuePosition', { position: queuePosition, pending: progress.queuePending ?? queuePosition })
+    : progressPercent !== null
+      ? t('generate.percent', { percent: Math.round(progressPercent), step: progress.step ?? '—', maxStep: progress.maxStep ?? '—' })
+      : (progress?.phase ?? phase) === '' ? '' : t(PHASE_KEY[progress?.phase ?? phase] ?? (progress?.phase ?? phase))
 
   const shownHasImage = shownSummary === undefined ? shownRecordId !== null : shownSummary.hasImage
   const shownRunning = shownSummary?.status === 'running'
@@ -1449,14 +1482,27 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
 
           <div style={{ borderTop: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))', padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ ...row, flexWrap: 'wrap' }}>
-              <button type="button" style={primary} disabled={busy || otherBusy || sizeHint !== null} onClick={generateRandom}>
-                {busy ? `${t('generate.running', { seconds: elapsed })}${phase === '' ? '' : ` · ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t('generate.otherSession') : t('generate.random')}
+              <button type="button" style={primary} disabled={sessionBusy || otherBusy || sizeHint !== null} onClick={generateRandom}>
+                {sessionBusy ? `${t('generate.running', { seconds: elapsed })}${progressText === '' ? '' : ` · ${progressText}`}` : otherBusy ? t('generate.otherSession') : t('generate.random')}
               </button>
-              <button type="button" style={button} disabled={busy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>{t('generate.currentSeed')}</button>
-              {busy && generationRecordId !== null ? (
+              <button type="button" style={button} disabled={sessionBusy || otherBusy || sizeHint !== null} onClick={() => void runGenerate()}>{t('generate.currentSeed')}</button>
+              {sessionBusy && activeGenerationRecordId !== null ? (
                 <button type="button" style={button} onClick={() => void cancelCurrentGeneration()}>{t('generate.cancel')}</button>
               ) : null}
-              {running !== undefined && !busy ? <span style={{ fontSize: 11, ...dim }}>{t('generate.queued', { id: running.id.slice(-4) })}</span> : null}
+              {running !== undefined && !sessionBusy ? <span style={{ fontSize: 11, ...dim }}>{t('generate.queued', { id: running.id.slice(-4) })}</span> : null}
+              {sessionBusy && progressPercent !== null ? (
+                <div
+                  role="progressbar"
+                  aria-label={t('generate.progressLabel')}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(progressPercent)}
+                  style={{ width: '100%', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.18))' }}
+                >
+                  <div style={{ width: `${progressPercent}%`, height: '100%', background: 'var(--dsw-alias-brand-primary, rgba(120,190,145,0.92))' }} />
+                </div>
+              ) : null}
+              {sessionBusy && progressText !== '' ? <span style={{ fontSize: 11, ...dim }}>{progressText}</span> : null}
               {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{t('size.invalidNotSaved')}</span> : null}
             </div>
             {conflict ? (
