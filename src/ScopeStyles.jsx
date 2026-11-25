@@ -65,6 +65,13 @@ export function ScopeStyles() {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.35);
 }
+
+/* Layout boxes and list rows are keyboard controls too. */
+.moss-studio [role="button"]:focus-visible,
+.moss-studio [role="listitem"]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.55);
+}
 `}</style>
   )
 }

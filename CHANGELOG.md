@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.7.5
+
+Editing reliability: explicit draft-conflict resolution, consistent lock/hide
+semantics and keyboard access to layout boxes.
+
+**409 conflicts now have explicit outcomes**
+
+- Autosave stops with local edits still visible. A banner offers **Use server
+  version** (discard local edits) and **Overwrite** (save the accumulated local
+  patch on the latest known server revision).
+- Further typing no longer silently resolves a conflict. The banner remains
+  until one of the two actions is chosen, and adopting the server never issues
+  a write.
+
+**Lock and hide mean one thing everywhere**
+
+- `locked` protects geometry from canvas drags, resize handles, numeric fields,
+  arrow nudges, alignment and distribution. Content, type, character marks,
+  duplication and deletion remain available.
+- `hidden` remains excluded from generation, is not a snapping reference, and
+  stays put during multi-selection group operations. A hidden box selected and
+  edited on its own remains fully editable.
+
+**Keyboard access**
+
+- Canvas boxes and list rows are focusable with Tab, expose names and selection
+  state to assistive technology, and show a visible focus ring.
+- Enter/Space selects, Shift adds to the selection, arrows nudge canvas boxes or
+  navigate list rows, and Delete removes the selection. Native buttons and text
+  fields keep their own keyboard behavior.
+
+Regression coverage grew from 177 to 181 tests.
+
 ## 0.7.4
 
 Boundary repair batch: history pagination, hand-edited configuration and

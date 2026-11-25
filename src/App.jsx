@@ -294,6 +294,9 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   const savePromiseRef = useRef(null)
   /** A 409 keeps local edits visible but stops autosave from retrying over the server. */
   const conflictRef = useRef(false)
+  const [conflict, setConflict] = useState(false)
+  const conflictParamsRef = useRef(null)
+  const latestServerRef = useRef(null)
   /** Incremented for every local edit so an older save response cannot clear newer dirt. */
   const localEpochRef = useRef(0)
   const paramsRef = useRef(null)
@@ -316,6 +319,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       setParams(state.params)
     }
     setRevision(state.revision)
+    latestServerRef.current = { revision: state.revision, params: state.params }
     setRecords(state.records)
     setPinnedRecords(state.pinned ?? [])
     setPinnedTruncated(state.pinnedTruncated === true)
@@ -542,18 +546,23 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         if (status === 409 && body !== null) {
           revisionRef.current = body.revision
           setRevision(body.revision)
-          // Keep the user's edits visible, but do not silently retry them over
-          // the server's newer draft. The next explicit edit resolves the
-          // conflict and saves the accumulated local patch on this revision.
+          // Keep the user's edits visible and stop autosave. The conflict banner
+          // offers two explicit choices: adopt this server draft or overwrite it.
           pendingPatchRef.current = { ...patch, ...pendingPatchRef.current }
+          conflictParamsRef.current = body.params ?? null
+          latestServerRef.current = { revision: body.revision, params: body.params }
           dirtyRef.current = true
           conflictRef.current = true
+          setConflict(true)
           setNotice(t('notice.draftChanged'))
           return false
         }
         if (status === 200 && body !== null) {
           revisionRef.current = body.revision
           setRevision(body.revision)
+          conflictRef.current = false
+          conflictParamsRef.current = null
+          setConflict(false)
           if (epoch === localEpochRef.current && Object.keys(pendingPatchRef.current).length === 0) {
             dirtyRef.current = false
             setError('')
@@ -588,6 +597,42 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     return saved
   }, [flush])
 
+  /** Discard local edits and show the exact server draft returned by the 409. */
+  const adoptServerDraft = useCallback(() => {
+    const server = latestServerRef.current?.params ?? conflictParamsRef.current
+    if (server === null || server === undefined) return
+    if (saveTimer.current !== null) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    pendingPatchRef.current = {}
+    localEpochRef.current += 1
+    dirtyRef.current = false
+    conflictRef.current = false
+    conflictParamsRef.current = null
+    revisionRef.current = latestServerRef.current?.revision ?? revisionRef.current
+    setRevision(revisionRef.current)
+    paramsRef.current = server
+    setParams(server)
+    setConflict(false)
+    setError('')
+    setNotice(t('notice.serverDraftAdopted'))
+  }, [])
+
+  /** Keep the visible local draft and explicitly save it over the newer server one. */
+  const overwriteServerDraft = useCallback(async () => {
+    if (!conflictRef.current) return
+    conflictRef.current = false
+    conflictParamsRef.current = null
+    revisionRef.current = latestServerRef.current?.revision ?? revisionRef.current
+    setRevision(revisionRef.current)
+    setConflict(false)
+    setError('')
+    setNotice(t('notice.overwritingDraft'))
+    const saved = await flushAll()
+    if (saved) setNotice(t('notice.localDraftSaved'))
+  }, [flushAll])
+
   const update = useCallback((patch) => {
     const next = { ...(paramsRef.current ?? {}), ...patch }
     paramsRef.current = next
@@ -595,11 +640,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     pendingPatchRef.current = { ...pendingPatchRef.current, ...patch }
     localEpochRef.current += 1
     dirtyRef.current = true
-    // A new explicit edit is the user's decision to continue from the latest
-    // server revision after a conflict.
-    conflictRef.current = false
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => { void flush() }, SAVE_DELAY_MS)
+    // Further edits stay local while the conflict banner is open; autosave may
+    // resume only after the user explicitly adopts or overwrites the server.
+    if (!conflictRef.current && saveTimer.current !== null) clearTimeout(saveTimer.current)
+    if (!conflictRef.current) saveTimer.current = setTimeout(() => { void flush() }, SAVE_DELAY_MS)
   }, [flush])
 
   /** Replace the whole local draft and queue one full-parameter save. */
@@ -610,6 +654,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     localEpochRef.current += 1
     dirtyRef.current = true
     conflictRef.current = false
+    conflictParamsRef.current = null
+    setConflict(false)
     if (saveTimer.current !== null) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => { void flush() }, SAVE_DELAY_MS)
     if (message !== undefined) setNotice(message)
@@ -1413,6 +1459,15 @@ const otherBusy = queue.busy && queue.sessionId !== null && queue.sessionId !== 
               {running !== undefined && !busy ? <span style={{ fontSize: 11, ...dim }}>{t('generate.queued', { id: running.id.slice(-4) })}</span> : null}
               {sizeHint !== null ? <span style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{t('size.invalidNotSaved')}</span> : null}
             </div>
+            {conflict ? (
+              <div role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 6, borderRadius: 8, border: '1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))', background: 'var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))' }}>
+                <span style={{ fontSize: 11 }}>{t('notice.draftConflict')}</span>
+                <div style={{ ...row, flexWrap: 'wrap', gap: 4 }}>
+                  <button type="button" style={button} disabled={conflictParamsRef.current === null} onClick={adoptServerDraft}>{t('action.adoptServer')}</button>
+                  <button type="button" style={primary} onClick={() => void overwriteServerDraft()}>{t('action.overwriteServer')}</button>
+                </div>
+              </div>
+            ) : null}
             {notice !== '' ? <div style={{ fontSize: 11, ...dim }}>{notice}</div> : null}
             {error !== '' ? <div style={{ fontSize: 11, color: 'var(--dsw-alias-state-error-primary, #ff8f7a)' }}>{error}</div> : null}
           </div>

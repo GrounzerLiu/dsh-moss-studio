@@ -58,6 +58,19 @@ const numberInput = { ...input, flex: '0 0 auto', width: 56, textAlign: 'right',
 const HANDLE_HISTORY = 60
 /** Typing edits within this window fold into one undo step. */
 const COALESCE_MS = 500
+const GEOMETRY_KEYS = new Set(['x', 'y', 'width', 'height'])
+
+/**
+ * Hidden boxes stay editable when selected alone, but a multi-selection works on
+ * visible boxes only. Locked boxes never change geometry.
+ */
+function geometryTargets(boxes, selection) {
+  return selection.filter((index) => {
+    const box = boxes[index]
+    if (box === undefined || box.locked === true) return false
+    return selection.length === 1 || box.hidden !== true
+  })
+}
 const EMPTY_BOXES = []
 
 function toSet(value) {
@@ -234,7 +247,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const allLocked = selection.length > 0 && selection.every((index) => boxes[index]?.locked === true)
   const allHidden = selection.length > 0 && selection.every((index) => boxes[index]?.hidden === true)
   /** Locked boxes keep their place through moves, nudges, alignment and distribution. */
-  const movable = selection.filter((index) => boxes[index]?.locked !== true)
+  const movable = geometryTargets(boxes, selection)
   const incomplete = boxes.filter((box) => box.hidden !== true && boxProblem(box) !== undefined).length
 
   useEffect(() => {
@@ -319,9 +332,15 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
    * which made the description field look read-only.
    */
   const patchBox = useCallback((index, patch, options = {}) => {
+    const current = boxes[index]
+    if (current === undefined) return
+    const safePatch = current.locked === true
+      ? Object.fromEntries(Object.entries(patch).filter(([key]) => !GEOMETRY_KEYS.has(key)))
+      : patch
+    if (Object.keys(safePatch).length === 0) return
     const next = boxes.map((box, position) => (
       position === index
-        ? updateBoxGeometry({ ...box, ...patch }, patch)
+        ? updateBoxGeometry({ ...box, ...safePatch }, safePatch)
         // Normalise the editing flags so every box carries both explicitly.
         : { ...box, locked: box.locked === true, hidden: box.hidden === true },
     ))
@@ -360,6 +379,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
       const target = event.target
       const tag = target?.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable === true
+      const nativeControl = target?.closest?.('button, a[href], input, textarea, select') != null
       const mod = event.ctrlKey || event.metaKey
       const key = event.key
 
@@ -397,7 +417,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         duplicate()
         return
       }
-      if (key === 'Delete' || key === 'Backspace') {
+      if ((key === 'Delete' || key === 'Backspace') && !nativeControl) {
         event.preventDefault()
         remove(selection)
         return
@@ -409,7 +429,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         cycle(key === ']' ? 1 : -1)
         return
       }
-      if (typing) return
+      if (typing || nativeControl) return
       const step = event.shiftKey ? 0.1 : 0.01
       const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }
       const delta = moves[key]
@@ -524,16 +544,16 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                 <span style={{ fontSize: 11, ...dim }}>{t('editor.selectionCount', { count: selection.length })}</span>
                 <div style={{ ...row, flexWrap: 'wrap', gap: 4 }}>
                   {alignButtons.map(([mode, key, icon]) => (
-                    <button key={mode} type="button" style={iconButton} title={t(key)} aria-label={t(key)} onClick={() => move(mode)}>
+                    <button key={mode} type="button" disabled={movable.length < 2} style={movable.length < 2 ? { ...iconButton, ...disabledLook } : iconButton} title={t(key)} aria-label={t(key)} onClick={() => move(mode)}>
                       <Icon name={icon} size={14} />
                     </button>
                   ))}
                 </div>
                 <div style={{ ...row, gap: 4 }}>
-                  <button type="button" style={iconButton} title={t('editor.distributeX')} aria-label={t('editor.distributeX')} onClick={() => spread('x')}>
+                  <button type="button" disabled={movable.length < 3} style={movable.length < 3 ? { ...iconButton, ...disabledLook } : iconButton} title={t('editor.distributeX')} aria-label={t('editor.distributeX')} onClick={() => spread('x')}>
                     <Icon name="distribute_horizontal" size={14} />
                   </button>
-                  <button type="button" style={iconButton} title={t('editor.distributeY')} aria-label={t('editor.distributeY')} onClick={() => spread('y')}>
+                  <button type="button" disabled={movable.length < 3} style={movable.length < 3 ? { ...iconButton, ...disabledLook } : iconButton} title={t('editor.distributeY')} aria-label={t('editor.distributeY')} onClick={() => spread('y')}>
                     <Icon name="distribute_vertical" size={14} />
                   </button>
                   <button
@@ -578,6 +598,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
 
             {primary !== undefined ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 8, borderRadius: 8, border: '1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))' }}>
+                {primary.locked === true ? <span style={{ fontSize: 11, ...dim }}>{t('editor.lock')}</span> : null}
                 <div style={{ ...row, justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, ...dim }}>{t('editor.geometry')}</span>
                   <button
@@ -605,6 +626,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                         min={0}
                         max={100}
                         step={1}
+                        disabled={primary.locked === true}
                         value={Math.round(value * 10) / 10}
                         aria-label={t(key)}
                         onChange={(event) => {
@@ -615,7 +637,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                             : { [field]: next / 100 }
                           patchBox(primaryIndex, patch, { coalesceKey: `box:${primaryIndex}:${field}` })
                         }}
-                        style={numberInput}
+                        style={primary.locked === true ? { ...numberInput, ...disabledLook } : numberInput}
                       />
                     </label>
                   ))}
@@ -647,6 +669,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             ) : (
               <div style={{ ...dim, fontSize: 11, lineHeight: 1.6, padding: 4 }}>
                 {t('editor.drawHint')}
+                <div style={{ marginTop: 4 }}>{t('editor.keyboardHint')}</div>
               </div>
             )}
 
@@ -656,9 +679,37 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
               </div>
             ) : null}
 
+            <div role="list" aria-label={t('editor.boxListLabel')} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {boxes.map((box, index) => (
               <div
                 key={index}
+                role="listitem"
+                tabIndex={0}
+                aria-label={t('editor.boxLabel', {
+                  index: index + 1,
+                  caption: box.type === 'text' ? (box.text ?? t('editor.kindText')) : (box.desc || t('editor.noDesc')),
+                  flags: `${box.locked === true ? t('editor.lockedFlag') : ''}${box.hidden === true ? t('editor.hiddenFlag') : ''}`,
+                })}
+                aria-current={selection.includes(index) ? 'true' : undefined}
+                onFocus={() => { if (!selection.includes(index)) setSelection([index]) }}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    const additive = event.shiftKey || event.metaKey || event.ctrlKey
+                    setSelection((current) => additive
+                      ? (current.includes(index) ? current.filter((item) => item !== index) : [...current, index])
+                      : [index])
+                    return
+                  }
+                  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')]
+                  const position = rows.indexOf(event.currentTarget)
+                  const next = position + (event.key === 'ArrowDown' ? 1 : -1)
+                  if (next >= 0 && next < rows.length) rows[next].focus()
+                }}
                 onClick={(event) => {
                   if (event.shiftKey || event.metaKey || event.ctrlKey) {
                     setSelection((current) => (
@@ -755,6 +806,7 @@ export function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
                 ) : null}
               </div>
             ))}
+            </div>
           </div>
         </div>
       </div>

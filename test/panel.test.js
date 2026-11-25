@@ -423,10 +423,47 @@ test('a server refresh while dirty cannot advance the revision used by autosave'
 
   await inputValue(dom, act, container.querySelector('textarea'), 'local prompt resolved')
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)) })
-  assert.equal(puts.length, 2, 'a new explicit edit retries the accumulated patch')
-  assert.equal(puts[1].revision, 2, 'the retry uses the revision returned by the conflict')
+  assert.equal(puts.length, 1, 'autosave stays stopped while the conflict is unresolved')
+
+  const overwrite = [...container.querySelectorAll('button')].find((node) => node.textContent === '确认覆盖')
+  assert.ok(overwrite !== undefined, 'the conflict banner offers an explicit overwrite action')
+  await act(async () => {
+    overwrite.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  })
+  assert.equal(puts.length, 2, 'overwrite saves the accumulated local patch')
+  assert.equal(puts[1].revision, 2, 'overwrite uses the latest server revision')
   assert.equal(puts[1].patch.prompt, 'local prompt resolved')
   assert.equal(server.prompt, 'local prompt resolved')
+  assert.equal([...container.querySelectorAll('[role="alert"]')].length, 0, 'the resolved banner disappears')
+})
+
+test('adopting the server draft discards local conflict edits without another save', async (t) => {
+  const server = { prompt: 'AI prompt', negative: 'bad', boxes: [], size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false }
+  let revision = 1
+  const puts = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, revision))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      puts.push(JSON.parse(init.body))
+      return jsonResponse({ conflict: true, revision: 2, params: server }, 409)
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'local prompt')
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)) })
+  assert.equal(puts.length, 1)
+
+  const adopt = [...container.querySelectorAll('button')].find((node) => node.textContent === '采用服务器版本')
+  assert.ok(adopt !== undefined)
+  await act(async () => { adopt.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
+  assert.equal(container.querySelector('textarea').value, 'AI prompt')
+  assert.equal(puts.length, 1, 'adopting never writes over the server')
+  assert.equal([...container.querySelectorAll('[role="alert"]')].length, 0)
+  assert.match(container.textContent, /已采用服务器版本/)
 })
 
 test('cancelling the editor queues its snapshot after an in-flight save', async (t) => {
@@ -455,7 +492,7 @@ test('cancelling the editor queues its snapshot after an in-flight save', async 
 
   const open = [...container.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '编辑布局')
   await act(async () => { open.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })) })
-  const lock = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '锁定（避免误拖）')
+  const lock = [...dom.window.document.querySelectorAll('button')].find((node) => node.getAttribute('aria-label') === '锁定位置与大小（仍可编辑内容）')
   await act(async () => {
     lock.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
     await new Promise((resolve) => setTimeout(resolve, 650))

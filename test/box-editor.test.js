@@ -344,6 +344,84 @@ test('a locked box cannot be dragged, a hidden one is drawn dashed', async (t) =
   assert.equal(applied.length, 0, 'dragging a locked box changes nothing')
 })
 
+test('a locked box keeps geometry fixed in the inspector but its content stays editable', async (t) => {
+  const boxes = [{ type: 'obj', x: 0.2, y: 0.2, width: 0.3, height: 0.3, desc: 'old', palette: [], locked: true }]
+  const { dom, act, calls, getParams } = await mountControlledEditor(t, editorParams(boxes))
+  canvasArea(dom)
+  await act(async () => { selectBox(dom, 0) })
+
+  const numbers = [...dom.window.document.querySelectorAll('input[type="number"]')]
+  assert.equal(numbers.length, 4)
+  assert.ok(numbers.every((node) => node.disabled), 'locked geometry inputs are disabled')
+  await act(async () => { changeNumber(dom, numbers[0], 80) })
+  assert.equal(calls.length, 0, 'the guarded patch ignores geometry changes')
+  assert.equal(getParams().boxes[0].x, 0.2)
+
+  const field = [...dom.window.document.querySelectorAll('textarea')]
+    .find((node) => (node.getAttribute('aria-label') ?? '').includes('框内是什么'))
+  const setValue = Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value').set
+  await act(async () => {
+    setValue.call(field, 'new content')
+    field.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+  assert.equal(getParams().boxes[0].desc, 'new content')
+  assert.equal(getParams().boxes[0].x, 0.2, 'content editing does not move the box')
+})
+
+test('a hidden box can be edited alone but stays out of group moves and snapping', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.2, height: 0.2, desc: 'visible', palette: [] },
+    { type: 'obj', x: 0.45, y: 0.1, width: 0.2, height: 0.2, desc: 'hidden', palette: [], hidden: true },
+  ]
+  const { dom, act, calls } = await mountEditor(t, editorParams(boxes))
+  canvasArea(dom)
+  const frames = () => canvasBoxes(dom)
+
+  // Drag the visible box to within snapping distance of the hidden box.
+  await act(async () => { gesture(dom, frames()[0], [80, 80], [218, 80]) })
+  assert.ok(Math.abs(calls.at(-1).boxes[0].x - 0.445) < 1e-9, 'hidden boxes are not snap references')
+
+  // Shift-select both, then drag the visible one: the hidden companion stays put.
+  await act(async () => {
+    const event = new dom.window.MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 260, clientY: 80, button: 0, shiftKey: true })
+    frames()[1].dispatchEvent(event)
+    dom.window.dispatchEvent(new dom.window.MouseEvent('pointerup', { bubbles: true, clientX: 260, clientY: 80 }))
+  })
+  await act(async () => { gesture(dom, frames()[0], [120, 80], [160, 80]) })
+  assert.equal(calls.at(-1).boxes[1].x, 0.45, 'hidden companion does not join a group move')
+
+  // Selected alone, the hidden box remains editable.
+  await act(async () => { press(dom, 'Escape') })
+  await act(async () => { gesture(dom, frames()[1], [260, 80], [300, 80]) })
+  assert.ok(calls.at(-1).boxes[1].x > 0.45, 'explicit hidden-box editing still works')
+})
+
+test('canvas boxes and list rows are reachable and operable from the keyboard', async (t) => {
+  const boxes = [
+    { type: 'obj', x: 0.1, y: 0.1, width: 0.2, height: 0.2, desc: 'one', palette: [] },
+    { type: 'obj', x: 0.6, y: 0.6, width: 0.2, height: 0.2, desc: 'two', palette: [] },
+  ]
+  const { dom, act, calls, getParams } = await mountControlledEditor(t, editorParams(boxes))
+  canvasArea(dom)
+
+  const first = canvasBoxes(dom)[0]
+  assert.equal(first.getAttribute('role'), 'button')
+  assert.equal(first.tabIndex, 0)
+  await act(async () => { first.focus() })
+  assert.equal(first.getAttribute('aria-pressed'), 'true')
+  await act(async () => { press(dom, 'ArrowRight') })
+  assert.ok(getParams().boxes[0].x > 0.1, 'arrow key nudges the focused box')
+  await act(async () => { press(dom, 'Delete') })
+  assert.equal(getParams().boxes.length, 1, 'Delete removes the selected box')
+
+  const rows = [...dom.window.document.querySelectorAll('[role="listitem"]')]
+  assert.equal(rows.length, 1)
+  await act(async () => { rows[0].focus() })
+  await act(async () => { press(dom, 'Enter') })
+  assert.equal(rows[0].getAttribute('aria-current'), 'true')
+  assert.ok(calls.length >= 2, 'keyboard selection and deletion reached the host')
+})
+
 // --- undo, lock and keyboard ----------------------------------------------
 
 const editorParams = (boxes, characters = '') => ({

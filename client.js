@@ -44,6 +44,7 @@ var import_react15 = __toESM(require("react"), 1);
 var NS = "moss-studio";
 var ZH = {
   "action.archive": "\u5F52\u6863",
+  "action.adoptServer": "\u91C7\u7528\u670D\u52A1\u5668\u7248\u672C",
   "action.cancel": "\u53D6\u6D88",
   "action.close": "\u5173\u95ED",
   "action.delete": "\u5220\u9664",
@@ -57,6 +58,7 @@ var ZH = {
   "action.settings": "\u8BBE\u7F6E",
   "action.unarchive": "\u53D6\u6D88\u5F52\u6863",
   "action.unpin": "\u53D6\u6D88\u7F6E\u9876",
+  "action.overwriteServer": "\u786E\u8BA4\u8986\u76D6",
   "confirm.deleteTitle": "\u5220\u9664\u8FD9\u6761\u8BB0\u5F55\uFF1F",
   "confirm.deleteMessage": "\u8BB0\u5F55\u4E0E\u56FE\u7247\u4F1A\u4E00\u8D77\u5220\u9664\uFF0C\u65E0\u6CD5\u6062\u590D\u3002",
   "editor.addBox": "\u52A0\u6846",
@@ -113,6 +115,10 @@ var ZH = {
   "history.untitled": "\u672A\u547D\u540D\u8BB0\u5F55",
   "history.title": "\u5386\u53F2 {count}",
   "notice.draftChanged": "\u8349\u7A3F\u5DF2\u66F4\u65B0\uFF0C\u8BF7\u786E\u8BA4\u540E\u518D\u751F\u6210",
+  "notice.draftConflict": "\u672C\u5730\u4FEE\u6539\u4E0E\u670D\u52A1\u5668\u8349\u7A3F\u51B2\u7A81\u3002\u91C7\u7528\u670D\u52A1\u5668\u7248\u672C\u4F1A\u4E22\u5F03\u672C\u5730\u4FEE\u6539\uFF1B\u786E\u8BA4\u8986\u76D6\u4F1A\u7528\u5F53\u524D\u672C\u5730\u5185\u5BB9\u4FDD\u5B58\u3002",
+  "notice.localDraftSaved": "\u5DF2\u7528\u672C\u5730\u7248\u672C\u8986\u76D6\u670D\u52A1\u5668\u8349\u7A3F",
+  "notice.overwritingDraft": "\u6B63\u5728\u4FDD\u5B58\u672C\u5730\u7248\u672C\u2026",
+  "notice.serverDraftAdopted": "\u5DF2\u91C7\u7528\u670D\u52A1\u5668\u7248\u672C\uFF0C\u672C\u5730\u4FEE\u6539\u5DF2\u4E22\u5F03",
   "notice.draftSyncedFromAi": "\u8349\u7A3F\u5DF2\u88AB AI \u66F4\u65B0\uFF0C\u5DF2\u540C\u6B65\u4E3A\u6700\u65B0\u53C2\u6570",
   "notice.flagsNeedNewHost": "\u7F6E\u9876/\u5F52\u6863\u9700\u8981\u65B0\u7248\u5BBF\u4E3B\uFF1A\u91CD\u542F\u5E94\u7528\u540E\u751F\u6548\uFF08\u5F53\u524D\u8FDB\u7A0B\u8FD8\u662F\u65E7\u7248\u672C\uFF09",
   "notice.generationBusy": "\u4E0A\u4E00\u6B21\u751F\u6210\u8FD8\u5728\u8FDB\u884C",
@@ -219,6 +225,12 @@ var ZH = {
   "viewer.zoomIn": "\u653E\u5927",
   "viewer.zoomOut": "\u7F29\u5C0F",
   "editor.drawHint": "\u5728\u753B\u5E03\u4E0A\u62D6\u51FA\u4E00\u4E2A\u6846\uFF1B\u6309\u4F4F Shift \u62D6\u62FD\u662F\u6846\u9009",
+  "editor.keyboardHint": "Tab \u805A\u7126\u6846\uFF0CEnter \u9009\u62E9\uFF0C\u65B9\u5411\u952E\u79FB\u52A8\uFF0CDelete \u5220\u9664\uFF0CShift \u591A\u9009",
+  "editor.canvasLabel": "\u5E03\u5C40\u753B\u5E03",
+  "editor.boxLabel": "\u5E03\u5C40\u6846 {index}\uFF1A{caption}{flags}",
+  "editor.boxListLabel": "\u5E03\u5C40\u6846\u5217\u8868",
+  "editor.lockedFlag": "\uFF0C\u5DF2\u9501\u5B9A",
+  "editor.hiddenFlag": "\uFF0C\u5DF2\u9690\u85CF",
   "editor.selectionCount": "\u5DF2\u9009 {count} \u4E2A\u6846",
   "editor.geometry": "\u4F4D\u7F6E\u4E0E\u5927\u5C0F",
   "editor.x": "X",
@@ -242,9 +254,9 @@ var ZH = {
   "editor.noDesc": "\uFF08\u672A\u586B\u5199\u63CF\u8FF0\uFF09",
   "history.show": "\u663E\u793A\u5386\u53F2\uFF08{count}\uFF09",
   "history.hide": "\u6536\u8D77\u5386\u53F2",
-  "editor.lock": "\u9501\u5B9A\uFF08\u907F\u514D\u8BEF\u62D6\uFF09",
-  "editor.unlock": "\u89E3\u9501",
-  "editor.hide": "\u9690\u85CF\uFF08\u4E0D\u9001\u8FDB\u5DE5\u4F5C\u6D41\uFF09",
+  "editor.lock": "\u9501\u5B9A\u4F4D\u7F6E\u4E0E\u5927\u5C0F\uFF08\u4ECD\u53EF\u7F16\u8F91\u5185\u5BB9\uFF09",
+  "editor.unlock": "\u89E3\u9501\u4F4D\u7F6E\u4E0E\u5927\u5C0F",
+  "editor.hide": "\u9690\u85CF\uFF08\u4E0D\u751F\u6210\uFF0C\u4E5F\u4E0D\u53C2\u4E0E\u5438\u9644\u4E0E\u7EC4\u64CD\u4F5C\uFF09",
   "editor.show": "\u663E\u793A",
   "editor.limit": "\u6700\u591A {max} \u4E2A\u6846\uFF0C\u5148\u5220\u6389\u4E00\u4E2A\u518D\u753B",
   "editor.lockSelected": "\u9501\u5B9A\u9009\u4E2D\u7684\u6846",
@@ -261,6 +273,7 @@ var ZH = {
 };
 var EN = {
   "action.archive": "Archive",
+  "action.adoptServer": "Use server version",
   "action.cancel": "Cancel",
   "action.close": "Close",
   "action.delete": "Delete",
@@ -274,6 +287,7 @@ var EN = {
   "action.settings": "Settings",
   "action.unarchive": "Unarchive",
   "action.unpin": "Unpin",
+  "action.overwriteServer": "Overwrite",
   "confirm.deleteTitle": "Delete this record?",
   "confirm.deleteMessage": "The record and its image are deleted together. This cannot be undone.",
   "editor.addBox": "Add box",
@@ -330,6 +344,10 @@ var EN = {
   "history.untitled": "Untitled record",
   "history.title": "History {count}",
   "notice.draftChanged": "The draft changed; review it before generating",
+  "notice.draftConflict": "Local edits conflict with the server draft. Use the server version to discard local edits, or overwrite to save the current local content.",
+  "notice.localDraftSaved": "The local version now overwrites the server draft",
+  "notice.overwritingDraft": "Saving the local version\u2026",
+  "notice.serverDraftAdopted": "Server version adopted; local edits discarded",
   "notice.draftSyncedFromAi": "The AI updated the draft; parameters synced",
   "notice.flagsNeedNewHost": "Pinning and archiving need the newer host: restart the app (this process is still the old version)",
   "notice.generationBusy": "A generation is already running",
@@ -436,6 +454,12 @@ var EN = {
   "viewer.zoomIn": "Zoom in",
   "viewer.zoomOut": "Zoom out",
   "editor.drawHint": "Drag on the canvas to draw a box; hold Shift and drag to marquee-select",
+  "editor.keyboardHint": "Tab focuses boxes, Enter selects, arrows move, Delete removes, Shift multi-selects",
+  "editor.canvasLabel": "Layout canvas",
+  "editor.boxLabel": "Layout box {index}: {caption}{flags}",
+  "editor.boxListLabel": "Layout box list",
+  "editor.lockedFlag": ", locked",
+  "editor.hiddenFlag": ", hidden",
   "editor.selectionCount": "{count} boxes selected",
   "editor.geometry": "Position and size",
   "editor.x": "X",
@@ -459,9 +483,9 @@ var EN = {
   "editor.noDesc": "(no description)",
   "history.show": "Show history ({count})",
   "history.hide": "Hide history",
-  "editor.lock": "Lock (prevent accidental drags)",
-  "editor.unlock": "Unlock",
-  "editor.hide": "Hide (leave it out of the request)",
+  "editor.lock": "Lock position and size (content stays editable)",
+  "editor.unlock": "Unlock position and size",
+  "editor.hide": "Hide (exclude from generation, snapping and group operations)",
   "editor.show": "Show",
   "editor.limit": "At most {max} boxes; delete one before drawing another",
   "editor.lockSelected": "Lock the selected boxes",
@@ -1009,7 +1033,7 @@ function BoxCanvas({
       if (drag.kind === "move") {
         const moved = moveBoxes(drag.boxes, drag.indices, dx, dy);
         if (snap && drag.indices.length === 1) {
-          const others = drag.boxes.filter((_, index) => index !== drag.indices[0]);
+          const others = drag.boxes.filter((box, index) => index !== drag.indices[0] && box.hidden !== true);
           const result = snapBox(moved[drag.indices[0]], others);
           const next = [...moved];
           next[drag.indices[0]] = result.box;
@@ -1029,7 +1053,7 @@ function BoxCanvas({
         const next = [...drag.boxes];
         next[drag.index] = { ...drag.boxes[drag.index], ...resized };
         if (snap && !locked) {
-          const others = drag.boxes.filter((_, index) => index !== drag.index);
+          const others = drag.boxes.filter((box, index) => index !== drag.index && box.hidden !== true);
           const result = snapResized(next[drag.index], drag.handle, others);
           next[drag.index] = result.box;
           setGuides(result.guides);
@@ -1112,7 +1136,7 @@ function BoxCanvas({
       event.preventDefault();
       return;
     }
-    const movable = nextSelection.filter((item) => boxes[item]?.locked !== true);
+    const movable = nextSelection.filter((item) => boxes[item]?.locked !== true && (nextSelection.length === 1 || boxes[item]?.hidden !== true));
     if (movable.length === 0) {
       event.stopPropagation();
       return;
@@ -1148,6 +1172,8 @@ function BoxCanvas({
     "div",
     {
       ref: areaRef,
+      role: "group",
+      "aria-label": t("editor.canvasLabel"),
       onPointerDown: onAreaPointerDown,
       style: {
         position: "relative",
@@ -1172,6 +1198,25 @@ function BoxCanvas({
         "div",
         {
           key: index,
+          role: "button",
+          tabIndex: interactive ? 0 : -1,
+          "aria-pressed": active,
+          "aria-label": t("editor.boxLabel", {
+            index: index + 1,
+            caption: caption.trim() !== "" ? caption : t("editor.noDesc"),
+            flags: `${box.locked === true ? t("editor.lockedFlag") : ""}${box.hidden === true ? t("editor.hiddenFlag") : ""}`
+          }),
+          onFocus: () => {
+            if (interactive && !active) onSelect([index]);
+          },
+          onKeyDown: (event) => {
+            if (!interactive) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+              onSelect(additive ? active ? selection.filter((item) => item !== index) : [...selection, index] : [index]);
+            }
+          },
           onPointerDown: (event) => onBoxPointerDown(event, index),
           style: {
             position: "absolute",
@@ -1515,6 +1560,13 @@ function ScopeStyles() {
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.35);
 }
+
+/* Layout boxes and list rows are keyboard controls too. */
+.moss-studio [role="button"]:focus-visible,
+.moss-studio [role="listitem"]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.55);
+}
 `);
 }
 
@@ -1602,6 +1654,14 @@ var optionStyle = { background: "var(--dsw-alias-bg-overlay, #26282a)", color: "
 var numberInput = { ...input, flex: "0 0 auto", width: 56, textAlign: "right", padding: "3px 5px" };
 var HANDLE_HISTORY = 60;
 var COALESCE_MS = 500;
+var GEOMETRY_KEYS = /* @__PURE__ */ new Set(["x", "y", "width", "height"]);
+function geometryTargets(boxes, selection) {
+  return selection.filter((index) => {
+    const box = boxes[index];
+    if (box === void 0 || box.locked === true) return false;
+    return selection.length === 1 || box.hidden !== true;
+  });
+}
 var EMPTY_BOXES = [];
 function toSet(value) {
   return new Set((String(value ?? "").match(/\d+/g) ?? []).map(Number));
@@ -1726,7 +1786,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
   const primary3 = boxes[primaryIndex];
   const allLocked = selection.length > 0 && selection.every((index) => boxes[index]?.locked === true);
   const allHidden = selection.length > 0 && selection.every((index) => boxes[index]?.hidden === true);
-  const movable = selection.filter((index) => boxes[index]?.locked !== true);
+  const movable = geometryTargets(boxes, selection);
   const incomplete = boxes.filter((box) => box.hidden !== true && boxProblem(box) !== void 0).length;
   (0, import_react6.useEffect)(() => {
     setSelection((current) => current.filter((index) => index < boxes.length));
@@ -1787,7 +1847,11 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
     commit(distributeBoxes(boxes, movable, axis));
   }, [boxes, commit, movable]);
   const patchBox = (0, import_react6.useCallback)((index, patch, options = {}) => {
-    const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...patch }, patch) : { ...box, locked: box.locked === true, hidden: box.hidden === true });
+    const current = boxes[index];
+    if (current === void 0) return;
+    const safePatch = current.locked === true ? Object.fromEntries(Object.entries(patch).filter(([key]) => !GEOMETRY_KEYS.has(key))) : patch;
+    if (Object.keys(safePatch).length === 0) return;
+    const next = boxes.map((box, position) => position === index ? updateBoxGeometry({ ...box, ...safePatch }, safePatch) : { ...box, locked: box.locked === true, hidden: box.hidden === true });
     commit(next, options.coalesceKey === void 0 ? options : { ...options, coalesce: true });
   }, [boxes, commit]);
   const setFlagFor = (0, import_react6.useCallback)((key, value) => {
@@ -1814,6 +1878,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
       const target = event.target;
       const tag = target?.tagName;
       const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable === true;
+      const nativeControl = target?.closest?.("button, a[href], input, textarea, select") != null;
       const mod = event.ctrlKey || event.metaKey;
       const key = event.key;
       if (key === "Escape") {
@@ -1847,7 +1912,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         duplicate();
         return;
       }
-      if (key === "Delete" || key === "Backspace") {
+      if ((key === "Delete" || key === "Backspace") && !nativeControl) {
         event.preventDefault();
         remove(selection);
         return;
@@ -1857,7 +1922,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
         cycle(key === "]" ? 1 : -1);
         return;
       }
-      if (typing) return;
+      if (typing || nativeControl) return;
       const step = event.shiftKey ? 0.1 : 0.01;
       const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
       const delta = moves[key];
@@ -1934,7 +1999,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           onChange: (next) => commit(next),
           onCreate: addAt
         }
-      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 320, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, incomplete > 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", padding: "2px 4px" } }, t("editor.incomplete", { count: incomplete })) : null, selection.length > 1 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.selectionCount", { count: selection.length })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, flexWrap: "wrap", gap: 4 } }, alignButtons.map(([mode, key, icon]) => /* @__PURE__ */ import_react6.default.createElement("button", { key: mode, type: "button", style: iconButton, title: t(key), "aria-label": t(key), onClick: () => move(mode) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: icon, size: 14 })))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeX"), "aria-label": t("editor.distributeX"), onClick: () => spread("x") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_horizontal", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconButton, title: t("editor.distributeY"), "aria-label": t("editor.distributeY"), onClick: () => spread("y") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_vertical", size: 14 })), /* @__PURE__ */ import_react6.default.createElement(
+      )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: 320, flexShrink: 0, borderLeft: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 6 } }, incomplete > 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)", padding: "2px 4px" } }, t("editor.incomplete", { count: incomplete })) : null, selection.length > 1 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", background: "var(--dsw-alias-bg-layer-1, rgba(127,127,127,0.08))" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.selectionCount", { count: selection.length })), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, flexWrap: "wrap", gap: 4 } }, alignButtons.map(([mode, key, icon]) => /* @__PURE__ */ import_react6.default.createElement("button", { key: mode, type: "button", disabled: movable.length < 2, style: movable.length < 2 ? { ...iconButton, ...disabledLook } : iconButton, title: t(key), "aria-label": t(key), onClick: () => move(mode) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: icon, size: 14 })))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, gap: 4 } }, /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", disabled: movable.length < 3, style: movable.length < 3 ? { ...iconButton, ...disabledLook } : iconButton, title: t("editor.distributeX"), "aria-label": t("editor.distributeX"), onClick: () => spread("x") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_horizontal", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", disabled: movable.length < 3, style: movable.length < 3 ? { ...iconButton, ...disabledLook } : iconButton, title: t("editor.distributeY"), "aria-label": t("editor.distributeY"), onClick: () => spread("y") }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "distribute_vertical", size: 14 })), /* @__PURE__ */ import_react6.default.createElement(
         "button",
         {
           type: "button",
@@ -1966,7 +2031,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           onClick: () => toggleCharacter(selection)
         },
         /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "person", size: 14 })
-      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteSelected"), "aria-label": t("editor.deleteSelected"), onClick: () => remove(selection) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : null, primary3 !== void 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.geometry")), /* @__PURE__ */ import_react6.default.createElement(
+      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteSelected"), "aria-label": t("editor.deleteSelected"), onClick: () => remove(selection) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : null, primary3 !== void 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 8, border: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))" } }, primary3.locked === true ? /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.lock")) : null, /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row, justifyContent: "space-between" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: 11, ...dim } }, t("editor.geometry")), /* @__PURE__ */ import_react6.default.createElement(
         "button",
         {
           type: "button",
@@ -1989,6 +2054,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           min: 0,
           max: 100,
           step: 1,
+          disabled: primary3.locked === true,
           value: Math.round(value * 10) / 10,
           "aria-label": t(key),
           onChange: (event) => {
@@ -1997,7 +2063,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             const patch = lockAspect && (field === "width" || field === "height") ? aspectSizePatch(primary3, field, next / 100) : { [field]: next / 100 };
             patchBox(primaryIndex, patch, { coalesceKey: `box:${primaryIndex}:${field}` });
           },
-          style: numberInput
+          style: primary3.locked === true ? { ...numberInput, ...disabledLook } : numberInput
         }
       )))), /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...row } }, /* @__PURE__ */ import_react6.default.createElement(
         "select",
@@ -2016,10 +2082,37 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
           onChange: () => toggleCharacter(primaryIndex),
           label: t("editor.kindPerson")
         }
-      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteBoxTitle"), "aria-label": t("editor.deleteBox"), onClick: () => remove([primaryIndex]) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, fontSize: 11, lineHeight: 1.6, padding: 4 } }, t("editor.drawHint")), boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, t("editor.empty")) : null, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
+      ), /* @__PURE__ */ import_react6.default.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconOnly, title: t("editor.duplicate"), "aria-label": t("editor.duplicate"), onClick: duplicate }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "content_copy", size: 14 })), /* @__PURE__ */ import_react6.default.createElement("button", { type: "button", style: iconDanger, title: t("editor.deleteBoxTitle"), "aria-label": t("editor.deleteBox"), onClick: () => remove([primaryIndex]) }, /* @__PURE__ */ import_react6.default.createElement(Icon, { name: "delete", size: 14 })))) : /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, fontSize: 11, lineHeight: 1.6, padding: 4 } }, t("editor.drawHint"), /* @__PURE__ */ import_react6.default.createElement("div", { style: { marginTop: 4 } }, t("editor.keyboardHint"))), boxes.length === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { ...dim, padding: 8, lineHeight: 1.6 } }, t("editor.empty")) : null, /* @__PURE__ */ import_react6.default.createElement("div", { role: "list", "aria-label": t("editor.boxListLabel"), style: { display: "flex", flexDirection: "column", gap: 4 } }, boxes.map((box, index) => /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
           key: index,
+          role: "listitem",
+          tabIndex: 0,
+          "aria-label": t("editor.boxLabel", {
+            index: index + 1,
+            caption: box.type === "text" ? box.text ?? t("editor.kindText") : box.desc || t("editor.noDesc"),
+            flags: `${box.locked === true ? t("editor.lockedFlag") : ""}${box.hidden === true ? t("editor.hiddenFlag") : ""}`
+          }),
+          "aria-current": selection.includes(index) ? "true" : void 0,
+          onFocus: () => {
+            if (!selection.includes(index)) setSelection([index]);
+          },
+          onKeyDown: (event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+              setSelection((current) => additive ? current.includes(index) ? current.filter((item) => item !== index) : [...current, index] : [index]);
+              return;
+            }
+            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+            event.preventDefault();
+            event.stopPropagation();
+            const rows = [...event.currentTarget.parentElement.querySelectorAll('[role="listitem"]')];
+            const position = rows.indexOf(event.currentTarget);
+            const next = position + (event.key === "ArrowDown" ? 1 : -1);
+            if (next >= 0 && next < rows.length) rows[next].focus();
+          },
           onClick: (event) => {
             if (event.shiftKey || event.metaKey || event.ctrlKey) {
               setSelection((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]);
@@ -2113,7 +2206,7 @@ function BoxEditor({ params, onApply, onAdd, onClose, onCancel }) {
             }
           )
         ) : null
-      ))))
+      )))))
     )
   );
 }
@@ -8111,6 +8204,9 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const savingRef = (0, import_react14.useRef)(false);
   const savePromiseRef = (0, import_react14.useRef)(null);
   const conflictRef = (0, import_react14.useRef)(false);
+  const [conflict, setConflict] = (0, import_react14.useState)(false);
+  const conflictParamsRef = (0, import_react14.useRef)(null);
+  const latestServerRef = (0, import_react14.useRef)(null);
   const localEpochRef = (0, import_react14.useRef)(0);
   const paramsRef = (0, import_react14.useRef)(null);
   const editorSnapshot = (0, import_react14.useRef)(null);
@@ -8124,6 +8220,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       setParams(state.params);
     }
     setRevision(state.revision);
+    latestServerRef.current = { revision: state.revision, params: state.params };
     setRecords(state.records);
     setPinnedRecords(state.pinned ?? []);
     setPinnedTruncated(state.pinnedTruncated === true);
@@ -8316,14 +8413,20 @@ function StudioPanel({ sessionId = "global", wide = false }) {
           revisionRef.current = body.revision;
           setRevision(body.revision);
           pendingPatchRef.current = { ...patch, ...pendingPatchRef.current };
+          conflictParamsRef.current = body.params ?? null;
+          latestServerRef.current = { revision: body.revision, params: body.params };
           dirtyRef.current = true;
           conflictRef.current = true;
+          setConflict(true);
           setNotice(t("notice.draftChanged"));
           return false;
         }
         if (status === 200 && body !== null) {
           revisionRef.current = body.revision;
           setRevision(body.revision);
+          conflictRef.current = false;
+          conflictParamsRef.current = null;
+          setConflict(false);
           if (epoch === localEpochRef.current && Object.keys(pendingPatchRef.current).length === 0) {
             dirtyRef.current = false;
             setError("");
@@ -8355,6 +8458,38 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     while (saved && Object.keys(pendingPatchRef.current).length > 0) saved = await flush();
     return saved;
   }, [flush]);
+  const adoptServerDraft = (0, import_react14.useCallback)(() => {
+    const server = latestServerRef.current?.params ?? conflictParamsRef.current;
+    if (server === null || server === void 0) return;
+    if (saveTimer.current !== null) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    pendingPatchRef.current = {};
+    localEpochRef.current += 1;
+    dirtyRef.current = false;
+    conflictRef.current = false;
+    conflictParamsRef.current = null;
+    revisionRef.current = latestServerRef.current?.revision ?? revisionRef.current;
+    setRevision(revisionRef.current);
+    paramsRef.current = server;
+    setParams(server);
+    setConflict(false);
+    setError("");
+    setNotice(t("notice.serverDraftAdopted"));
+  }, []);
+  const overwriteServerDraft = (0, import_react14.useCallback)(async () => {
+    if (!conflictRef.current) return;
+    conflictRef.current = false;
+    conflictParamsRef.current = null;
+    revisionRef.current = latestServerRef.current?.revision ?? revisionRef.current;
+    setRevision(revisionRef.current);
+    setConflict(false);
+    setError("");
+    setNotice(t("notice.overwritingDraft"));
+    const saved = await flushAll();
+    if (saved) setNotice(t("notice.localDraftSaved"));
+  }, [flushAll]);
   const update = (0, import_react14.useCallback)((patch) => {
     const next = { ...paramsRef.current ?? {}, ...patch };
     paramsRef.current = next;
@@ -8362,9 +8497,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
     localEpochRef.current += 1;
     dirtyRef.current = true;
-    conflictRef.current = false;
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
+    if (!conflictRef.current && saveTimer.current !== null) clearTimeout(saveTimer.current);
+    if (!conflictRef.current) saveTimer.current = setTimeout(() => {
       void flush();
     }, SAVE_DELAY_MS);
   }, [flush]);
@@ -8375,6 +8509,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     localEpochRef.current += 1;
     dirtyRef.current = true;
     conflictRef.current = false;
+    conflictParamsRef.current = null;
+    setConflict(false);
     if (saveTimer.current !== null) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       void flush();
@@ -8991,7 +9127,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       onChange: (event) => update({ enhance: event.target.checked }),
       label: t("params.enhanceHint")
     }
-  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), busy && generationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
+  )), /* @__PURE__ */ import_react14.default.createElement("div", { style: { borderTop: "1px solid var(--dsw-alias-border-l1, rgba(127,127,127,0.22))", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap" } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, disabled: busy || otherBusy || sizeHint !== null, onClick: generateRandom }, busy ? `${t("generate.running", { seconds: elapsed })}${phase === "" ? "" : ` \xB7 ${t(PHASE_KEY[phase] ?? phase)}`}` : otherBusy ? t("generate.otherSession") : t("generate.random")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: busy || otherBusy || sizeHint !== null, onClick: () => void runGenerate() }, t("generate.currentSeed")), busy && generationRecordId !== null ? /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, onClick: () => void cancelCurrentGeneration() }, t("generate.cancel")) : null, running !== void 0 && !busy ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, ...dim4 } }, t("generate.queued", { id: running.id.slice(-4) })) : null, sizeHint !== null ? /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, t("size.invalidNotSaved")) : null), conflict ? /* @__PURE__ */ import_react14.default.createElement("div", { role: "alert", style: { display: "flex", flexDirection: "column", gap: 4, padding: 6, borderRadius: 8, border: "1px solid var(--dsw-alias-state-warning-primary, rgba(235,180,70,0.55))", background: "var(--dsw-alias-bg-layer-2, rgba(127,127,127,0.12))" } }, /* @__PURE__ */ import_react14.default.createElement("span", { style: { fontSize: 11 } }, t("notice.draftConflict")), /* @__PURE__ */ import_react14.default.createElement("div", { style: { ...row3, flexWrap: "wrap", gap: 4 } }, /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: button5, disabled: conflictParamsRef.current === null, onClick: adoptServerDraft }, t("action.adoptServer")), /* @__PURE__ */ import_react14.default.createElement("button", { type: "button", style: primary2, onClick: () => void overwriteServerDraft() }, t("action.overwriteServer")))) : null, notice !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, ...dim4 } }, notice) : null, error !== "" ? /* @__PURE__ */ import_react14.default.createElement("div", { style: { fontSize: 11, color: "var(--dsw-alias-state-error-primary, #ff8f7a)" } }, error) : null)), wide ? /* @__PURE__ */ import_react14.default.createElement(
     "div",
     {
       style: {

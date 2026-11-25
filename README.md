@@ -121,3 +121,5 @@ transactions, and the canvas geometry. No test talks to ComfyUI.
 - Thumbnails are the full images.
 - Panel copy follows the host locale (Chinese and English); host validation
   errors remain in the language in which the host emits them.
+- Draft conflicts require an explicit choice between the server and local
+  version; layout boxes support keyboard selection and editing.

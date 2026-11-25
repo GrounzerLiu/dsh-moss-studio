@@ -144,7 +144,7 @@ export function BoxCanvas({
       if (drag.kind === 'move') {
         const moved = moveBoxes(drag.boxes, drag.indices, dx, dy)
         if (snap && drag.indices.length === 1) {
-          const others = drag.boxes.filter((_, index) => index !== drag.indices[0])
+          const others = drag.boxes.filter((box, index) => index !== drag.indices[0] && box.hidden !== true)
           const result = snapBox(moved[drag.indices[0]], others)
           const next = [...moved]
           next[drag.indices[0]] = result.box
@@ -166,7 +166,7 @@ export function BoxCanvas({
         // A locked resize keeps its ratio, so the box may not be nudged sideways
         // to line up with a neighbour; a free one snaps the edge being dragged.
         if (snap && !locked) {
-          const others = drag.boxes.filter((_, index) => index !== drag.index)
+          const others = drag.boxes.filter((box, index) => index !== drag.index && box.hidden !== true)
           const result = snapResized(next[drag.index], drag.handle, others)
           next[drag.index] = result.box
           setGuides(result.guides)
@@ -274,8 +274,11 @@ export function BoxCanvas({
       event.preventDefault()
       return
     }
-    // Locked companions stay put even when the rest of the group moves.
-    const movable = nextSelection.filter((item) => boxes[item]?.locked !== true)
+    // Locked companions stay put. Hidden companions stay put during a group
+    // gesture, but a hidden box selected on its own remains editable.
+    const movable = nextSelection.filter((item) => (
+      boxes[item]?.locked !== true && (nextSelection.length === 1 || boxes[item]?.hidden !== true)
+    ))
     if (movable.length === 0) {
       event.stopPropagation()
       return
@@ -320,6 +323,8 @@ export function BoxCanvas({
     <div ref={wrapRef} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
       <div
         ref={areaRef}
+        role="group"
+        aria-label={t('editor.canvasLabel')}
         onPointerDown={onAreaPointerDown}
         style={{
           position: 'relative',
@@ -347,6 +352,25 @@ export function BoxCanvas({
           return (
             <div
               key={index}
+              role="button"
+              tabIndex={interactive ? 0 : -1}
+              aria-pressed={active}
+              aria-label={t('editor.boxLabel', {
+                index: index + 1,
+                caption: caption.trim() !== '' ? caption : t('editor.noDesc'),
+                flags: `${box.locked === true ? t('editor.lockedFlag') : ''}${box.hidden === true ? t('editor.hiddenFlag') : ''}`,
+              })}
+              onFocus={() => { if (interactive && !active) onSelect([index]) }}
+              onKeyDown={(event) => {
+                if (!interactive) return
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  const additive = event.shiftKey || event.metaKey || event.ctrlKey
+                  onSelect(additive
+                    ? (active ? selection.filter((item) => item !== index) : [...selection, index])
+                    : [index])
+                }
+              }}
               onPointerDown={(event) => onBoxPointerDown(event, index)}
               style={{
                 position: 'absolute',
