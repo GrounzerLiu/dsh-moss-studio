@@ -1,9 +1,30 @@
 {
   "name": "dsh-moss-studio",
   "version": "0.8.3",
-  "private": true,
   "type": "module",
   "description": "MOSS-Image studio: a sidebar workbench for local ComfyUI layout generation, with history and AI-readable drafts.",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "deepseek",
+    "plugin",
+    "comfyui",
+    "moss-image",
+    "text-to-image",
+    "layout"
+  ],
+  "homepage": "https://github.com/GrounzerLiu/dsh-moss-studio#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GrounzerLiu/dsh-moss-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GrounzerLiu/dsh-moss-studio/issues"
+  },
+  "author": "GrounzerLiu",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "index.js",
   "exports": {
     ".": "./index.js",

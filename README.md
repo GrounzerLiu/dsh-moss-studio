@@ -31,15 +31,23 @@ done
 
 ## 安装
 
-插件目录必须在 profile 之外时也能解析自己的依赖（`ws`、`@deepseek-ai/schemastery`），所以二选一：
+已发布到 npm，包名 `dsh-moss-studio`。
 
-**用打好的包**（依赖自动装好）：
+**1. 从 npm 安装（推荐）**
+
+用宿主的插件安装入口（本仓库对应 `plugin_manager` 的 `install_bundle`），目标填包名即可；要固定版本就写成 `dsh-moss-studio@0.8.3`。
+
+装完把 `dsh-moss-studio` 加进 profile 的 `dsh.profile.bundles`，然后重启应用。包里的 `dsh.bundle.patch`、`dsh.client.inject`、`dsh.engines.dsh` 会被宿主读取，不需要手工配插槽。
+
+**2. 从离线包安装**（内网、或不想连 registry）
 
 ```bash
-dsh plugin add ./dsh-moss-studio-0.8.3.tgz
+npm i ./dsh-moss-studio-0.8.3.tgz      # 在 profile 目录下执行
 ```
 
-**挂源码**（改代码即时生效，适合开发）：
+再把 `dsh-moss-studio` 加进 `dsh.profile.bundles`，重启。
+
+**3. 挂源码**（改代码即时生效，适合开发）
 
 1. profile 的依赖里加 `"dsh-moss-studio": "link:D:/dsh-plugins/dsh-moss-studio"`，`dsh.profile.bundles` 里加 `dsh-moss-studio`；
 2. 在插件目录先跑一次 `npm install`；
@@ -140,7 +148,11 @@ HTTP 面挂在 `/plugins/dsh-moss-studio` 下（同源访问）：`/state`、`/d
 
 ## 开发
 
+npm 包里只带运行时文件（`client.js` 是构建产物），改代码要从仓库拿源码：
+
 ```bash
+git clone https://github.com/GrounzerLiu/dsh-moss-studio.git
+cd dsh-moss-studio
 npm install
 node scripts/build-client.mjs   # 生成 client.js
 node --test test/               # 207 项

@@ -31,15 +31,27 @@ Measured on this machine (RTX 5060 Laptop, 8 GB VRAM, 16 GB RAM): 512×512 at 6 
 
 ## Install
 
-The plugin directory must be able to resolve its own dependencies (`ws`, `@deepseek-ai/schemastery`) even though it lives outside the profile. Pick one:
+Published on npm as `dsh-moss-studio`.
 
-**From the built tarball** (dependencies resolved automatically):
+**1. From npm (recommended)**
+
+Use the host's plugin installation entry (in this repository, `plugin_manager`'s
+`install_bundle`) and give it the package name; pin a version with
+`dsh-moss-studio@0.8.3`.
+
+Then add `dsh-moss-studio` to the profile's `dsh.profile.bundles` and restart the
+app. The `dsh.bundle.patch`, `dsh.client.inject` and `dsh.engines.dsh` fields are
+read by the host, so no slot wiring is done by hand.
+
+**2. From an offline tarball** (air-gapped, or no registry access)
 
 ```bash
-dsh plugin add ./dsh-moss-studio-0.8.3.tgz
+npm i ./dsh-moss-studio-0.8.3.tgz      # run inside the profile directory
 ```
 
-**From a source checkout** (edits apply after a restart; for development):
+Then add `dsh-moss-studio` to `dsh.profile.bundles` and restart.
+
+**3. From a source checkout** (edits apply after a restart; for development)
 
 1. Add `"dsh-moss-studio": "link:D:/dsh-plugins/dsh-moss-studio"` to the profile's dependencies and `dsh-moss-studio` to `dsh.profile.bundles`;
 2. Run `npm install` once inside the plugin directory;
@@ -140,7 +152,12 @@ The HTTP surface lives under `/plugins/dsh-moss-studio` (same origin): `/state`,
 
 ## Development
 
+The npm package ships runtime files only (`client.js` is a build artifact); clone
+the repository to change anything:
+
 ```bash
+git clone https://github.com/GrounzerLiu/dsh-moss-studio.git
+cd dsh-moss-studio
 npm install
 node scripts/build-client.mjs   # emit client.js
 node --test test/               # 207 tests

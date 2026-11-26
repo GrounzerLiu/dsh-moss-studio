@@ -2,17 +2,22 @@
 
 ## 0.8.3
 
-Documentation rewrite. No behaviour changes.
+Documentation rewrite and npm packaging. No behaviour changes.
 
+- `private` removed, MIT `LICENSE` added, and the usual npm metadata
+  (`repository`, `homepage`, `bugs`, `keywords`, `author`, `publishConfig`)
+  filled in, so the package can be published and renders a complete npm page.
+- Install instructions now lead with npm (`dsh-moss-studio`, host plugin entry
+  `install_bundle`), then the offline tarball, then a linked source checkout.
 - `README.md` is now Chinese by default, with `README.en.md` as the English
   edition; both link to each other and ship in the package.
 - Requirements are stated as one condition instead of a node-by-node list: a
   ComfyUI that can run the official "MOSS-Image: 版式控制生图" template
   (`image_moss_image_t2i_bboxes.json`) already has the nodes and models the
-  plugin submits. The Base variant uses different node ids and does not match.
-- Added the two install paths (tarball, linked checkout), the full config table
-  with validation ranges, the data layout, the HTTP surface and the tool table
-  including `cancel`.
+  plugin submits. The Base variant (`image_moss_image_base_t2i_bboxes.json`)
+  uses different node ids and does not match.
+- Added the full config table with validation ranges, the data layout, the HTTP
+  surface and the tool table including `cancel`.
 
 ## 0.8.2
 
