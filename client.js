@@ -78,6 +78,7 @@ var ZH = {
   "error.flag": "\u6807\u8BB0\u5931\u8D25\uFF08{status}\uFF09",
   "error.generateRequest": "\u751F\u6210\u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
   "error.cancelGeneration": "\u53D6\u6D88\u751F\u6210\u5931\u8D25\uFF08{status}\uFF09",
+  "error.cancelSession": "\u8FD9\u6761\u4EFB\u52A1\u5C5E\u4E8E\u522B\u7684\u4F1A\u8BDD\uFF0C\u4E0D\u80FD\u5728\u8FD9\u91CC\u53D6\u6D88",
   "error.generation": "\u751F\u6210\u5931\u8D25",
   "error.healthRequest": "health \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
   "error.read": "\u8BFB\u53D6\u5931\u8D25\uFF1A{error}",
@@ -89,14 +90,11 @@ var ZH = {
   "error.stateRequest": "state \u8BF7\u6C42\u5931\u8D25\uFF08{status}\uFF09",
   "generate.currentSeed": "\u7528\u5F53\u524D seed \u751F\u6210",
   "generate.cancel": "\u53D6\u6D88\u751F\u6210",
-  "generate.otherSession": "\u53E6\u4E00\u4F1A\u8BDD\u6B63\u5728\u751F\u6210",
   "generate.pending": "\u6B63\u5728\u751F\u6210\u2026\uFF08{id}\uFF09",
   "generate.percent": "\u751F\u6210 {percent}% \xB7 {step}/{maxStep} \u6B65",
   "generate.progressLabel": "\u751F\u6210\u8FDB\u5EA6",
   "generate.queuePosition": "\u961F\u5217\u7B2C {position} \u4F4D \xB7 \u5171 {pending} \u4E2A",
-  "generate.queued": "\u961F\u5217\u4E2D \xB7 {id}",
   "generate.random": "\u968F\u673A seed \u751F\u6210",
-  "generate.running": "\u751F\u6210\u4E2D {seconds}s",
   "history.deleteBlockedRunning": "\u8FD9\u6761\u8BB0\u5F55\u8FD8\u5728\u751F\u6210\uFF0C\u7B49\u5B83\u7ED3\u675F\u518D\u5220",
   "history.deleteWhileRunning": "\u751F\u6210\u4E2D\uFF0C\u7ED3\u675F\u540E\u624D\u80FD\u5220\u9664",
   "history.boxCount": "{count} \u6846",
@@ -146,7 +144,6 @@ var ZH = {
   "phase.queued": "\u6392\u961F\u4E2D",
   "phase.running": "\u8FD0\u884C\u4E2D",
   "phase.submit": "\u63D0\u4EA4",
-  "phase.wait": "\u6392\u961F",
   "preview.collapse": "\u6298\u53E0\u9884\u89C8",
   "preview.boxes": "\u5E03\u5C40\u6846 {count}",
   "preview.empty": "\u65E0\u6846\uFF1A\u6574\u5E45\u81EA\u7531\u6784\u56FE",
@@ -313,6 +310,7 @@ var EN = {
   "error.flag": "Could not update the flag ({status})",
   "error.generateRequest": "The generate request failed ({status})",
   "error.cancelGeneration": "Failed to cancel generation ({status})",
+  "error.cancelSession": "That job belongs to another session and cannot be cancelled here",
   "error.generation": "Generation failed",
   "error.healthRequest": "health request failed ({status})",
   "error.read": "Failed to load: {error}",
@@ -324,14 +322,11 @@ var EN = {
   "error.stateRequest": "state request failed ({status})",
   "generate.currentSeed": "Generate with the current seed",
   "generate.cancel": "Cancel generation",
-  "generate.otherSession": "Another session is generating",
   "generate.pending": "Generating\u2026 ({id})",
   "generate.percent": "Generating {percent}% \xB7 step {step}/{maxStep}",
   "generate.progressLabel": "Generation progress",
   "generate.queuePosition": "Queue position {position} \xB7 {pending} total",
-  "generate.queued": "Queued \xB7 {id}",
   "generate.random": "Generate with a random seed",
-  "generate.running": "Generating {seconds}s",
   "history.deleteBlockedRunning": "This record is still generating; delete it after it finishes",
   "history.deleteWhileRunning": "Generating; delete it once it finishes",
   "history.boxCount": "{count} boxes",
@@ -381,7 +376,6 @@ var EN = {
   "phase.queued": "Queued",
   "phase.running": "Running",
   "phase.submit": "Submitting",
-  "phase.wait": "Queued",
   "preview.collapse": "Collapse preview",
   "preview.boxes": "{count} boxes",
   "preview.empty": "No boxes: a free full-frame composition",
@@ -8376,7 +8370,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
   const [imageBroken, setImageBroken] = (0, import_react15.useState)(false);
   paramsRef.current = params;
   const applyGenerationSnapshot = (0, import_react15.useCallback)((snapshot) => {
-    const version = Number.isFinite(snapshot?.version) ? snapshot.version : 0;
+    const version = Number.isFinite(snapshot?.generationVersion) ? snapshot.generationVersion : Number.isFinite(snapshot?.version) ? snapshot.version : 0;
     if (version < generationVersionRef.current) return false;
     generationVersionRef.current = version;
     setGenerations(Object.fromEntries((snapshot.generations ?? []).map((entry) => [entry.recordId, entry])));
@@ -8463,6 +8457,18 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         try {
           payload = JSON.parse(event.data);
         } catch {
+        }
+        if (payload?.kind === "progress" && payload.ended === true && typeof payload.recordId === "string") {
+          const version = Number.isFinite(payload.version) ? payload.version : 0;
+          if (version >= generationVersionRef.current) {
+            generationVersionRef.current = version;
+            setGenerations((current) => {
+              if (current[payload.recordId] === void 0) return current;
+              const next = { ...current };
+              delete next[payload.recordId];
+              return next;
+            });
+          }
         }
         if (payload?.kind === "progress" && typeof payload.phase === "string") {
           if (typeof payload.recordId === "string" && payload.recordId !== "") {
@@ -8746,7 +8752,6 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       return;
     }
     setError("");
-    setNotice(t("notice.generationSubmitted"));
     try {
       const saved = await flushAll();
       if (!saved) return;
@@ -8754,8 +8759,11 @@ function StudioPanel({ sessionId = "global", wide = false }) {
       if (status === 409 && body !== null) {
         revisionRef.current = body.revision;
         setRevision(body.revision);
-        setParams(body.params);
-        dirtyRef.current = false;
+        conflictParamsRef.current = body.params ?? null;
+        latestServerRef.current = { revision: body.revision, params: body.params };
+        dirtyRef.current = true;
+        conflictRef.current = true;
+        setConflict(true);
         setNotice(t("notice.draftChanged"));
         return;
       }
@@ -8763,6 +8771,7 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         setError(body?.message ?? t("error.generateRequest", { status }));
         return;
       }
+      setNotice(t("notice.generationSubmitted"));
       if (typeof body.recordId === "string") {
         if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion);
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: "queued", elapsed: 0 } }));
@@ -8777,7 +8786,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
     try {
       const { status, body } = await cancelGeneration(sessionId, recordId);
       if (status !== 200) {
-        setError(body?.message ?? t("error.cancelGeneration", { status }));
+        setError(body?.reason === "session" ? t("error.cancelSession") : body?.message ?? t("error.cancelGeneration", { status }));
+        if (body?.reason === "missing") void refresh();
         return;
       }
       setNotice(t("notice.generationCancelling"));
@@ -9092,6 +9102,8 @@ function StudioPanel({ sessionId = "global", wide = false }) {
         {
           record,
           active: record.id === activeRecordId,
+          progress: generations[record.id],
+          onCancel: cancelJob,
           onSelect: (id) => void selectRecord(id),
           onDelete: (id) => selectForDelete(id),
           onPin: (row4) => void toggleFlag(row4, { pinned: !row4.pinned }),

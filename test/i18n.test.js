@@ -53,7 +53,7 @@ test('attaching registers the namespace and translates through the service', () 
   const detach = attachLocale(locale)
   try {
     assert.equal(t('action.delete'), 'Delete')
-    assert.equal(t('generate.running', { seconds: 4 }), 'Generating 4s')
+    assert.equal(t('generate.queuePosition', { position: 2, pending: 3 }), 'Queue position 2 · 3 total')
     assert.equal(currentLocale(), 'en')
     assert.equal(getRevision(), 1, 'registration published one revision')
 

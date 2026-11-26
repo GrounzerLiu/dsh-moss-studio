@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { StudioStore, DEFAULT_PARAMS, sanitizeParams, sessionKey } from '../lib/storage.js'
+import { StudioStore, DEFAULT_PARAMS, sanitizeParams, sessionKey, recordStamp } from '../lib/storage.js'
 
 async function withStore(run) {
   const root = await mkdtemp(join(tmpdir(), 'moss-studio-'))
@@ -176,6 +176,33 @@ test('records are listed newest first and can be finished and deleted', async ()
     await store.deleteRecord(second.id)
     assert.equal((await store.listRecords({ limit: 10 })).length, 1)
     await assert.rejects(() => store.record(second.id), /does not exist/)
+  })
+})
+
+test('records left running by a previous host are marked interrupted', async () => {
+  await withStore(async (store) => {
+    const stalled = await store.createRecord({ sessionId: 's1', params: { prompt: 'x' } })
+    await new Promise((resolve) => setTimeout(resolve, 5))
+    const done = await store.createRecord({ sessionId: 's1', params: { prompt: 'y' } })
+    await store.finishRecord(done.id, { status: 'done' })
+
+    const { recovered } = await store.recoverRunning()
+    assert.equal(recovered, 1)
+    const record = await store.record(stalled.id)
+    assert.equal(record.status, 'failed')
+    assert.equal(record.error.message, '宿主重启，任务中断')
+    assert.equal((await store.record(done.id)).status, 'done', 'finished records are left alone')
+    assert.equal((await store.recoverRunning()).recovered, 0, 'recovery is idempotent')
+  })
+})
+
+test('recovery leaves records created after the activation instant alone', async () => {
+  await withStore(async (store) => {
+    const before = recordStamp()
+    await new Promise((resolve) => setTimeout(resolve, 5))
+    const fresh = await store.createRecord({ sessionId: 's1', params: { prompt: 'live' } })
+    assert.equal((await store.recoverRunning(undefined, { before })).recovered, 0)
+    assert.equal((await store.record(fresh.id)).status, 'running')
   })
 })
 

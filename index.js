@@ -13,7 +13,7 @@ import { probe } from './lib/comfy.js'
 import { runGeneration } from './lib/engine.js'
 import { ROUTE_PREFIX, studioRoutes } from './lib/routes.js'
 import { readSettingsPatch, settingsState, normalizeComfyUrl, normalizeRetention, RETENTION_MAX } from './lib/settings.js'
-import { DEFAULT_NEGATIVE, DEFAULT_PARAMS, StudioError, StudioStore, defaultDataRoot } from './lib/storage.js'
+import { DEFAULT_NEGATIVE, DEFAULT_PARAMS, StudioError, StudioStore, defaultDataRoot, recordStamp } from './lib/storage.js'
 import { studioTools } from './lib/tools.js'
 import { parseSize } from './lib/workflow.js'
 
@@ -242,7 +242,9 @@ export function apply(ctx, rawConfig) {
   }
 
   const jobs = new Map()
-  let generationVersion = 0
+  // Seeded from the clock, not 0: a panel keeps its last seen version across a
+  // host restart, so a fresh instance starting at 1 would look stale to it.
+  let generationVersion = Date.now()
   const busy = () => jobs.size > 0
   /** Legacy single-job fields remain for older clients; new clients use generations. */
   const firstJob = () => jobs.values().next().value ?? null
@@ -254,16 +256,29 @@ export function apply(ctx, rawConfig) {
     generations: [...jobs.values()].map((job) => ({ ...job.progress, recordId: job.recordId, sessionId: job.sessionId })),
   })
 
+  /**
+   * Take one job out of the live table and tell listeners it is gone.
+   *
+   * The record is written afterwards, so the "ended" frame always precedes the
+   * record's own update; otherwise the panel could see a finished record while
+   * its progress entry still existed and briefly offer a cancel button for it.
+   */
+  function endJob(job, source) {
+    if (job === undefined) return
+    if (jobs.delete(job.recordId)) generationVersion += 1
+    store.emit({ kind: 'progress', recordId: job.recordId, sessionId: job.sessionId, ended: true, source, version: generationVersion })
+  }
+
   /** Abort only the generation owned by this session/record. */
   function cancelGeneration({ sessionId, recordId } = {}) {
-    if (typeof recordId !== 'string' || recordId === '') return false
+    if (typeof recordId !== 'string' || recordId === '') return { ok: false, reason: 'invalid' }
     const job = jobs.get(recordId)
-    if (job === undefined) return false
-    if (typeof sessionId === 'string' && sessionId !== job.sessionId) return false
+    if (job === undefined) return { ok: false, reason: 'missing' }
+    if (typeof sessionId === 'string' && sessionId !== '' && sessionId !== job.sessionId) return { ok: false, reason: 'session' }
     const error = new Error('已取消')
     error.name = 'AbortError'
     job.controller.abort(error)
-    return true
+    return { ok: true }
   }
 
   /** Run one generation and persist it as a record. Shared by tools and routes. */
@@ -296,6 +311,10 @@ export function apply(ctx, rawConfig) {
           store.emit({ kind: 'progress', recordId: record.id, sessionId, ...progress, source, version: generationVersion })
         },
       })
+
+      // The live job ends here: the rest is bookkeeping (attachments, record
+      // write, pruning) which the panel does not need a cancel button for.
+      endJob(job, source)
 
       const attachments = ctx.get('attachments')
       const imageRefs = []
@@ -363,21 +382,29 @@ export function apply(ctx, rawConfig) {
       throw error
     } finally {
       signal?.removeEventListener?.('abort', forwardAbort)
-      if (job !== undefined) {
-        jobs.delete(job.recordId)
-        generationVersion += 1
-      }
+      // The success path already ended the job before writing the record, so this
+      // only fires for failures (and is a no-op after a successful endJob).
+      endJob(job, source)
     }
   }
 
   ctx.effect(() => {
-    void store.ensure().catch((error) => {
-      ctx.logger?.warn?.(`moss-studio: 无法创建数据目录 ${config.dataDir}: ${error instanceof Error ? error.message : String(error)}`)
-    })
+    const activatedAt = recordStamp()
+    void (async () => {
+      try {
+        await store.ensure()
+        // Nothing is running at activation time, so a `running` record that
+        // predates it belongs to a previous process that never finished it.
+        const { recovered } = await store.recoverRunning(undefined, { before: activatedAt })
+        if (recovered > 0) ctx.logger?.info?.(`moss-studio: ${recovered} 条未完成的生成已标记为中断`)
+      } catch (error) {
+        ctx.logger?.warn?.(`moss-studio: 无法初始化数据目录 ${config.dataDir}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    })()
     return () => {}
   }, 'moss-studio: data directory')
 
-  for (const definition of studioTools({ store, template, settings: () => config, generate })) {
+  for (const definition of studioTools({ store, template, settings: () => config, generate, cancelGeneration, generationSnapshot })) {
     ctx.effect(() => ctx.tools.register(definition), `moss-studio: tool ${definition.name}`)
   }
 

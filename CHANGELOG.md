@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.8.2
+
+Repairs from the 0.8.1 review.
+
+**Progress survives a dropped connection**
+
+- The shared websocket hub now reconnects with the same client id on a backoff
+  ladder (250 ms up to 4 s). ComfyUI keeps the prompt's owning client id, so an
+  in-flight job resumes streaming instead of sitting at "排队中" until the plugin
+  reloads. Measured before the fix: after a drop, zero live sockets and zero
+  events for new jobs; after it: a live socket within 400 ms and progress again.
+
+**Job lifecycle no longer races the record**
+
+- A finished job leaves the live table before the record is written, and an
+  `ended` frame tells the panel to drop its progress entry. Previously the record
+  event arrived first, so a completed result briefly showed a progress bar and a
+  cancel button.
+- `generationVersion` starts from the clock instead of 0, so a panel that stayed
+  open across a host restart does not treat every fresh snapshot as stale.
+- Snapshots are read from `generationVersion` as well as `version`. Before this,
+  the guard compared against 0 for `/state` and `/health`, which let an empty
+  response win over a newer live value.
+
+**Interrupted records are no longer a dead end**
+
+- At activation, `running` records older than the activation instant are marked
+  failed with "宿主重启，任务中断". They had no progress, hence no cancel button,
+  and deletion refused them as still generating.
+
+**Generating says what actually happened**
+
+- "已提交生成" is set only after a 202; a pending conflict or a failed save no
+  longer leaves that claim on screen while nothing was queued.
+- A 409 from `/generate` keeps the local edits and opens the same conflict
+  banner as autosave instead of silently adopting the server draft.
+
+**Tools can see and stop jobs**
+
+- `moss_studio_state` returns `generations`, so an agent can read live progress.
+- `moss_studio_history` gains `cancel`.
+- Cancelling answers 404 for a job that is gone and 409 for another session, so
+  the panel refreshes instead of reporting a permission error.
+
+**Smaller fixes**
+
+- Queue wait no longer consumes the generation timeout until a hard cap of four
+  times the limit.
+- Records store the session id as given rather than its filesystem key, so the
+  "本会话" filter matches for ids that need escaping.
+- The zero-height history fallback passes progress and cancel like the virtual
+  list does.
+- Unused copy removed; a pre-record generation failure no longer reports itself
+  twice (SSE and a 500 body).
+
+Regression coverage grew from 196 to 207 tests. Verified against a live ComfyUI
+0.46.2: progress reached 33% at step 2/6, then a cancel produced `ABORTED`
+("已取消") and left the queue empty.
+
 ## 0.8.1
 
 Fix flickering queue status and cancel controls under concurrent refreshes.

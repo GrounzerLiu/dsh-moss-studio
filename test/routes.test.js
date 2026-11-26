@@ -389,6 +389,30 @@ test('generate cancellation is scoped to the requested session and record', asyn
   assert.deepEqual(calls, [{ sessionId: 's1', recordId: 'rec-1' }])
 })
 
+test('cancelling answers 404 for a job that is gone and 409 for another session', async () => {
+  await harness(async ({ call }) => {
+    const missing = await call({
+      method: 'POST',
+      url: '/plugins/dsh-moss-studio/generate/cancel',
+      body: { sessionId: 's1', recordId: 'rec-gone' },
+    })
+    assert.equal(missing.out.status, 404)
+    assert.equal(missing.body.reason, 'missing')
+
+    const foreign = await call({
+      method: 'POST',
+      url: '/plugins/dsh-moss-studio/generate/cancel',
+      body: { sessionId: 's1', recordId: 'rec-1' },
+    })
+    assert.equal(foreign.out.status, 409)
+    assert.equal(foreign.body.reason, 'session')
+  }, {
+    cancelGeneration: ({ recordId }) => (recordId === 'rec-1'
+      ? { ok: false, reason: 'session' }
+      : { ok: false, reason: 'missing' }),
+  })
+})
+
 test('a session-scoped stream keeps errors private but progress global for history', async () => {
   await harness(async ({ stream, store }) => {
     const res = await stream({ sessionId: 's1' })

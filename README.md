@@ -40,12 +40,18 @@ ComfyUI progress events. The plugin lives outside the profile tree, where bare
   (geometry protected, content editable) or hidden (kept in the draft, left out
   of generation, snapping and group moves).
 - Live generation progress: sampler percentage/step count from ComfyUI's
-  websocket and exact queue position from `/queue`, with graceful fallback.
+  websocket and exact queue position from `/queue`, with graceful fallback. The
+  websocket reconnects on its own, so a dropped stream resumes for jobs already
+  running instead of leaving them at "queued".
 - Custom sizes: type width and height (multiples of 16, 0.25–4 MP) or pick a preset.
 - Result pane with load / retry / delete / download; download names carry a prompt slice.
 - Repeated generate clicks queue independent records; live percentage, step count
   and queue position appear on the matching history row or result, with per-record
   cancellation.
+- Records left `running` by a previous host are reported as interrupted on the
+  next start, so they can be deleted instead of blocking forever.
+- Agent tools read live progress (`moss_studio_state`) and can cancel a job
+  (`moss_studio_history` with `action: cancel`).
 - Image viewer with prev/next, wheel zoom, drag pan and keyboard arrows.
 - Status strip: ComfyUI health (click the pill to re-probe), VRAM and RAM, draft scope, revision.
 - Settings dialog: the ComfyUI address is a volatile config field, so a new address applies to the next generation without a restart.

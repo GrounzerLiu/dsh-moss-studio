@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { once } from 'node:events'
 
 import { WebSocketServer } from 'ws'
-import { fetchQueuePosition, openProgressSocket, parseProgressMessage, progressSocketUrl, acquireProgressHub, releaseProgressHub } from '../lib/comfy.js'
+import { fetchQueuePosition, openProgressSocket, parseProgressMessage, progressSocketUrl, acquireProgressHub, releaseProgressHub, queuedDeadline } from '../lib/comfy.js'
 
 test('progress websocket URLs preserve reverse-proxy paths and switch protocol', () => {
   assert.equal(
@@ -100,6 +100,52 @@ test('a shared progress hub routes multiple prompt ids through one websocket', a
   assert.equal(first[0]?.percent, 20)
   assert.equal(second[0]?.promptId, 'p2')
   assert.equal(second[0]?.percent, 70)
+})
+
+test('a dropped progress socket reconnects and resumes events for in-flight prompts', async (t) => {
+  const server = new WebSocketServer({ host: '127.0.0.1', port: 0 })
+  await once(server, 'listening')
+  const sockets = []
+  const clientIds = []
+  server.on('connection', (socket, request) => {
+    sockets.push(socket)
+    clientIds.push(new URL(request.url, 'http://127.0.0.1').searchParams.get('clientId'))
+  })
+  const baseUrl = `http://127.0.0.1:${server.address().port}`
+  const hub = acquireProgressHub(baseUrl)
+  t.after(() => {
+    releaseProgressHub(baseUrl, hub)
+    for (const socket of sockets) socket.terminate()
+    server.close()
+  })
+  assert.equal(await hub.ready, true)
+  assert.equal(hub.online(), true)
+  const seen = []
+  hub.subscribe('p1', (patch) => seen.push(patch))
+  assert.equal(sockets.length, 1)
+
+  // ComfyUI drops the websocket while a prompt is still running.
+  sockets[0].terminate()
+  for (let attempt = 0; attempt < 80 && sockets.length < 2; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+  assert.equal(sockets.length, 2, 'the hub reconnects without waiting for a new job')
+  assert.equal(clientIds[1], clientIds[0], 'the same client id keeps in-flight prompts streaming')
+  assert.equal(hub.online(), true)
+
+  sockets[1].send(JSON.stringify({ type: 'progress', data: { prompt_id: 'p1', max: 10, value: 6, node: '18' } }))
+  for (let attempt = 0; attempt < 50 && seen.length === 0; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  assert.equal(seen[0]?.percent, 60)
+})
+
+test('queue time does not consume the generation timeout until the hard cap', () => {
+  const hard = 10_000
+  assert.equal(queuedDeadline(1000, 4000, 600, hard, 'queued'), 4600, 'a pending prompt slides the deadline')
+  assert.equal(queuedDeadline(1000, 4000, 600, hard, 'running'), 1000, 'a running prompt keeps the deadline')
+  assert.equal(queuedDeadline(9000, 9800, 600, hard, 'queued'), hard, 'the hard cap stops an endless queue')
+  assert.equal(queuedDeadline(1000, 4000, 600, hard, undefined), 1000)
 })
 
 test('queue lookup is best effort when an older server has no queue route', async (t) => {

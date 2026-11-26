@@ -35,6 +35,16 @@ function request(method, url, body) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** Poll a condition: the full suite runs files in parallel, so fixed sleeps race. */
+async function until(check, timeoutMs = 4000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (await check()) return true
+    await wait(20)
+  }
+  return check()
+}
+
 test('host cancellation interrupts the submitted ComfyUI job and releases the pipeline', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'moss-host-cancel-'))
   let remoteActive = false
@@ -96,8 +106,7 @@ test('host cancellation interrupts the submitted ComfyUI job and releases the pi
     assert.equal(started.out.status, 202)
     assert.equal(typeof started.body.recordId, 'string')
     recordId = started.body.recordId
-    await wait(80)
-    assert.equal(remoteActive, true, 'the fake ComfyUI job is running')
+    assert.ok(await until(() => remoteActive === true), 'the fake ComfyUI job is running')
 
     const wrongSession = await call('POST', '/plugins/dsh-moss-studio/generate/cancel', {
       sessionId: 'other', recordId,
@@ -112,12 +121,12 @@ test('host cancellation interrupts the submitted ComfyUI job and releases the pi
     assert.equal(cancelled.body.cancelled, true)
 
     let state
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      await wait(30)
+    const settled = await until(async () => {
       state = await call('GET', `/plugins/dsh-moss-studio/state?sessionId=s1`)
-      const record = state.body.records.find((entry) => entry.id === recordId)
-      if (record?.status === 'failed') break
-    }
+      const entry = state.body.records.find((item) => item.id === recordId)
+      return entry?.status === 'failed'
+    })
+    assert.ok(settled, 'the cancelled record is marked failed')
     const record = state.body.records.find((entry) => entry.id === recordId)
     assert.equal(record?.status, 'failed')
     assert.equal(record?.error?.message, '已取消')

@@ -93,6 +93,7 @@ test('host accepts concurrent submissions and cancels only the requested record'
   }
 
   const recordIds = []
+  let startedVersion = 0
   try {
     for (const prompt of ['first', 'second']) {
       const started = await call('POST', '/plugins/dsh-moss-studio/generate', {
@@ -102,6 +103,7 @@ test('host accepts concurrent submissions and cancels only the requested record'
       recordIds.push(started.body.recordId)
     }
     assert.notEqual(recordIds[0], recordIds[1])
+    startedVersion = (await call('GET', '/plugins/dsh-moss-studio/health')).body.generationVersion
     await wait(100)
     assert.equal(active.size, 2, 'both prompts are submitted to ComfyUI')
 
@@ -114,11 +116,17 @@ test('host accepts concurrent submissions and cancels only the requested record'
     await wait(80)
     assert.equal(active.size, 1, 'the other prompt keeps running')
 
+    // The cancelled job left the live table: a second attempt is a 404, not a
+    // permission error, so the panel can refresh instead of complaining.
+    const again = await call('POST', '/plugins/dsh-moss-studio/generate/cancel', { sessionId: 's1', recordId: recordIds[0] })
+    assert.equal(again.out.status, 404)
+    assert.equal(again.body.reason, 'missing')
+
     const health = await call('GET', '/plugins/dsh-moss-studio/health')
     assert.equal(health.body.busy, true)
     assert.deepEqual(health.body.generations.map((entry) => entry.recordId), [recordIds[1]])
     assert.ok(Number.isInteger(health.body.generationVersion))
-    assert.ok(health.body.generationVersion >= 3, 'job creation, progress and removal advance the snapshot version')
+    assert.ok(health.body.generationVersion > startedVersion, 'job creation, progress and removal advance the version')
   } finally {
     for (const recordId of recordIds) await call('POST', '/plugins/dsh-moss-studio/generate/cancel', { sessionId: 's1', recordId })
     await new Promise((resolve) => server.close(resolve))

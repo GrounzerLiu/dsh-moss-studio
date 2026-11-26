@@ -17,15 +17,27 @@ async function harness(run) {
   const store = new StudioStore({ root })
   await store.ensure()
   const calls = []
+  const cancelled = []
   const generate = async ({ sessionId, params }) => {
     calls.push({ sessionId, params })
     return { recordId: 'rec-1', width: 512, height: 512, seed: 7, seconds: 1.2, paths: [], images: [] }
   }
+  const jobs = [{ recordId: 'rec-live', sessionId: 's1', phase: 'running', percent: 40, step: 4, maxStep: 10 }]
   const tools = Object.fromEntries(
-    studioTools({ store, template: async () => ({}), settings: () => ({}), generate }).map((tool) => [tool.name, tool]),
+    studioTools({
+      store,
+      template: async () => ({}),
+      settings: () => ({}),
+      generate,
+      cancelGeneration: ({ sessionId, recordId }) => {
+        cancelled.push({ sessionId, recordId })
+        return recordId === 'rec-live' ? { ok: true } : { ok: false, reason: 'missing' }
+      },
+      generationSnapshot: () => ({ version: 7, generations: jobs }),
+    }).map((tool) => [tool.name, tool]),
   )
   try {
-    await run({ store, tools, calls })
+    await run({ store, tools, calls, cancelled })
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -199,6 +211,30 @@ test('tool output schemas are valid JSON Schema objects', async () => {
     }
   })
 })
+test('state reports running jobs so an agent can see progress', async () => {
+  await harness(async ({ tools }) => {
+    const value = await tools.moss_studio_state.execute({ sessionId: 's1' }, exec())
+    assert.deepEqual(value.generations.map((job) => job.recordId), ['rec-live'])
+    assertOutput(value, tools.moss_studio_state.output.schema)
+    assert.match(tools.moss_studio_state.output.render({}, value)[0].text, /运行中: rec-live\(40%\)/)
+  })
+})
+
+test('history can cancel the running job and explains why it cannot', async () => {
+  await harness(async ({ tools, cancelled }) => {
+    const ok = await tools.moss_studio_history.execute({ action: 'cancel', recordId: 'rec-live' }, exec({ session: { id: 's1' } }))
+    assert.equal(ok.ok, true)
+    assert.equal(ok.recordId, 'rec-live')
+    assert.deepEqual(cancelled, [{ sessionId: 's1', recordId: 'rec-live' }])
+    assertOutput(ok, tools.moss_studio_history.output.schema)
+
+    const missing = await tools.moss_studio_history.execute({ action: 'cancel', recordId: 'rec-gone' }, exec())
+    assert.equal(missing.ok, false)
+    assert.match(missing.note, /没有正在运行的任务/)
+    assertOutput(missing, tools.moss_studio_history.output.schema)
+  })
+})
+
 test('history can pin and archive a record', async () => {
   await harness(async ({ tools, store }) => {
     const record = await store.createRecord({ sessionId: 's1', params: { prompt: 'x' } })

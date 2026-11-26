@@ -314,7 +314,12 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
   paramsRef.current = params
 
   const applyGenerationSnapshot = useCallback((snapshot) => {
-    const version = Number.isFinite(snapshot?.version) ? snapshot.version : 0
+    // `/state` and `/health` call it `generationVersion`; live progress frames
+    // carry `version`. Reading only one of the two left every snapshot comparing
+    // against 0, which silently let an empty one win.
+    const version = Number.isFinite(snapshot?.generationVersion)
+      ? snapshot.generationVersion
+      : Number.isFinite(snapshot?.version) ? snapshot.version : 0
     if (version < generationVersionRef.current) return false
     generationVersionRef.current = version
     setGenerations(Object.fromEntries((snapshot.generations ?? []).map((entry) => [entry.recordId, entry])))
@@ -418,6 +423,21 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         try {
           payload = JSON.parse(event.data)
         } catch { /* a heartbeat or a truncated frame */ }
+        // A job that left the live table disappears immediately; without this the
+        // panel keeps its last progress until the next poll and shows a finished
+        // record with a cancel button.
+        if (payload?.kind === 'progress' && payload.ended === true && typeof payload.recordId === 'string') {
+          const version = Number.isFinite(payload.version) ? payload.version : 0
+          if (version >= generationVersionRef.current) {
+            generationVersionRef.current = version
+            setGenerations((current) => {
+              if (current[payload.recordId] === undefined) return current
+              const next = { ...current }
+              delete next[payload.recordId]
+              return next
+            })
+          }
+        }
         if (payload?.kind === 'progress' && typeof payload.phase === 'string') {
           if (typeof payload.recordId === 'string' && payload.recordId !== '') {
             const version = Number.isFinite(payload.version) ? payload.version : 0
@@ -761,18 +781,24 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
       return
     }
     setError('')
-    setNotice(t('notice.generationSubmitted'))
     try {
       // The request body carries only a revision, so the server must see the
       // latest local fields before it can generate what the panel is showing.
       const saved = await flushAll()
+      // A pending conflict or a failed save already surfaced its own notice; saying
+      // "submitted" here would claim a job that was never sent.
       if (!saved) return
       const { status, body } = await generate(sessionId, revisionRef.current)
       if (status === 409 && body !== null) {
+        // Same contract as autosave: keep the local edits visible and let the
+        // conflict banner decide, instead of silently replacing the draft.
         revisionRef.current = body.revision
         setRevision(body.revision)
-        setParams(body.params)
-        dirtyRef.current = false
+        conflictParamsRef.current = body.params ?? null
+        latestServerRef.current = { revision: body.revision, params: body.params }
+        dirtyRef.current = true
+        conflictRef.current = true
+        setConflict(true)
         setNotice(t('notice.draftChanged'))
         return
       }
@@ -780,6 +806,7 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
         setError(body?.message ?? t('error.generateRequest', { status }))
         return
       }
+      setNotice(t('notice.generationSubmitted'))
       if (typeof body.recordId === 'string') {
         if (Number.isFinite(body.generationVersion)) generationVersionRef.current = Math.max(generationVersionRef.current, body.generationVersion)
         setGenerations((current) => ({ ...current, [body.recordId]: { recordId: body.recordId, sessionId, phase: 'queued', elapsed: 0 } }))
@@ -795,7 +822,10 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
     try {
       const { status, body } = await cancelGeneration(sessionId, recordId)
       if (status !== 200) {
-        setError(body?.message ?? t('error.cancelGeneration', { status }))
+        setError(body?.reason === 'session'
+          ? t('error.cancelSession')
+          : body?.message ?? t('error.cancelGeneration', { status }))
+        if (body?.reason === 'missing') void refresh()
         return
       }
       setNotice(t('notice.generationCancelling'))
@@ -1200,6 +1230,8 @@ export function StudioPanel({ sessionId = 'global', wide = false }) {
                     <HistoryRow
                       record={record}
                       active={record.id === activeRecordId}
+                      progress={generations[record.id]}
+                      onCancel={cancelJob}
                       onSelect={(id) => void selectRecord(id)}
                       onDelete={(id) => selectForDelete(id)}
                       onPin={(row) => void toggleFlag(row, { pinned: !row.pinned })}

@@ -96,8 +96,14 @@ test('the panel renders history, parameters and the result image once state arri
   }
   globalThis.ResizeObserver = dom.window.ResizeObserver
   const savedFetch = globalThis.fetch
-  globalThis.fetch = async (url) => {
+  globalThis.fetch = async (url, init = {}) => {
     const target = String(url)
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      const body = JSON.parse(init.body)
+      Object.assign(state.params, body.patch)
+      state.revision += 1
+      return new Response(JSON.stringify({ ok: true, revision: state.revision }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
     if (target.includes('/state')) {
       return new Response(JSON.stringify(state), { status: 200, headers: { 'content-type': 'application/json' } })
     }
@@ -233,7 +239,7 @@ test('the panel renders history, parameters and the result image once state arri
   await act(async () => {
     const row = container.querySelector('[role="group"][aria-label]')
     row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
-    await new Promise((resolve) => setTimeout(resolve, 40))
+    await new Promise((resolve) => setTimeout(resolve, 150))
   })
   const afterClick = [...container.querySelectorAll('textarea')].map((area) => area.value)
   assert.ok(afterClick.includes('一张海报'), 'clicking a record must not overwrite the draft prompt')
@@ -466,6 +472,41 @@ test('adopting the server draft discards local conflict edits without another sa
   assert.match(container.textContent, /已采用服务器版本/)
 })
 
+test('generating while a conflict is open says the draft changed and sends nothing', async (t) => {
+  const server = { prompt: 'AI prompt', negative: 'bad', boxes: [], size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false }
+  const puts = []
+  const generates = []
+  const { dom, container, act } = await mountPanel(t, async (url, init = {}) => {
+    const target = String(url)
+    if (target.includes('/state')) return jsonResponse(panelState(server, 2))
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: false })
+    if (target.endsWith('/draft') && init.method === 'PUT') {
+      puts.push(JSON.parse(init.body))
+      return jsonResponse({ conflict: true, revision: 2, params: server }, 409)
+    }
+    if (target.endsWith('/generate') && init.method === 'POST') {
+      generates.push(JSON.parse(init.body))
+      return jsonResponse({ ok: true, recordId: 'rec-1' }, 202)
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  })
+
+  await inputValue(dom, act, container.querySelector('textarea'), 'local prompt')
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)) })
+  assert.equal(puts.length, 1, 'autosave hit the conflict')
+
+  const generate = [...container.querySelectorAll('button')].find((node) => node.textContent.includes('用当前 seed 生成'))
+  await act(async () => {
+    generate.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 120))
+  })
+
+  assert.equal(generates.length, 0, 'no job is submitted while the draft is unresolved')
+  assert.match(container.textContent, /草稿已更新/)
+  assert.doesNotMatch(container.textContent, /已提交生成/)
+  assert.equal(container.querySelector('textarea').value, 'local prompt', 'the local edit is still visible')
+})
+
 test('cancelling the editor queues its snapshot after an in-flight save', async (t) => {
   const server = {
     prompt: 'p', negative: 'bad', size: '1024x1024', steps: 25, cfg: 2.5, seed: 42, characterBoxes: '', enhance: false,
@@ -618,11 +659,142 @@ test('stale state and health snapshots cannot clear newer live progress', async 
   assert.equal(typeof resolveHealth, 'function')
   await act(async () => {
     resolveState(jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1, generations: [] }))
-    resolveHealth(jsonResponse({ ok: true, comfy: { ok: true, version: 'x' }, busy: false, generationVersion: 1, generations: [] }))
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
   assert.match(container.textContent, /生成 40% · 10\/25 步/)
   assert.ok(container.querySelector('button[aria-label="取消生成"]'), 'the stale snapshots do not remove cancel')
+})
+
+test('the ended frame drops a finished job before the next poll arrives', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const running = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
+  let source
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const { dom, container, act } = await mountPanel(t, async (url) => {
+    const target = String(url)
+    if (target.includes('/state')) {
+      // The snapshot still describes the job, as it was taken before it ended.
+      return jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1, generations: [{ recordId: 'rec-mine', sessionId: 'sess-1', phase: 'running', percent: 40, step: 10, maxStep: 25 }] })
+    }
+    if (target.includes('/health')) return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: true, generationVersion: 1, generations: [{ recordId: 'rec-mine', sessionId: 'sess-1', phase: 'running', percent: 40 }] })
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  // The row lives in the history column, which is collapsed in the narrow layout.
+  const openHistory = container.querySelector('[aria-label^="显示历史"]')
+  await act(async () => {
+    openHistory.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 60))
+  })
+  assert.match(container.textContent, /40/, 'the running row shows live progress')
+  assert.ok(container.querySelector('button[aria-label="取消生成"]'), 'a running record offers cancel')
+
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', recordId: 'rec-mine', sessionId: 'sess-1', ended: true, version: 9 }) })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+  })
+  assert.doesNotMatch(container.textContent, /40%/)
+  assert.equal(container.querySelector('button[aria-label="取消生成"]'), null, 'the cancel button disappears with the job')
+
+  // The refresh triggered by that frame answers with the older snapshot; it must
+  // not resurrect the progress entry.
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 250)) })
+  assert.equal(container.querySelector('button[aria-label="取消生成"]'), null)
+})
+
+test('a newer state snapshot still applies after a live progress frame', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const running = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
+  let version = 1
+  let percent = null
+  let source
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const snapshot = () => (percent === null ? [] : [{ recordId: 'rec-mine', sessionId: 'sess-1', phase: 'running', percent, step: 1, maxStep: 4 }])
+  const { dom, container, act } = await mountPanel(t, async (url) => {
+    const target = String(url)
+    if (target.includes('/state')) {
+      return jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: version, generations: snapshot() })
+    }
+    if (target.includes('/health')) {
+      return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: true, generationVersion: version, generations: snapshot() })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  const openHistory = container.querySelector('[aria-label^="显示历史"]')
+  await act(async () => {
+    openHistory.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 60))
+  })
+
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', recordId: 'rec-mine', sessionId: 'sess-1', phase: 'running', percent: 40, step: 1, maxStep: 4, version: 2 }) })
+  })
+  assert.match(container.textContent, /40%/)
+
+  // The host moves on; the next poll carries a higher version and must win. This
+  // pins the field name: a snapshot read as version 0 would be dropped here.
+  version = 5
+  percent = 80
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'records' }) })
+    await new Promise((resolve) => setTimeout(resolve, 400))
+  })
+  assert.match(container.textContent, /80%/, 'the newer snapshot replaces the live value')
+  assert.doesNotMatch(container.textContent, /40%/)
+})
+
+test('a stale state snapshot cannot clear a newer live value', async (t) => {
+  const server = { prompt: 'p', negative: '', boxes: [], size: '512x512', steps: 1, cfg: 1, seed: 1, characterBoxes: '', enhance: false }
+  const running = { id: 'rec-mine', sessionId: 'sess-1', status: 'running', hasImage: false, prompt: 'p', size: '512x512' }
+  let source
+  let resolveState
+  let resolveHealth
+  let stateCalls = 0
+  let healthCalls = 0
+  class FakeEventSource {
+    constructor() { source = this }
+    close() {}
+  }
+  const { dom, container, act } = await mountPanel(t, async (url) => {
+    const target = String(url)
+    if (target.includes('/state')) {
+      stateCalls += 1
+      if (stateCalls > 1) return new Promise((resolve) => { resolveState = resolve })
+      return jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1 })
+
+    }
+    if (target.includes('/health')) {
+      healthCalls += 1
+      if (healthCalls > 1) return new Promise((resolve) => { resolveHealth = resolve })
+      return jsonResponse({ ok: true, comfy: { ok: true, version: 'x', gpu: {}, ramTotal: 1, ramFree: 1 }, busy: true, generationVersion: 1, generations: [] })
+    }
+    return jsonResponse({ ok: true, records: [], nextBefore: null })
+  }, { EventSource: FakeEventSource })
+
+  const openHistory = container.querySelector('[aria-label^="显示历史"]')
+  await act(async () => {
+    openHistory.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 60))
+  })
+  await act(async () => {
+    source.onmessage({ data: JSON.stringify({ kind: 'progress', recordId: 'rec-mine', sessionId: 'sess-1', phase: 'running', percent: 40, step: 1, maxStep: 4, version: 2 }) })
+  })
+  assert.match(container.textContent, /40%/)
+
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 180)) })
+  await act(async () => {
+    resolveState(jsonResponse({ ...panelState(server, 1), records: [running], generationVersion: 1, generations: [] }))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+  assert.match(container.textContent, /40%/, 'the stale snapshots are ignored')
+  assert.ok(container.querySelector('button[aria-label="取消生成"]'))
 })
 
 test('the cancel button sends the active record id and reports cancellation', async (t) => {
